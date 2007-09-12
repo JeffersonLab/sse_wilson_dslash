@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.2 2007-09-12 21:00:50 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -61,24 +61,18 @@
 extern "C" {
 #endif
 
-#ifndef DMALLOC
+
 #include <stdlib.h>
-#else
-#include <dmalloc.h>
-#endif
 #include <stdio.h>
 #include <math.h>
-/* #include <malloc.h> */
+
 #include <qmp.h>
 
 #ifdef DSLASH_USE_QMT_THREADS
 #include <qmt.h>
 #endif
 
-#if ((defined SSE)||(defined SSE2))
-
 #include <sse32.h>
-
 extern void make_shift_tables(int *shift, int icolor_start[2], int bound[2][4][4]);
 
 #define BASE 0x3f
@@ -90,47 +84,14 @@ static int subgrid_vol = 0;
 static int subgrid_vol_cb = 0;
 static int initP=0;
 
-
-/* SZIN-style decl's snarfed from su3dslash.epartsmp */
-
-#ifdef SZIN
-/*#define SPINORS_AS_ARRAYS */  /* this part doesn't work yet, maybe these 2 need to be defined externally */
-/*#define GAUGE_AS_ARRAYS */
- 
-/* note: the _up suffix in these macros means that they use xmm3-5 */
-#endif
-/* end SZIN decl's */
-
-/* note we will have to change the way we handle multidimensional arrays 
- * because they will be dynamic and not static */
-
-/* note for using array indices instead of structures, will need new types, 
- * or macro overlays especailly for sse_pair_load and fpr sse_pair_store */
-
 /* iup idn shift table overlays with packed/unpacked gauge lookerupper*/
-
-#ifdef SZIN  /* look at sse.h to see what else this implies..for now 
-	      * defining SZIN means spinors, gauge as arrays */
-
 static int *newshift;
 static int icolor_start[2];    /* starting site for each coloring (cb) */
 static int icolor_end[2];      /* end site for each coloring (cb) */
 
-#ifndef BACKWARD 
 #define BACKWARD 0
 #define FORWARD 1
-#endif
 
-
-#ifdef SZIN
-#define SZIN_SHIFT
-#define SPINORS_AS_ARRAYS
-#undef NON_TEMPORAL_STORES
-#define GAUGE_AS_ARRAYS
-#ifdef NO_U_PACK
-#undef NO_U_PACK
-#endif
-#endif
 
 /* here are the macros for the accessing the shift tables, etc...
  * iup means x + mu^, idn means x - mu^, and most of the
@@ -148,42 +109,18 @@ static int icolor_end[2];      /* end site for each coloring (cb) */
 #define a_chib(mymu,mysite) (chib+mysite+3*subgrid_vol_cb*mymu)
 
 
-#else
-#define iup(mysite,mymu) iup[mysite][mymu]
-#define idn(mysite,mymu) idn[mysite][mymu]
-#define a_chia(mymu,mysite) &chia[mymu][mysite]
-#define a_chib(mymu,mysite) &chib[mymu][mysite]
-#define mvv_shift(mysite,mymu) mysite
-#define rec_shift(mysite,mymu) mysite
-
-#endif
 
 /* here's some redefines if non_temporal storing is on...non temporal stores 
  * bypass the cache on their way to memory, 
  * resulting in less cache pollution */
 /* the non temporal prefetches just target one way of lvl2 cache..might be 
  * good to use, might not */
-#ifdef NON_TEMPORAL_STORES  
-
-#define _sse_vector_store_NTA _sse_vector_store_nta
-#define _sse_vector_store_up_NTA _sse_vector_store_up_nta
-
-#else
 
 #define _sse_vector_store_NTA _sse_vector_store
 #define _sse_vector_store_up_NTA _sse_vector_store
 
-
-#endif /* NON_TEMPORAL_STORES */
-
-#define NON_TEMPORAL_PREFETCHES
-#ifdef NON_TEMPORAL_PREFETCHES
 #define _prefetch_single_NTA _prefetch_single_nta
 #define _prefetch_spinor_NTA _prefetch_spinor_nta
-#else
-#define _prefetch_single_NTA _prefetch_single
-#define _prefetch_spinor_NTA _prefetch_spinor
-#endif
 
 /* the default is packed...that's why the statements look non-intuitive */
 /* here's how packing works
@@ -202,7 +139,6 @@ static int icolor_end[2];      /* end site for each coloring (cb) */
 /* for SZIN we use packed because we have unrolled the loops because we can take
  * advantage of the long cahce line on the P4...so pack_gauge_field in intpar_table.c
  * needs to be called */
-#ifndef NO_U_PACK  /*if gauge fields are not packed al Luescher */
   
 #define _gauge_field0_0(mysite) gauge_field[mysite][0]
 #define _gauge_field0_1(mysite) gauge_field[mysite][1] 
@@ -237,40 +173,6 @@ static int icolor_end[2];      /* end site for each coloring (cb) */
 #define a_gauge_field1_2_opp(mysite) &gauge_field_opp[mysite+1][2]
 #define a_gauge_field1_3_opp(mysite) &gauge_field_opp[mysite+1][3]
 
-#else   
-#define _gauge_field0_0(mysite) gauge_field[mysite][0]
-#define _gauge_field0_1(mysite) gauge_field[mysite+1][0]
-#define _gauge_field0_2(mysite) gauge_field[mysite][1]
-#define _gauge_field0_3(mysite) gauge_field[mysite+1][1]
-#define _gauge_field1_0(mysite) gauge_field[mysite][2]
-#define _gauge_field1_1(mysite) gauge_field[mysite+1][2]
-#define _gauge_field1_2(mysite) gauge_field[mysite][3]
-#define _gauge_field1_3(mysite) gauge_field[mysite+1][3]
-#define _gauge_field0_0_opp(mysite) gauge_field_opp[mysite][0]
-#define _gauge_field0_1_opp(mysite) gauge_field_opp[mysite+1][0]
-#define _gauge_field0_2_opp(mysite) gauge_field_opp[mysite][1]
-#define _gauge_field0_3_opp(mysite) gauge_field_opp[mysite+1][1]
-#define _gauge_field1_0_opp(mysite) gauge_field_opp[mysite][2]
-#define _gauge_field1_1_opp(mysite) gauge_field_opp[mysite+1][2] 
-#define _gauge_field1_2_opp(mysite) gauge_field_opp[mysite][3]
-#define _gauge_field1_3_opp(mysite) gauge_field_opp[mysite+1][3]
-#define a_gauge_field0_0(mysite) &gauge_field[mysite][0]
-#define a_gauge_field0_1(mysite) &gauge_field[mysite+1][0]
-#define a_gauge_field0_2(mysite) &gauge_field[mysite][1]
-#define a_gauge_field0_3(mysite) &gauge_field[mysite+1][1]
-#define a_gauge_field1_0(mysite) &gauge_field[mysite][2]
-#define a_gauge_field1_1(mysite) &gauge_field[mysite+1][2]
-#define a_gauge_field1_2(mysite) &gauge_field[mysite][3]
-#define a_gauge_field1_3(mysite) &gauge_field[mysite+1][3]
-#define a_gauge_field0_0_opp(mysite) &gauge_field_opp[mysite][0]
-#define a_gauge_field0_1_opp(mysite) &gauge_field_opp[mysite+1][0]
-#define a_gauge_field0_2_opp(mysite) &gauge_field_opp[mysite][1]
-#define a_gauge_field0_3_opp(mysite) &gauge_field_opp[mysite+1][1]
-#define a_gauge_field1_0_opp(mysite) &gauge_field_opp[mysite][2]
-#define a_gauge_field1_1_opp(mysite) &gauge_field_opp[mysite+1][2] 
-#define a_gauge_field1_2_opp(mysite) &gauge_field_opp[mysite][3]
-#define a_gauge_field1_3_opp(mysite) &gauge_field_opp[mysite+1][3]
-#endif
 
 /* now overlays for spinors as arrays or structs */
 typedef float chi_float[2];
@@ -280,7 +182,7 @@ typedef float spinor_array[4][3][2] ALIGN; /* Nspin4 color re/im */
 typedef chi_two chi_array[3]    ALIGN; /*..color Nspin2 re/im ::note:: color slowest varying */
 typedef u_mat_array (*my_mat_array)[4] ALIGN;  
 
-#ifdef SPINORS_AS_ARRAYS
+
 #define MY_SPINOR spinor_array
 #define MY_SSE_VECTOR chi_array
 #define MY_SSE_FLOAT sse_float  
@@ -290,30 +192,8 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 #define _c4__ [3]
 
 
-#else
-#define MY_SPINOR spinor
-#define MY_SSE_VECTOR sse_vector
-#define MY_SSE_FLOAT sse_float
-#define _c1__ .c1
-#define _c2__ .c2
-#define _c3__ .c3
-#define _c4__ .c4
-
-
-#endif
-/* now overlays for gauge matrices as arrays or structs */
-#ifdef GAUGE_AS_ARRAYS
-
-
-
 #define MY_GAUGE u_mat_array
 #define MY_GAUGE_ARRAY my_mat_array
-#else
-
-#define MY_GAUGE su3
-
-#endif
-
 
 
 /* end overlays */
@@ -328,9 +208,6 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
  * these macros. However, some non-chiral spin basis may need additional
  * modifications inside the dslash routine*/
 
-
-#ifndef NON_SZIN_BASIS
-/* use SZIN spin basis */
 
 /* gamma 0 */
 #define _sse_42_gamma0_minus()     _sse_vector_xch_i_sub()
@@ -365,10 +242,6 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 #define _sse_24_gamma3_minus_rows12() _sse_vector_add()
 #define _sse_24_gamma3_plus_rows12() _sse_vector_add()
 
-#else
-/* other spin basis */
-#error "only szin basis supported"
-#endif
 
 /* end spin basis section */
 
@@ -1134,11 +1007,6 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
   DECL_COMMON_ALIASES_TEMPS;
   const Arg_s *a =(Arg_s *)ptr;
   MY_SPINOR* spinor_field = a->spinfun;
-#ifndef SZIN
-  sse_vector (*chib)[VOLUME] = a->chifun;
-  sse_vector *s3, *s4;
-  su3 (*u)[4] = a->u;
-#else
   MY_SSE_VECTOR* chib = a->chifun; /* a 1-d map of a 2-d array */
   MY_GAUGE_ARRAY gauge_field = a->u;
   MY_SSE_VECTOR* s3;
@@ -1148,7 +1016,7 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
   int  low = icolor_start[cb]+(int)lo;
   int high = icolor_start[cb]+(int)hi;
 
-#endif
+
   /*  printf("\nlo:%i, hi:%i, id:%i, chib:%x", lo, hi, id, chib[0][0]);*/
 
 /************************ loop over all lattice sites *************************/
@@ -1649,14 +1517,14 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
       QMP_abort(1);
     }
 
-#if 1
+
   num = latt_size[0] / machine_size[0];
   if ( num & 1 != 0 )
   {
     QMP_error("This SSE Dslash does not work for odd x-sublattice. Here the sublattice is odd in dimension 0 with length %d\n", num);
     QMP_abort(1);
   }
-#endif
+
 
   subgrid_vol_cb = subgrid_cb_size[0];
   for(mu = 1; mu < Nd; mu++)
@@ -1664,14 +1532,14 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
     
   subgrid_vol = subgrid_vol_cb << 1;
 
-#if 1
+
   // The SSE code expects to have at least 2 sites after checkerboarding.
   if ( subgrid_vol_cb <= 1 )
   {
     QMP_error("This SSE Dslash expects there to be at least 2 subgrid sites after checkerboarding");
     QMP_abort(1);
   }
-#endif
+
 
   /* Allocated space for the floating temps */
   /* Wasteful - allocate 3 times subgrid_vol_cb. Otherwise, need to pack the TAIL{1,2} offsets */
@@ -2002,21 +1870,6 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
   }		
 }
 
-/****************whoa, stop for P4 ***********/
-
-/****************whoa, stop for P4 ***********/
-
-/********************too far down for P4 **************************************************/
-
-#else
-#warning unsupported options, use -DSZIN -DP4 -DSSE2
-
-void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb,
-		   float* xchi1, float* xchi2, int* shift)
-{
-  fprintf(stderr, "sse_su3dslash_wilson: not implemented for non-P4\n");
-}
-#endif
 
 
 #ifdef __cplusplus

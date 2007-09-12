@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_scalar.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_scalar.c,v 1.2 2007-09-12 21:00:50 bjoo Exp $
  * 
  * Action of the 64bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -27,11 +27,8 @@
 extern "C" {
 #endif
 
-#ifndef DMALLOC
+
 #include <stdlib.h>
-#else
-#include <dmalloc.h>
-#endif
 #include <stdio.h>
 #include <math.h>
 
@@ -65,41 +62,20 @@ extern "C" {
 /*  CB	      Checkerboard of input vector			(Read) */
 
 
-#if defined SSE2
-#warning "using sse64 stuff"
 #include <sse64.h>
 
-#if defined P4
-  #define BASE 0x3f
-#else
-  #define BASE 0x1f
-#endif
+
+#define BASE 0x3f
+
 
 #include <sse_align.h>
 
 /* now overlays for spinors as arrays or structs */
 
-
-#ifdef SZIN
-#define SZIN_SHIFT
-#define SPINORS_AS_ARRAYS
-#define GAUGE_AS_ARRAYS
-#define NO_U_PACK
-#endif
-
-
-#ifdef SZIN
-
 static int total_vol = 1;
 static int initP = 0;
 
 extern void make_shift_tables(int *soffsets, int icolor_start[2], const int lat_size[4]);
-
-#endif
-
-
-
-#ifdef SZIN_SHIFT  /*look at sse.h to see what else this implies..for now defining SZIN means spinors, gauge as arrays */
 
 static int *soffsets;
 static int icolor_start[2];    /* starting site for each coloring (cb) */
@@ -110,25 +86,12 @@ static int icolor_end[2];      /* end site for each coloring (cb) */
 
 /*isign = 0 => *(soffsets+mysite + global_vol_cb*2*(1-cb)+global_vol_cb*2*2*dir
   isign = 1 =>  *(soffsets+mysite + global_vol_cb*2*(1-cb)+global_vol_cb*2*2*dir+global_vol_cb) */
-#else
-
-
-#define iup(mysite,mymu) iup[mysite][mymu]
-#define idn(mysite,mymu) idn[mysite][mymu]
-
-
-#endif
-
-
 
 #define _gauge_field0_0(mysite) gauge_field[mysite][0]
 #define _gauge_field0_1(mysite) gauge_field[mysite][1]
 #define _gauge_field0_2(mysite) gauge_field[mysite][2]
 #define _gauge_field0_3(mysite) gauge_field[mysite][3]
 
-
-
- 
 /* now overlays for spinors as arrays or structs */
 typedef double chi_double[2] __attribute__ ((aligned (16)));
 typedef chi_double chi_two[2] __attribute__ ((aligned (16)));
@@ -137,7 +100,6 @@ typedef double spinor_array[4][3][2] ALIGN; /* Nspin4 color re/im */
 typedef chi_two chi_array[3]    ALIGN; /*..color Nspin2 re/im ::note:: color slowest varying */
 typedef u_mat_array (*my_mat_array)[4] ALIGN;  
 
-#ifdef SPINORS_AS_ARRAYS
 #define MY_SPINOR spinor_array
 #define MY_SSE_VECTOR chi_array
 #define MY_SSE_DOUBLE sse_double  
@@ -150,37 +112,8 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 #define rs_c3__ rs[2]
 #define rs_c4__ rs[3]
 
-#else
-#define MY_SPINOR spinor
-#define MY_SSE_VECTOR sse_vector
-#define MY_SSE_DOUBLE sse_double
-#define _c1__ .c1
-#define _c2__ .c2
-#define _c3__ .c3
-#define _c4__ .c4
-#define rs_c1__ rs.c1
-#define rs_c2__ rs.c2
-#define rs_c3__ rs.c3
-#define rs_c4__ rs.c4
-
-#endif
-
-/* now overlays for gauge matrices as arrays or structs */
-#ifdef GAUGE_AS_ARRAYS
-
-
 #define MY_GAUGE u_mat_array
 #define MY_GAUGE_ARRAY my_mat_array
-#else
-
-#define MY_GAUGE su3
-
-#endif
-
-
-
-
-#ifdef SPINORS_AS_ARRAYS
 
 #define MY_SPINOR spinor_array
 #define MY_SSE_VECTOR chi_array
@@ -190,42 +123,10 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 #define _c4__ [3]
 
 
-#else
-#warning doing .c1 overlays
-#define MY_SPINOR spinor
-#define MY_SSE_VECTOR sse_vector
-#define MY_SSE_DOUBLE sse_double
-#define _c1__ .c1
-#define _c2__ .c2
-#define _c3__ .c3
-#define _c4__ .c4
-
-#endif
-
-/* now overlays for gauge matrices as arrays or structs */
-#ifdef GAUGE_AS_ARRAYS
-
-
-
 #define MY_GAUGE u_mat_array
-
-#else
-
-#define MY_GAUGE su3
-
-#endif
-
-
-
-/* end overlays */
-
 
 /* macros for spin basis note: assume first two rows are linearly independent except for gamma3 */
 /*here we must handle individual spin components seperately because only one spin component fits in an xmm register...*/
-
-#ifndef NON_SZIN_BASIS
-/* use SZIN spin basis */
-
 
 
 /* gamma 0 */
@@ -524,13 +425,7 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
        _sse_store(rs_c4__);\
 
 
-
-
-#else
-/* other spin basis */
-
-#endif
-
+  
 /* end spin basis section */
 
 static int init=0;
@@ -1192,30 +1087,6 @@ void D_psi_fun_minus(size_t lo, size_t hi, int id, const void *ptr )
   }
 }
 
-
-
-
-#elif defined SSE
-
-#warning "missing that section - I think it is not SSE2"
-
-void tnxtsu3dslash(float *u, float *psi, float *res, int isign, int cb)
-{
-  fprintf(stderr,"tnxtsu3dslash not implemented on this platform. Check compilation flags\n");
-}
-
-
-#else
-
-#warning "missing that section - I think it is not SSE or SSE2"
-
-void tnxtsu3dslash(float *u, float *psi, float *res, int isign, int cb)
-{
-  fprintf(stderr,"tnxtsu3dslash not implemented on this platform. Check compilation flags\n");
-}
-
-
-#endif
 
 
 

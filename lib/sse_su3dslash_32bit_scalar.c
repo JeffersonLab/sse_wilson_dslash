@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_scalar.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_scalar.c,v 1.2 2007-09-12 21:00:50 bjoo Exp $
  * 
  * Action of the 32bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -26,11 +26,7 @@
 extern "C" {
 #endif
 
-#ifndef DMALLOC
 #include <stdlib.h>
-#else
-#include <dmalloc.h>
-#endif
 #include <stdio.h>
 #include <math.h>
 
@@ -77,72 +73,34 @@ extern "C" {
 /* include stuff from the Word file */
 #include <sse_align.h>
 
-	  /* Note: packed data objects must be aligned on 16-byte or more boundaries or SSE
-	  inline asm will segfault....I've found that I needed to redeclare constants such as
-	  {1,-1,1,-1} in each routine they are used in */
-
-     /* note: I align on larger multiples of 16 bytes for cache line alignment */
-#ifdef SZIN
-#define SZIN_SHIFT
-#define SPINORS_AS_ARRAYS
-#define GAUGE_AS_ARRAYS
-#define NO_U_PACK
-#endif
+  /* Note: packed data objects must be aligned on 16-byte or more boundaries or SSE
+     inline asm will segfault....I've found that I needed to redeclare constants such as
+     {1,-1,1,-1} in each routine they are used in */
+  
+  /* note: I align on larger multiples of 16 bytes for cache line alignment */
 
 
-#ifdef SZIN
+  static int total_vol = 1;
+  static int initP = 0;
 
-static int total_vol = 1;
-static int initP = 0;
-
-extern void make_shift_tables(int *soffsets, int icolor_start[2], const int lat_size[4]);
-
-#endif
-
-
-
-#ifdef SZIN_SHIFT  /*look at sse.h to see what else this implies..for now defining SZIN means spinors, gauge as arrays */
-
-static int *soffsets;
-static int icolor_start[2];    /* starting site for each coloring (cb) */
-static int icolor_end[2];      /* end site for each coloring (cb) */
-
+  extern void make_shift_tables(int *soffsets, int icolor_start[2], const int lat_size[4]);
+  
+  static int *soffsets;
+  static int icolor_start[2];    /* starting site for each coloring (cb) */
+  static int icolor_end[2];      /* end site for each coloring (cb) */
+  
 #define iup(mysite,mymu) soffsets[mymu + Nd*(mysite + total_vol*(1))]
 #define idn(mysite,mymu) soffsets[mymu + Nd*(mysite + total_vol*(0))]
 
-/*isign = 0 => *(soffsets+mysite + global_vol_cb*2*(1-cb)+global_vol_cb*2*2*dir
-  isign = 1 =>  *(soffsets+mysite + global_vol_cb*2*(1-cb)+global_vol_cb*2*2*dir+global_vol_cb) */
-#else
-
-extern int (*iup)[4] ALIGN;   
-extern int (*idn)[4] ALIGN;   
-
-#define iup(mysite,mymu) iup[mysite][mymu]
-#define idn(mysite,mymu) idn[mysite][mymu]
+  /*isign = 0 => *(soffsets+mysite + global_vol_cb*2*(1-cb)+global_vol_cb*2*2*dir
+    isign = 1 =>  *(soffsets+mysite + global_vol_cb*2*(1-cb)+global_vol_cb*2*2*dir+global_vol_cb) */
 
 
-#endif
+  /* SZIN uses the NO_U_PACK clause (referring to not interleaving adjacent sites and directions' worth of gauge fields), even though the gauge fields must be packed according to pack_gauge_field,
+     however the default was packed...that's why the statements look non-intuitive...packed will work if you use Luescher's lattice geometry and insert
+     special switches to handle the meshing in direction 3 that he has in his code  */
 
 
-/* SZIN uses the NO_U_PACK clause (referring to not interleaving adjacent sites and directions' worth of gauge fields), even though the gauge fields must be packed according to pack_gauge_field,
- however the default was packed...that's why the statements look non-intuitive...packed will work if you use Luescher's lattice geometry and insert
- special switches to handle the meshing in direction 3 that he has in his code  */
-
-#ifndef NO_U_PACK  /*if gauge fields are not packed in a funny way */
-/* */
-
-#warning "wilsondslash: in the !no_u_pack section"
-
-#define _gauge_field0_0(mysite) gauge_field[mysite][0]
-#define _gauge_field0_1(mysite) gauge_field[mysite][1]
-#define _gauge_field0_2(mysite) gauge_field[mysite][2]
-#define _gauge_field0_3(mysite) gauge_field[mysite][3]
-#define _gauge_field1_0(mysite) gauge_field[mysite+1][0]
-#define _gauge_field1_1(mysite) gauge_field[mysite+1][1]
-#define _gauge_field1_2(mysite) gauge_field[mysite+1][2]
-#define _gauge_field1_3(mysite) gauge_field[mysite+1][3]
-
-#else   
 #define _gauge_field0_0(mysite) gauge_field[mysite][0]
 #define _gauge_field0_1(mysite) gauge_field[mysite+1][0]
 #define _gauge_field0_2(mysite) gauge_field[mysite][1]
@@ -152,17 +110,16 @@ extern int (*idn)[4] ALIGN;
 #define _gauge_field1_2(mysite) gauge_field[mysite][3]
 #define _gauge_field1_3(mysite) gauge_field[mysite+1][3]
 
-#endif   /* ifndef NO_U_PACK */
- 
+
 /* now overlays for spinors as arrays or structs */
   typedef float chi_float[2];
   typedef chi_float chi_two[2];
-typedef float u_mat_array[3][3][2]  ALIGN;  /* color color re/im */ 
-typedef float spinor_array[4][3][2] ALIGN; /* Nspin4 color re/im */
-typedef chi_two chi_array[3]    ALIGN; /*..color Nspin2 re/im ::note:: color slowest varying */
-typedef u_mat_array (*my_mat_array)[4] ALIGN;  
+  typedef float u_mat_array[3][3][2]  ALIGN;  /* color color re/im */ 
+  typedef float spinor_array[4][3][2] ALIGN; /* Nspin4 color re/im */
+  typedef chi_two chi_array[3]    ALIGN; /*..color Nspin2 re/im ::note:: color slowest varying */
+  typedef u_mat_array (*my_mat_array)[4] ALIGN;  
 
-#ifdef SPINORS_AS_ARRAYS
+
 #define MY_SPINOR spinor_array
 #define MY_SSE_VECTOR chi_array
 #define MY_SSE_FLOAT sse_float  
@@ -171,37 +128,15 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 #define _c3__ [2]
 #define _c4__ [3]
 
-
-#else
-#define MY_SPINOR spinor
-#define MY_SSE_VECTOR sse_vector
-#define MY_SSE_FLOAT sse_float
-#define _c1__ .c1
-#define _c2__ .c2
-#define _c3__ .c3
-#define _c4__ .c4
-
-
-#endif
-
-/* now overlays for gauge matrices as arrays or structs */
-#ifdef GAUGE_AS_ARRAYS
-
-
 #define MY_GAUGE u_mat_array
 #define MY_GAUGE_ARRAY my_mat_array
-#else
-
-#define MY_GAUGE su3
-
-#endif
 
 
 /* macros for spin basis note: assume first two rows are linearly independent except for gamma3 */
 /* it should be possible to change the spin basis by just correctly modifying these macros. However,
 some non-chiral spin basis may need additional modifications inside the dslash routine*/
 
-#ifndef NON_SZIN_BASIS
+
 /* use SZIN spin basis */
 
 /* gamma 0 */
@@ -261,11 +196,6 @@ some non-chiral spin basis may need additional modifications inside the dslash r
 
 #define _sse_24_gamma3_plus_rows12() _sse_vector_add()
 
-#else
-/* other spin basis */
-#warning unsupported spin basis
-
-#endif
 
 
 
@@ -353,8 +283,6 @@ typedef struct {
   int cb;            /* output checkerboard  */
 } Arg_s;
 
-
-#if ((defined SSE)||(defined SSE2))
 
 /* Stripped out the sml_scall from this version -- non threaded */
 /* Hence n = 0. => lo = 0, hi = volume2, */
@@ -1476,17 +1404,6 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
 
 
 
-#else
-
-#warning "missing that section - I think it is not SSE or SSE2"
-
-void inxtsu3dslash(float *u, float *psi, float *res, int isign, int cb)
-{
-  fprintf(stderr,"inxtsu3dslash not implemented on this platform. Check compilation flags\n");
-}
-
-
-#endif
 
 
 #ifdef __cplusplus
