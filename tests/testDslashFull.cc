@@ -32,7 +32,7 @@ testDslashFull::run(void)
   }
   else {
     // Adjust this...
-    small = Double(5.0e-18);
+    small = Double(1.0e-17);
   }
 
   // Make a random gauge field 
@@ -54,6 +54,8 @@ testDslashFull::run(void)
   multi1d<SSEDslash::PrimitiveSU3Matrix> packed_gauge;
   packed_gauge.resize( 4 * Layout::sitesOnNode() );
   SSEDslash::qdp_pack_gauge(u, packed_gauge);
+ 
+  QDPIO::cout << endl;
 
   // Go through the test cases -- apply SSE dslash versus, QDP Dslash 
   for(int isign=-1; isign <=1; isign += 2) {
@@ -76,7 +78,7 @@ testDslashFull::run(void)
       Double diff_norm = sqrt( norm2( diff, rb[target_cb] ) ) 
 	/ ( Real(4*3*2*Layout::vol()) / Real(2));
 	
-      
+      QDPIO::cout << "\t cb = " << cb << "  isign = " << isign << "  diff_norm = " << diff_norm << endl;      
       // Assert things are OK...
       assertion( toBool( diff_norm < small ) );
 

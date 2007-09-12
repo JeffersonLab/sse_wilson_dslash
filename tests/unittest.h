@@ -182,6 +182,9 @@ private:
     QDPIO::cout << "         " << success << " Tests Succeeded " << endl;
     QDPIO::cout << "         " << failure  << " Tests Failed on some nodes" <<  endl;
     QDPIO::cout << "of which " << odd << " Tests Failed in Unexpected Ways on some nodes" << endl;
+    if ( failure > 0 ) {  
+      exit(1);
+    }
   }
 
 
