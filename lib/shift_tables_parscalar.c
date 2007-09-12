@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.1.1.1 2007-09-12 19:33:13 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.1.1.1 2007-09-12 19:33:13 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *

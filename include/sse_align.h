@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_align.h,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+ * $Id: sse_align.h,v 1.1.1.1 2007-09-12 19:33:13 bjoo Exp $
  * 
  *
  * Define alignment macro ALIGN. This can vary depending on compiler 

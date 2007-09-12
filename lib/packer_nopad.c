@@ -1,4 +1,4 @@
-/* $Id: packer_nopad.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $ */
+/* $Id: packer_nopad.c,v 1.1.1.1 2007-09-12 19:33:13 bjoo Exp $ */
 
 /*  does the packing of the gague fields needed by the dslash */
 

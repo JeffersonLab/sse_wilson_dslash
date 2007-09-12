@@ -1,4 +1,4 @@
-# $Id: Makefile.am,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+# $Id: Makefile.am,v 1.1.1.1 2007-09-12 19:33:13 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated

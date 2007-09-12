@@ -1,4 +1,4 @@
-/* $Id: shift_tables_scalar.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+/* $Id: shift_tables_scalar.c,v 1.1.1.1 2007-09-12 19:33:13 bjoo Exp $
 
 /* Set the offset tables used by the 32-bit and 64-bit single node dslash */
 
