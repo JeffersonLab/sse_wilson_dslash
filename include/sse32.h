@@ -1,5 +1,5 @@
 /*******************************************************************************
-* $Id: sse32.h,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+* $Id: sse32.h,v 1.2 2007-09-12 20:29:39 bjoo Exp $
 *
 * File sse32.h
 *
@@ -15,40 +15,43 @@
 *
 *******************************************************************************/
 
+/* I have adapted this so that it is equivalent to old -DSSE2 -DSZIN -DP4
+   which is how we always used it... */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct
-{
-   float c1,c2,c3,c4;
-} sse_float __attribute__ ((aligned (16)));
+  /*! sse_float: A struct of 4 floats */
+  typedef struct {
+    float c1,c2,c3,c4;
+  } sse_float __attribute__ ((aligned (16)));
 
-typedef struct
-{
-   sse_float c1,c2,c3;
-} sse_vector __attribute__ ((aligned (16)));
+  /*! sse_vector: A struct of 3 sse_floats */
+  typedef struct {
+    sse_float c1,c2,c3;
+  } sse_vector __attribute__ ((aligned (16)));
 
-typedef struct
-{
-  sse_float c1,c2,c3,c4;
-} sse_vector_wide __attribute__ ((aligned (16)));
+  /*! sse_vector_wide sse_vector of 4 sse_floats */
+  typedef struct { 
+    sse_float c1,c2,c3,c4; 
+  } sse_vector_wide __attribute__ ((aligned (16))); 
 
-static sse_float _sse_sgn12 __attribute__ ((unused)) ={-1.0f,-1.0f,1.0f,1.0f};
-static sse_float _sse_sgn13 __attribute__ ((unused)) ={-1.0f,1.0f,-1.0f,1.0f};
-static sse_float _sse_sgn14 __attribute__ ((unused)) ={-1.0f,1.0f,1.0f,-1.0f};
-static sse_float _sse_sgn23 __attribute__ ((unused)) ={1.0f,-1.0f,-1.0f,1.0f};
-static sse_float _sse_sgn24 __attribute__ ((unused)) ={1.0f,-1.0f,1.0f,-1.0f};
-static sse_float _sse_sgn34 __attribute__ ((unused)) ={1.0f,1.0f,-1.0f,-1.0f};
-static sse_float _sse_sgn1234 __attribute__ ((unused)) = {-1.0f,-1.0f,-1.0f,-1.0f};
+  /*! sign macros for shufs... */
+  static sse_float _sse_sgn12 __attribute__ ((unused)) ={-1.0f,-1.0f,1.0f,1.0f};
+  static sse_float _sse_sgn13 __attribute__ ((unused)) ={-1.0f,1.0f,-1.0f,1.0f};
+  static sse_float _sse_sgn14 __attribute__ ((unused)) ={-1.0f,1.0f,1.0f,-1.0f};
+  static sse_float _sse_sgn23 __attribute__ ((unused)) ={1.0f,-1.0f,-1.0f,1.0f};
+  static sse_float _sse_sgn24 __attribute__ ((unused)) ={1.0f,-1.0f,1.0f,-1.0f};
+  static sse_float _sse_sgn34 __attribute__ ((unused)) ={1.0f,1.0f,-1.0f,-1.0f};
+  static sse_float _sse_sgn1234 __attribute__ ((unused)) = {-1.0f,-1.0f,-1.0f,-1.0f};
 
-/*******************************************************************************
-*
-* Cache manipulation macros
-*
-*******************************************************************************/
+  /*******************************************************************************
+   *
+   * Cache manipulation macros
+   *
+   *******************************************************************************/
 
-#if defined P4
 
 #define _prefetch_spinor(addr) \
 __asm__ __volatile__ ("prefetcht0 %0 \n\t" \
@@ -102,63 +105,6 @@ __asm__ __volatile__ ("prefetcht0 %0 \n\t" \
                       "m" (*(((char*)(((unsigned long)(addr))&~0x7f)))), \
                       "m" (*(((char*)(((unsigned long)(addr))&~0x7f))+128)))
 
-#else
-
-                     
-#define _prefetch_single _prefetch_spinor
-
-#define _prefetch_single_nta _prefetch_spinor_nta
-
- 
-   
-#define _prefetch_spinor(addr) \
-__asm__ __volatile__ ("prefetcht0 %0 \n\t"  \
-                      "prefetcht0 %1 \n\t"  \
-                      "prefetcht0 %2" \
-                      : \
-                      : \
-                      "m" (*(((char*)(addr)))), \
-                      "m" (*(((char*)(addr))+32)), \
-                      "m" (*(((char*)(addr))+64))); \
-__asm__ __volatile__ ("prefetcht0 %0 \n\t"  \
-                      "prefetcht0 %1 \n\t"  \
-                      "prefetcht0 %2" \
-                      : \
-                      : \
-                      "m" (*(((char*)(addr))+96)), \
-                      "m" (*(((char*)(addr))+128)), \
-                      "m" (*(((char*)(addr))+160)))
-
-
-#define _prefetch_spinor_nta(addr) \
-__asm__ __volatile__ ("prefetchnta %0 \n\t"  \
-                      "prefetchnta %1 \n\t"  \
-                      "prefetchnta %2" \
-                      : \
-                      : \
-                      "m" (*(((char*)(addr)))), \
-                      "m" (*(((char*)(addr))+32)), \
-                      "m" (*(((char*)(addr))+64)))
-
-#define _prefetch_su3(addr) \
-__asm__ __volatile__ ("prefetcht0 %0 \n\t"  \
-                      "prefetcht0 %1 \n\t"  \
-                      "prefetcht0 %2" \
-                      : \
-                      : \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f)))), \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+32)), \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+64))); \
-__asm__ __volatile__ ("prefetcht0 %0 \n\t"  \
-                      "prefetcht0 %1 \n\t"  \
-                      "prefetcht0 %2" \
-                      : \
-                      : \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+96)), \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+128)), \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+160)))
-
-#endif
 
 
 /*******************************************************************************
@@ -188,29 +134,10 @@ __asm__ __volatile__ ("prefetcht0 %0 \n\t"  \
 * Loads two su3 vectors sl and sh to the low and high words of xmm0,xmm1,xmm2
 */
 
-#if defined SSE2
-
 #define mfence() \
 __asm__ __volatile__ ("mfence" \
                       : )
 
-#ifndef SZIN
-#define _sse_pair_load(sl,sh) \
-__asm__ __volatile__ ("movsd %0, %%xmm0 \n\t" \
-                      "movsd %1, %%xmm1 \n\t" \
-                      "movsd %2, %%xmm2 \n\t" \
-                      "movhps %3, %%xmm0 \n\t" \
-                      "movhps %4, %%xmm1 \n\t" \
-                      "movhps %5, %%xmm2" \
-                      : \
-                      : \
-                      "m" ((sl).c1), \
-                      "m" ((sl).c2), \
-                      "m" ((sl).c3), \
-                      "m" ((sh).c1), \
-                      "m" ((sh).c2), \
-                      "m" ((sh).c3))
-#else
 /* use array indices instead of structures for SZIN*/
 /* note we must use enough brackets to hit the physical memory and not a pointer to the physical memory */
 #define _sse_pair_load(sl,sh) \
@@ -228,7 +155,6 @@ __asm__ __volatile__ ("movsd %0, %%xmm0 \n\t" \
                       "m" ((sh)[0][0]), \
                       "m" ((sh)[1][0]), \
                       "m" ((sh)[2][0]))
-#endif
 
 
 #define _sse_pair_load_to_xmm(sh,sh2) \
@@ -283,65 +209,12 @@ __asm__ __volatile__ ("movdq2q %%mm2, %%xmm0 \n\t" \
                       : )
 
 
-#else
-#ifndef SZIN
-#define _sse_pair_load(sl,sh) \
-__asm__ __volatile__ ("movlps %0, %%xmm0 \n\t" \
-                      "movlps %1, %%xmm1 \n\t" \
-                      "movlps %2, %%xmm2 \n\t" \
-                      "movhps %3, %%xmm0 \n\t" \
-                      "movhps %4, %%xmm1 \n\t" \
-                      "movhps %5, %%xmm2" \
-                      : \
-                      : \
-                      "m" ((sl).c1), \
-                      "m" ((sl).c2), \
-                      "m" ((sl).c3), \
-                      "m" ((sh).c1), \
-                      "m" ((sh).c2), \
-                      "m" ((sh).c3))
-#else
-#define _sse_pair_load(sl,sh) \
-__asm__ __volatile__ ("movlps %0, %%xmm0 \n\t" \
-                      "movlps %1, %%xmm1 \n\t" \
-                      "movlps %2, %%xmm2 \n\t" \
-                      "movhps %3, %%xmm0 \n\t" \
-                      "movhps %4, %%xmm1 \n\t" \
-                      "movhps %5, %%xmm2" \
-                      : \
-                      : \
-                      "m" ((sl)[0][0]), \
-                      "m" ((sl)[1][0]), \
-                      "m" ((sl)[2][0]), \
-                      "m" ((sh)[0][0]), \
-                      "m" ((sh)[1][0]), \
-                      "m" ((sh)[2][0]))
-#endif
-#endif
-
 /*
 * Loads two su3 vectors sl and sh to the low and high words of xmm3,xmm4,xmm5
 */  
 
-#if defined SSE2
 
-#ifndef SZIN
-#define _sse_pair_load_up(sl,sh) \
-__asm__ __volatile__ ("movsd %0, %%xmm3 \n\t" \
-                      "movsd %1, %%xmm4 \n\t" \
-                      "movsd %2, %%xmm5 \n\t" \
-                      "movhps %3, %%xmm3 \n\t" \
-                      "movhps %4, %%xmm4 \n\t" \
-                      "movhps %5, %%xmm5" \
-                      : \
-                      : \
-                      "m" ((sl).c1), \
-                      "m" ((sl).c2), \
-                      "m" ((sl).c3), \
-                      "m" ((sh).c1), \
-                      "m" ((sh).c2), \
-                      "m" ((sh).c3))
-#else
+
 
 /* use array indexes for SZIN */
 #define _sse_pair_load_up(sl,sh) \
@@ -359,67 +232,13 @@ __asm__ __volatile__ ("movsd %0, %%xmm3 \n\t" \
                       "m" ((sh)[0][0]), \
                       "m" ((sh)[1][0]), \
                       "m" ((sh)[2][0]))
-#endif
 
 
-#else
-
-#ifndef SZIN
-#define _sse_pair_load_up(sl,sh) \
-__asm__ __volatile__ ("movlps %0, %%xmm3 \n\t" \
-                      "movlps %1, %%xmm4 \n\t" \
-                      "movlps %2, %%xmm5 \n\t" \
-                      "movhps %3, %%xmm3 \n\t" \
-                      "movhps %4, %%xmm4 \n\t" \
-                      "movhps %5, %%xmm5" \
-                      : \
-                      : \
-                      "m" ((sl).c1), \
-                      "m" ((sl).c2), \
-                      "m" ((sl).c3), \
-                      "m" ((sh).c1), \
-                      "m" ((sh).c2), \
-                      "m" ((sh).c3))
-#else
-#define _sse_pair_load_up(sl,sh) \
-__asm__ __volatile__ ("movlps %0, %%xmm3 \n\t" \
-                      "movlps %1, %%xmm4 \n\t" \
-                      "movlps %2, %%xmm5 \n\t" \
-                      "movhps %3, %%xmm3 \n\t" \
-                      "movhps %4, %%xmm4 \n\t" \
-                      "movhps %5, %%xmm5" \
-                      : \
-                      : \
-                      "m" ((sl)[0][0]), \
-                      "m" ((sl)[1][0]), \
-                      "m" ((sl)[2][0]), \
-                      "m" ((sh)[0][0]), \
-                      "m" ((sh)[1][0]), \
-                      "m" ((sh)[2][0]))
-
-#endif
-
-#endif
 
 /*
 * Stores the low and high words of xmm0,xmm1,xmm2 to the su3 vectors rl and rh
 */
-#ifndef SZIN
-#define _sse_pair_store(rl,rh) \
-__asm__ __volatile__ ("movlps %%xmm0, %0 \n\t" \
-                      "movlps %%xmm1, %1 \n\t" \
-                      "movlps %%xmm2, %2 \n\t" \
-                      "movhps %%xmm0, %3 \n\t" \
-                      "movhps %%xmm1, %4 \n\t" \
-                      "movhps %%xmm2, %5" \
-                      : \
-                      "=m" ((rl).c1), \
-                      "=m" ((rl).c2), \
-                      "=m" ((rl).c3), \
-                      "=m" ((rh).c1), \
-                      "=m" ((rh).c2), \
-                      "=m" ((rh).c3))
-#else
+
 /* use array indexing for SZIN */
 #define _sse_pair_store(rl,rh) \
 __asm__ __volatile__ ("movlps %%xmm0, %0 \n\t" \
@@ -435,7 +254,6 @@ __asm__ __volatile__ ("movlps %%xmm0, %0 \n\t" \
                       "=m" ((rh)[0]), \
                       "=m" ((rh)[1]), \
                       "=m" ((rh)[2]))
-#endif
 
 #define _sse_vector_store_mmx(s) \
 __asm__ __volatile__ ("movlps %%xmm0, %%mm0 \n\t" \
@@ -460,22 +278,6 @@ __asm__ __volatile__ ("movlps %%mm0, %%xmm0 \n\t" \
 /*
 * Stores the low and high words of xmm3,xmm4,xmm5 to the su3 vectors rl and rh
 */
-#ifndef SZIN
-#define _sse_pair_store_up(rl,rh) \
-__asm__ __volatile__ ("movlps %%xmm3, %0 \n\t" \
-                      "movlps %%xmm4, %1 \n\t" \
-                      "movlps %%xmm5, %2 \n\t" \
-                      "movhps %%xmm3, %3 \n\t" \
-                      "movhps %%xmm4, %4 \n\t" \
-                      "movhps %%xmm5, %5" \
-                      : \
-                      "=m" ((rl).c1), \
-                      "=m" ((rl).c2), \
-                      "=m" ((rl).c3), \
-                      "=m" ((rh).c1), \
-                      "=m" ((rh).c2), \
-                      "=m" ((rh).c3))
-#else
 
 /* use array indexing for SZIN */
 
@@ -494,7 +296,6 @@ __asm__ __volatile__ ("movlps %%xmm3, %0 \n\t" \
                       "=m" ((rh)[1]), \
                       "=m" ((rh)[2]))
 
-#endif
 
 
 /*
@@ -502,18 +303,6 @@ __asm__ __volatile__ ("movlps %%xmm3, %0 \n\t" \
 */
 
 
-#ifndef SZIN
-#define _sse_vector_load(s) \
-__asm__ __volatile__ ("movaps %0, %%xmm0 \n\t" \
-                      "movaps %1, %%xmm1 \n\t" \
-                      "movaps %2, %%xmm2" \
-                      : \
-                      : \
-                      "m" ((s).c1), \
-                      "m" ((s).c2), \
-                      "m" ((s).c3))
-
-#else
 
 #define _sse_vector_load(s) \
 __asm__ __volatile__ ("movaps %0, %%xmm0 \n\t" \
@@ -526,24 +315,11 @@ __asm__ __volatile__ ("movaps %0, %%xmm0 \n\t" \
                       "m" ((s)[2][0][0]))
 
 
-#endif
 
 
 /*
 * Loads the components s.c1,s.c2,s.c3 of an _sse_vector s to xmm3,xmm4,xmm5
 */
-#ifndef SZIN
-#define _sse_vector_load_up(s) \
-__asm__ __volatile__ ("movaps %0, %%xmm3 \n\t" \
-                      "movaps %1, %%xmm4 \n\t" \
-                      "movaps %2, %%xmm5" \
-                      : \
-                      : \
-                      "m" ((s).c1), \
-                      "m" ((s).c2), \
-                      "m" ((s).c3))
-
-#else
 #define _sse_vector_load_up(s) \
 __asm__ __volatile__ ("movaps %0, %%xmm3 \n\t" \
                       "movaps %1, %%xmm4 \n\t" \
@@ -555,24 +331,13 @@ __asm__ __volatile__ ("movaps %0, %%xmm3 \n\t" \
                       "m" ((s)[2][0][0]))
 
 
-#endif
 
 
 /*
 * Stores xmm0,xmm1,xmm2 to the components r.c1,r.c2,r.c3 of an _sse_vector r 
 */
 
-#ifndef SZIN
-#define _sse_vector_store(r) \
-__asm__ __volatile__ ("movaps %%xmm0, %0 \n\t" \
-                      "movaps %%xmm1, %1 \n\t" \
-                      "movaps %%xmm2, %2" \
-                      : \
-                      "=m" ((r).c1), \
-                      "=m" ((r).c2), \
-                      "=m" ((r).c3))
 
-#else
 #define _sse_vector_store(r) \
 __asm__ __volatile__ ("movaps %%xmm0, %0 \n\t" \
                       "movaps %%xmm1, %1 \n\t" \
@@ -583,20 +348,10 @@ __asm__ __volatile__ ("movaps %%xmm0, %0 \n\t" \
                       "=m" ((r)[2]))
 
 
-#endif
 
 
 /* movntps might only work on p4 */
-#ifndef SZIN
-#define _sse_vector_store_nta(r) \
-__asm__ __volatile__ ("movntps %%xmm0, %0 \n\t" \
-                      "movntps %%xmm1, %1 \n\t" \
-                      "movntps %%xmm2, %2" \
-                      : \
-                      "=m" ((r).c1), \
-                      "=m" ((r).c2), \
-                      "=m" ((r).c3))
-#else
+
 #define _sse_vector_store_nta(r) \
 __asm__ __volatile__ ("movntps %%xmm0, %0 \n\t" \
                       "movntps %%xmm1, %1 \n\t" \
@@ -606,25 +361,12 @@ __asm__ __volatile__ ("movntps %%xmm0, %0 \n\t" \
                       "=m" ((r)[1]), \
                       "=m" ((r)[2]))
 
-
-#endif
 
 /*
 * Stores xmm3,xmm4,xmm5 to the components r.c1,r.c2,r.c3 of an _sse_vector r 
 */
 
 
-#ifndef SZIN
-#define _sse_vector_store_up(r) \
-__asm__ __volatile__ ("movaps %%xmm3, %0 \n\t" \
-                      "movaps %%xmm4, %1 \n\t" \
-                      "movaps %%xmm5, %2" \
-                      : \
-                      "=m" ((r).c1), \
-                      "=m" ((r).c2), \
-                      "=m" ((r).c3))
-
-#else
 #define _sse_vector_store_up(r) \
 __asm__ __volatile__ ("movaps %%xmm3, %0 \n\t" \
                       "movaps %%xmm4, %1 \n\t" \
@@ -636,18 +378,8 @@ __asm__ __volatile__ ("movaps %%xmm3, %0 \n\t" \
 
 
 
-#endif
 
-#ifndef SZIN
-#define _sse_vector_store_up_nta(r) \
-__asm__ __volatile__ ("movntps %%xmm3, %0 \n\t" \
-                      "movntps %%xmm4, %1 \n\t" \
-                      "movntps %%xmm5, %2" \
-                      : \
-                      "=m" ((r).c1), \
-                      "=m" ((r).c2), \
-                      "=m" ((r).c3))
-#else
+
 #define _sse_vector_store_up_nta(r) \
 __asm__ __volatile__ ("movntps %%xmm3, %0 \n\t" \
                       "movntps %%xmm4, %1 \n\t" \
@@ -658,8 +390,6 @@ __asm__ __volatile__ ("movntps %%xmm3, %0 \n\t" \
                       "=m" ((r)[2]))
 
 
-
-#endif
 
 
 /*
@@ -908,216 +638,6 @@ __asm__ __volatile__ ("shufps $0x4e, %%xmm3, %%xmm3 \n\t" \
 * xmm0,xmm1,xmm2 are changed
 */
 
-#ifndef SZIN
-#define _sse_su3_multiply(u) \
-__asm__ __volatile__ ("movss %0, %%xmm3 \n\t" \
-                      "movss %1, %%xmm6 \n\t" \
-                      "movss %2, %%xmm4 \n\t" \
-                      "movss %3, %%xmm7 \n\t" \
-                      "movss %4, %%xmm5 \n\t" \
-                      "shufps $0x0, %%xmm3, %%xmm3 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm4, %%xmm4 \n\t" \
-                      "mulps %%xmm0, %%xmm3 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm5, %%xmm5 \n\t" \
-                      "mulps %%xmm0, %%xmm4 \n\t" \
-                      "addps %%xmm6, %%xmm3 \n\t" \
-                      "mulps %%xmm2, %%xmm7 \n\t" \
-                      "mulps %%xmm0, %%xmm5 \n\t" \
-                      "addps %%xmm7, %%xmm4 \n\t" \
-                      "movss %5, %%xmm6 \n\t" \
-                      "movss %6, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "mulps %%xmm2, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm5 \n\t" \
-                      "addps %%xmm7, %%xmm3 \n\t" \
-                      "movss %7, %%xmm6 \n\t" \
-                      "movss %8, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "mulps %%xmm2, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm4 \n\t" \
-                      "addps %%xmm7, %%xmm5" \
-                      : \
-                      : \
-                      "m" ((u).c11.re), \
-                      "m" ((u).c12.re), \
-                      "m" ((u).c21.re), \
-                      "m" ((u).c23.re), \
-                      "m" ((u).c31.re), \
-                      "m" ((u).c32.re), \
-                      "m" ((u).c13.re), \
-                      "m" ((u).c22.re), \
-                      "m" ((u).c33.re)); \
-__asm__ __volatile__ ("movss %0, %%xmm6 \n\t" \
-                      "movss %1, %%xmm7 \n\t" \
-                      "shufps $0xb1, %%xmm0, %%xmm0 \n\t" \
-                      "shufps $0xb1, %%xmm1, %%xmm1 \n\t" \
-                      "shufps $0xb1, %%xmm2, %%xmm2 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %9, %%xmm0 \n\t" \
-                      "mulps %9, %%xmm1 \n\t" \
-                      "mulps %9, %%xmm2 \n\t" \
-                      "mulps %%xmm0, %%xmm6 \n\t" \
-                      "mulps %%xmm1, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm3 \n\t" \
-                      "addps %%xmm7, %%xmm4 \n\t" \
-                      "movss %2, %%xmm6 \n\t" \
-                      "movss %3, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm2, %%xmm6 \n\t" \
-                      "mulps %%xmm0, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm5 \n\t" \
-                      "addps %%xmm7, %%xmm4 \n\t" \
-                      "movss %4, %%xmm6 \n\t" \
-                      "movss %5, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "mulps %%xmm0, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm3 \n\t" \
-                      "addps %%xmm7, %%xmm5 \n\t" \
-                      "movss %6, %%xmm0 \n\t" \
-                      "movss %7, %%xmm6 \n\t" \
-                      "movss %8, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm0, %%xmm0 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm2, %%xmm0 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "mulps %%xmm2, %%xmm7 \n\t" \
-                      "addps %%xmm0, %%xmm3 \n\t" \
-                      "addps %%xmm6, %%xmm5 \n\t" \
-                      "addps %%xmm7, %%xmm4" \
-                      : \
-                      : \
-                      "m" ((u).c11.im), \
-                      "m" ((u).c22.im), \
-                      "m" ((u).c33.im), \
-                      "m" ((u).c21.im), \
-                      "m" ((u).c12.im), \
-                      "m" ((u).c31.im), \
-                      "m" ((u).c13.im), \
-                      "m" ((u).c32.im), \
-                      "m" ((u).c23.im), \
-                      "m" (_sse_sgn13))
-
-/*
-* Multiplies a pair sl,sh of su3 vectors with an su3 matrix u^dagger, 
-* assuming sl and sh are in the low and high words of xmm0,xmm1,xmm2
-*
-* On output the result is in xmm3,xmm4,xmm5 and the registers 
-* xmm0,xmm1,xmm2 are changed
-*/
-
-#define _sse_su3_inverse_multiply(u) \
-__asm__ __volatile__ ("movss %0, %%xmm3 \n\t" \
-                      "movss %1, %%xmm6 \n\t" \
-                      "movss %2, %%xmm4 \n\t" \
-                      "movss %3, %%xmm7 \n\t" \
-                      "movss %4, %%xmm5 \n\t" \
-                      "shufps $0x0, %%xmm3, %%xmm3 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm4, %%xmm4 \n\t" \
-                      "mulps %%xmm0, %%xmm3 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm5, %%xmm5 \n\t" \
-                      "mulps %%xmm0, %%xmm4 \n\t" \
-                      "addps %%xmm6, %%xmm3 \n\t" \
-                      "mulps %%xmm2, %%xmm7 \n\t" \
-                      "mulps %%xmm0, %%xmm5 \n\t" \
-                      "addps %%xmm7, %%xmm4 \n\t" \
-                      "movss %5, %%xmm6 \n\t" \
-                      "movss %6, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "mulps %%xmm2, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm5 \n\t" \
-                      "addps %%xmm7, %%xmm3 \n\t" \
-                      "movss %7, %%xmm6 \n\t" \
-                      "movss %8, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "mulps %%xmm2, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm4 \n\t" \
-                      "addps %%xmm7, %%xmm5" \
-                      : \
-                      : \
-                      "m" ((u).c11.re), \
-                      "m" ((u).c21.re), \
-                      "m" ((u).c12.re), \
-                      "m" ((u).c32.re), \
-                      "m" ((u).c13.re), \
-                      "m" ((u).c23.re), \
-                      "m" ((u).c31.re), \
-                      "m" ((u).c22.re), \
-                      "m" ((u).c33.re)); \
-__asm__ __volatile__ ("movss %0, %%xmm6 \n\t" \
-                      "movss %1, %%xmm7 \n\t" \
-                      "shufps $0xb1, %%xmm0, %%xmm0 \n\t" \
-                      "shufps $0xb1, %%xmm1, %%xmm1 \n\t" \
-                      "shufps $0xb1, %%xmm2, %%xmm2 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %9, %%xmm0 \n\t" \
-                      "mulps %9, %%xmm1 \n\t" \
-                      "mulps %9, %%xmm2 \n\t" \
-                      "mulps %%xmm0, %%xmm6 \n\t" \
-                      "mulps %%xmm1, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm3 \n\t" \
-                      "addps %%xmm7, %%xmm4 \n\t" \
-                      "movss %2, %%xmm6 \n\t" \
-                      "movss %3, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm2, %%xmm6 \n\t" \
-                      "mulps %%xmm0, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm5 \n\t" \
-                      "addps %%xmm7, %%xmm4 \n\t" \
-                      "movss %4, %%xmm6 \n\t" \
-                      "movss %5, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "mulps %%xmm0, %%xmm7 \n\t" \
-                      "addps %%xmm6, %%xmm3 \n\t" \
-                      "addps %%xmm7, %%xmm5 \n\t" \
-                      "movss %6, %%xmm0 \n\t" \
-                      "movss %7, %%xmm6 \n\t" \
-                      "movss %8, %%xmm7 \n\t" \
-                      "shufps $0x0, %%xmm0, %%xmm0 \n\t" \
-                      "shufps $0x0, %%xmm6, %%xmm6 \n\t" \
-                      "shufps $0x0, %%xmm7, %%xmm7 \n\t" \
-                      "mulps %%xmm2, %%xmm0 \n\t" \
-                      "mulps %%xmm1, %%xmm6 \n\t" \
-                      "mulps %%xmm2, %%xmm7 \n\t" \
-                      "addps %%xmm0, %%xmm3 \n\t" \
-                      "addps %%xmm6, %%xmm5 \n\t" \
-                      "addps %%xmm7, %%xmm4" \
-                      : \
-                      : \
-                      "m" ((u).c11.im), \
-                      "m" ((u).c22.im), \
-                      "m" ((u).c33.im), \
-                      "m" ((u).c12.im), \
-                      "m" ((u).c21.im), \
-                      "m" ((u).c13.im), \
-                      "m" ((u).c31.im), \
-                      "m" ((u).c23.im), \
-                      "m" ((u).c32.im), \
-                      "m" (_sse_sgn24));
-
-#else
 
 /* use array indices for u for SZIN */
 /* note SZIN has the different ordering */
@@ -1332,9 +852,6 @@ __asm__ __volatile__ ("movss %0, %%xmm6 \n\t" \
                       "m" ((u)[2][1][1]), \
                       "m" ((u)[1][2][1]), \
                       "m" (_sse_sgn24));
-
-
-#endif
 
 
 #ifdef __cplusplus

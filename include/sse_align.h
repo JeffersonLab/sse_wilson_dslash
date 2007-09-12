@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_align.h,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+ * $Id: sse_align.h,v 1.2 2007-09-12 20:29:39 bjoo Exp $
  * 
  *
  * Define alignment macro ALIGN. This can vary depending on compiler 
@@ -16,47 +16,32 @@
 #include <sse_config.h>
 
 #ifndef ALIGN
-#if ((defined SSE)||(defined SSE2))
-
-
-#if defined P4
-/* 64 bit alignment on P4 targets */
-#define ALIGN_BITS (128)
-#else 
-/* 32 bit alignment on non P3 targets */
-//#define ALIGN_BITS (32)
-#define ALIGN_BITS (128)
-#endif /* If defined P4 */
-
-/* Now get the right alignment for your particular compiler */
 
 /* Gnu compilers */
 #if __GNUC__
 
-/* GCC-2.96 -- buggy -- wants alignment in bits */
-#if __GNUC__ == 2 && __GNUC_MINOR__ == 96
-#warning "GCC 2.96 detected aligning in terms of bits"
-#define ALIGN_ATTRIB  ALIGN_BITS
-#else 
-/* Other GNU targets -- want alignment in bytes ( divide by 8 == shiftright by 8 */
-#define ALIGN_ATTRIB  (ALIGN_BITS >> 3)
+/* We no longer support GCC v2 */
+#if __GNUC__ == 2
+#error "GNU C Version 2 no longer supported"
+#endif 
+
+#if __GNUC__ == 3 && __GNUC_MINOR__ <= 3
+#error "If Using GCC v3, use version GCC v3.3 or better"
 #endif
-
-#define ALIGN __attribute__ ((aligned (ALIGN_ATTRIB)))
-#else
-
-/* Other compiler targets */
-#error "Non GNU Compilers not supported"
-
-#endif /* ifdef __GNUC__ */
  
-#else /* if defined SSE || defined SSE2 */
+#define ALIGN __attribute__ ((aligned (16)))
 
+#else  /* __GNUC__ */
+
+/* Define it as empty for unknown compiler */
 #define ALIGN 
 
-#endif /* if defined SSE || defined SSE2 */
+#endif /* if __GNUC__ */
 
-#endif /* ifndef ALIGN */
+
+#endif /* ALIGN */
+
+
 
 /* End of include guard */
 #endif 

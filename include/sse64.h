@@ -49,8 +49,6 @@ __asm__ __volatile__ ("mfence" \
                       : )
 
 
-#if defined P4
-
 #define _prefetch_single(addr) \
 __asm__ __volatile__ ("prefetcht0 %0 \n\t" \
                        : \
@@ -81,57 +79,7 @@ __asm__ __volatile__ ("prefetcht0 %0 \n\t" \
                       "m" (*(((char*)(((unsigned long)(addr))&~0x7f)))), \
                       "m" (*(((char*)(((unsigned long)(addr))&~0x7f))+128)))
 
-#else
 
-#define _prefetch_spinor(addr) \
-__asm__ __volatile__ ("prefetcht0 %0 \n\t" \
-                      "prefetcht0 %1 \n\t" \
-                      "prefetcht0 %2 \n\t" \
-                      "prefetcht0 %3 \n\t" \
-                      "prefetcht0 %4 \n\t" \
-                      "prefetcht0 %5" \
-                      : \
-                      : \
-                      "m" (*(((char*)(addr)))), \
-                      "m" (*(((char*)(addr))+32)), \
-                      "m" (*(((char*)(addr))+64)), \
-                      "m" (*(((char*)(addr))+96)), \
-                      "m" (*(((char*)(addr))+128)), \
-                      "m" (*(((char*)(addr))+160)))
-
-#define _prefetch_nta_spinor(addr) \
-__asm__ __volatile__ ("prefetchnta %0 \n\t" \
-                      "prefetchnta %1 \n\t" \
-                      "prefetchnta %2 \n\t" \
-                      "prefetchnta %3 \n\t" \
-                      "prefetchnta %4 \n\t" \
-                      "prefetchnta %5" \
-                      : \
-                      : \
-                      "m" (*(((char*)(addr)))), \
-                      "m" (*(((char*)(addr))+32)), \
-                      "m" (*(((char*)(addr))+64)), \
-                      "m" (*(((char*)(addr))+96)), \
-                      "m" (*(((char*)(addr))+128)), \
-                      "m" (*(((char*)(addr))+160)))
-
-#define _prefetch_su3(addr) \
-__asm__ __volatile__ ("prefetcht0 %0  \n\t" \
-                      "prefetcht0 %1  \n\t" \
-                      "prefetcht0 %2  \n\t" \
-                      "prefetcht0 %3  \n\t" \
-                      "prefetcht0 %4" \
-                      : \
-                      : \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f)))), \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+32)), \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+64)), \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+96)), \
-                      "m" (*(((char*)(((unsigned long)(addr))&~0x1f))+128)))
-
-#endif
-
-#if defined SSE2
 
 static sse_int _sse_sgn __attribute__ ((unused)) ={0x0,0x80000000,0x0,0x0};
 static sse_double _minus_one __attribute__ ((unused)) = {-1.0, -1.0};
@@ -154,33 +102,7 @@ static sse_double _conj      __attribute__ ((unused)) = {1.0, -1.0};
 /*
 * Loads an su3 vector s to xmm0,xmm1,xmm2
 */
-#ifndef SZIN
-#define _sse_load(s) \
-__asm__ __volatile__ ("movapd %0, %%xmm0 \n\t" \
-                      "movapd %1, %%xmm1 \n\t" \
-                      "movapd %2, %%xmm2" \
-                      : \
-                      : \
-                      "m" ((s).c1), \
-                      "m" ((s).c2), \
-                      "m" ((s).c3))
 
-/*
-* Loads an su3 vector s to xmm3,xmm4,xmm5
-*/  
-
-#define _sse_load_up(s) \
-__asm__ __volatile__ ("movapd %0, %%xmm3 \n\t" \
-                      "movapd %1, %%xmm4 \n\t" \
-                      "movapd %2, %%xmm5" \
-                      : \
-                      : \
-                      "m" ((s).c1), \
-                      "m" ((s).c2), \
-                      "m" ((s).c3))
-
-#else /*if SZIN */
-#warning using new load
 #define _sse_load(s) \
 __asm__ __volatile__ ("movapd %0, %%xmm0 \n\t" \
                       "movapd %1, %%xmm1 \n\t" \
@@ -205,38 +127,12 @@ __asm__ __volatile__ ("movapd %0, %%xmm3 \n\t" \
                       "m" ((s)[1][0]), \
                       "m" ((s)[2][0]))
 
-#endif /*SZIN */
 
 
 /*
 * Stores xmm0,xmm1,xmm2 to the components r.c1,r.c2,r.c3 of an su3 vector
 */
 
-#ifndef SZIN
-
-#define _sse_store(r) \
-__asm__ __volatile__ ("movapd %%xmm0, %0 \n\t" \
-                      "movapd %%xmm1, %1 \n\t" \
-                      "movapd %%xmm2, %2" \
-                      : \
-                      "=m" ((r).c1), \
-                      "=m" ((r).c2), \
-                      "=m" ((r).c3))
-
-/*
-* Stores xmm3,xmm4,xmm5 to the components r.c1,r.c2,r.c3 of an su3 vector
-*/
-
-#define _sse_store_up(r) \
-__asm__ __volatile__ ("movapd %%xmm3, %0 \n\t" \
-                      "movapd %%xmm4, %1 \n\t" \
-                      "movapd %%xmm5, %2" \
-                      : \
-                      "=m" ((r).c1), \
-                      "=m" ((r).c2), \
-                      "=m" ((r).c3))
-
-#else /* if SZIN */
 
 #define _sse_store(r) \
 __asm__ __volatile__ ("movapd %%xmm0, %0 \n\t" \
@@ -261,7 +157,6 @@ __asm__ __volatile__ ("movapd %%xmm3, %0 \n\t" \
                       "=m" ((r)[2]))
 
 
-#endif /*SZIN */
 
 
 
@@ -359,121 +254,12 @@ __asm__ __volatile__ ("shufpd $0x1, %%xmm3, %%xmm3 \n\t" \
 
 
 /* macro overlay time */
-#ifdef SZIN
+
 #define COL_ROW_ORDER
-#warning using COL_ROW_ORDER
-#endif
-
-#ifndef COL_ROW_ORDER
-
-#ifndef SZIN
 
 
-#define _c11 .c11
-#define _c12 .c12
-#define _c13 .c13
-#define _c21 .c21
-#define _c22 .c22
-#define _c23 .c23
-#define _c31 .c31
-#define _c32 .c32
-#define _c33 .c33
-
-#define _c11re .c11.re
-#define _c12re .c12.re
-#define _c13re .c13.re
-#define _c21re .c21.re
-#define _c22re .c22.re
-#define _c23re .c23.re
-#define _c31re .c31.re
-#define _c32re .c32.re
-#define _c33re .c33.re
-
-#define _c11im .c11.im
-#define _c12im .c12.im
-#define _c13im .c13.im
-#define _c21im .c21.im
-#define _c22im .c22.im
-#define _c23im .c23.im
-#define _c31im .c31.im
-#define _c32im .c32.im
-#define _c33im .c33.im
-
-#else
 /*use array indexing for SZIN */
-#warning using wrong indexing for SZIN
-#define _c11 [0][0][0]  /*note for asm instructions we have to get all the way to the data block */
-#define _c12 [0][1][0]
-#define _c13 [0][2][0]
-#define _c21 [1][0][0]
-#define _c22 [1][1][0]
-#define _c23 [1][2][0]
-#define _c31 [2][0][0]
-#define _c32 [2][1][0]
-#define _c33 [2][2][0]
 
-#define _c11re [0][0][0]
-#define _c12re [0][1][0]
-#define _c13re [0][2][0]
-#define _c21re [1][0][0]
-#define _c22re [1][1][0]
-#define _c23re [1][2][0]
-#define _c31re [2][0][0]
-#define _c32re [2][1][0]
-#define _c33re [2][2][0]
-
-#define _c11im [0][0][1]
-#define _c12im [0][1][1]
-#define _c13im [0][2][1]
-#define _c21im [1][0][1]
-#define _c22im [1][1][1]
-#define _c23im [1][2][1]
-#define _c31im [2][0][1]
-#define _c32im [2][1][1]
-#define _c33im [2][2][1]
-
-
-#endif /*ifndef SZIN */
-
-
-#else /*use COL_ROW ordering instead of ROW_COL */
-
-#ifndef SZIN
-
-
-#define _c11 .c11
-#define _c12 .c21
-#define _c13 .c31
-#define _c21 .c12
-#define _c22 .c22
-#define _c23 .c33
-#define _c31 .c31
-#define _c32 .c23
-#define _c33 .c33
-
-#define _c11re .c11.re
-#define _c12re .c21.re
-#define _c13re .c31.re
-#define _c21re .c21.re
-#define _c22re .c22.re
-#define _c23re .c33.re
-#define _c31re .c13.re
-#define _c32re .c23.re
-#define _c33re .c33.re
-
-#define _c11im .c11.im
-#define _c12im .c21.im
-#define _c13im .c31.im
-#define _c21im .c12.im
-#define _c22im .c22.im
-#define _c23im .c32.im
-#define _c31im .c13.im
-#define _c32im .c23.im
-#define _c33im .c33.im
-
-#else
-/*use array indexing for SZIN */
-#warning COL_ROW_ORDER
 #define _c11 [0][0][0]  /*note for asm instructions we have to get all the way to the data block */
 #define _c12 [1][0][0]
 #define _c13 [2][0][0]
@@ -505,10 +291,7 @@ __asm__ __volatile__ ("shufpd $0x1, %%xmm3, %%xmm3 \n\t" \
 #define _c33im [2][2][1]
 
 
-#endif /*ifndef SZIN */
 
-
-#endif
 
 #define _sse_su3_multiply(u) \
 __asm__ __volatile__ ("movsd %0, %%xmm3 \n\t" \
@@ -721,8 +504,6 @@ __asm__ __volatile__ ("movsd %0, %%xmm6 \n\t" \
 
 
 
-
-#endif
 
 #ifdef __cplusplus
 }
