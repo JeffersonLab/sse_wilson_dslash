@@ -253,10 +253,6 @@ esac
 dnl ************************************************************************
 dnl **** Compile Defines to select right stuff. Always SSE now             *
 dnl ************************************************************************
-AC_DEFINE(P4, [], [Define Pentium 4])
-AC_DEFINE(SSE, [], [Define SSE])
-AC_DEFINE(SSE2, [], [ Define SSE2 ])
-AC_DEFINE(SZIN, [], [ Use SZIN layouts ])
 
 case ${PRECISION} in
 single) 

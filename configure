@@ -4369,26 +4369,6 @@ echo "$as_me: error: Unknown Precision: ${PRECISION}  " >&2;}
 esac
 
 
-cat >>confdefs.h <<\_ACEOF
-#define P4
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SSE
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SSE2
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define SZIN
-_ACEOF
-
-
 case ${PRECISION} in
 single)
 

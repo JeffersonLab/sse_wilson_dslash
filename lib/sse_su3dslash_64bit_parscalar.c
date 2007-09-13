@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.2 2007-09-13 13:52:14 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -61,28 +61,16 @@
 extern "C" {
 #endif
 
-#ifndef DMALLOC
 #include <stdlib.h>
-#else
-#include <dmalloc.h>
-#endif
-
 #include <stdio.h>
 #include <math.h>
 #include <qmp.h>
-
-#if defined SSE2
 
 #include <sse64.h>
 
 extern void make_shift_tables(int *shift, int icolor_start[2], int bound[2][4][4]);
 
-#if defined P4
-  #define BASE 0x3f
-#else
-  #define BASE 0x1f
-#endif
-
+#define BASE 0x3f
 
 #include <sse_align.h>
 
@@ -92,65 +80,30 @@ static int initP=0;
 
 /* now overlays for spinors as arrays or structs */
 
-
-#ifdef SZIN
-
 static int *newshift;
 static int icolor_start[2];    /* starting site for each coloring (cb) */
 static int icolor_end[2];      /* end site for each coloring (cb) */
 
-#ifndef BACKWARD 
+#ifdef BACKWARD 
+#undef BACKWARD
+#endif
 
-  #define BACKWARD 0 
-  #define FORWARD 1
+#define BACKWARD 0 
 
-#endif  /* ifndef BACKWARD */
+#ifdef FORWARD
+#undef FORWARD
+#endif
+#define FORWARD 1
 
-#ifdef SZIN
-#define SZIN_SHIFT
-#define SPINORS_AS_ARRAYS
-#undef  NON_TEMPORAL_STORES
-#define GAUGE_AS_ARRAYS
-
-#ifdef  NO_U_PACK
- #define NO_U_PACK
-#endif  /* ifdef NO_U_PACK */
-#endif /* SZIN */
-
-#ifdef NOCOMM  
-
-#error "nocomm no longer supported"
-//#define iup(mysite,mymu) soffsets[mysite + subgrid_vol_cb*(1+2*((cb)+2*mymu))] /*note how we take care of the cb here*/
-//#define idn(mysite,mymu) soffsets[mysite + subgrid_vol_cb*(2*((cb)+2*mymu))]
-//#define mvv_shift(mysite,mymu) mysite
-//#define rec_shift(mysite,mymu) mysite 
-
-#else /* if ! defined NOCOMM */
 
 #define iup(mysite,mymu) newshift[mymu+4*(mysite+subgrid_vol*(1))]
 #define idn(mysite,mymu) newshift[mymu+4*(mysite+subgrid_vol*(0))]
 #define mvv_shift(mysite,mymu) newshift[mymu+4*(mysite+subgrid_vol*(2))]
 #define rec_shift(mysite,mymu) newshift[mymu+4*(mysite+subgrid_vol*(3))]
 
-#endif /* ifdef NOCOMM */
 
 #define a_chia(mymu,mysite) (chi+mysite+3*subgrid_vol_cb*mymu)
 #define a_chib(mymu,mysite) (chi+mysite+3*subgrid_vol_cb*mymu)
-
-
-#else /* if ! defined SZIN */
-
-#define iup(mysite,mymu) iup[mysite][mymu]
-#define idn(mysite,mymu) idn[mysite][mymu]
-#define a_chia(mymu,mysite) (chi+mysite+VOLUME*mymu)
-#define a_chib(mymu,mysite) (chi+mysite+VOLUME*mymu)
-#define mvv_shift(mysite,mymu) mysite
-#define rec_shift(mysite,mymu) mysite
-
-#endif /* ifdef SZIN 2 */
-
-
-
 
 #define _gauge_field0_0(mysite) gauge_field[mysite][0]
 #define _gauge_field0_1(mysite) gauge_field[mysite][1]
@@ -161,10 +114,6 @@ static int icolor_end[2];      /* end site for each coloring (cb) */
 #define _gauge_field_opp0_2(mysite) gauge_field_opp[mysite+1][2]
 #define _gauge_field_opp0_3(mysite) gauge_field_opp[mysite+1][3]
 
-
-
-
- 
 /* now overlays for spinors as arrays or structs */
 typedef double chi_double[2] __attribute__ ((aligned (16)));
 typedef chi_double chi_three[3] __attribute__ ((aligned (16)));
@@ -173,7 +122,7 @@ typedef double spinor_array[4][3][2] ALIGN; /* Nspin4 color re/im */
 typedef chi_three chi_array[2]    ALIGN; /*.. Nspin2 color re/im ::note:: Nspin2 has to be slowest varying */
 typedef u_mat_array (*my_mat_array)[4] ALIGN;  
 
-#ifdef SPINORS_AS_ARRAYS
+
 #define MY_SPINOR spinor_array
 #define MY_SSE_VECTOR chi_array
 #define MY_SSE_HALFVECT chi_three
@@ -187,38 +136,10 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 #define rs_c3__ rs[2]
 #define rs_c4__ rs[3]
 
-#else
-#define MY_SPINOR spinor
-#define MY_SSE_VECTOR sse_vector
-#define MY_SSE_HALFVECT sse_half_vector
-#define MY_SSE_DOUBLE sse_double
-#define _c1__ .c1
-#define _c2__ .c2
-#define _c3__ .c3
-#define _c4__ .c4
-#define rs_c1__ rs.c1
-#define rs_c2__ rs.c2
-#define rs_c3__ rs.c3
-#define rs_c4__ rs.c4
-
-#endif
 
 /* now overlays for gauge matrices as arrays or structs */
-#ifdef GAUGE_AS_ARRAYS
-
-
 #define MY_GAUGE u_mat_array
 #define MY_GAUGE_ARRAY my_mat_array
-#else
-
-#define MY_GAUGE su3
-
-#endif
-
-
-
-
-#ifdef SPINORS_AS_ARRAYS
 
 #define MY_SPINOR spinor_array
 #define MY_SSE_VECTOR chi_array
@@ -228,30 +149,8 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 #define _c4__ [3]
 
 
-#else
-#warning doing .c1 overlays
-#define MY_SPINOR spinor
-#define MY_SSE_VECTOR sse_vector
-#define MY_SSE_DOUBLE sse_double
-#define _c1__ .c1
-#define _c2__ .c2
-#define _c3__ .c3
-#define _c4__ .c4
-
-#endif
-
 /* now overlays for gauge matrices as arrays or structs */
-#ifdef GAUGE_AS_ARRAYS
-
-
-
 #define MY_GAUGE u_mat_array
-
-#else
-
-#define MY_GAUGE su3
-
-#endif
 
 
 
@@ -259,9 +158,6 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 
 
 /* macros for spin basis note: assume first two rows are linearly independent except for gamma3 */
-
-#ifndef NON_SZIN_BASIS
-/* use SZIN spin basis */
 
 #define _sse_load_temp_1(chi) _sse_load((chi)_c1__)
 #define _sse_load_temp_2(chi) _sse_load((chi)_c2__)
@@ -578,65 +474,9 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 
 
 
-
-
-
-
-#else
-/* other spin basis */
-
-#endif
-
-/* end spin basis section */
-
 static int init=0;
 static sse_double fact1,fact2;
 static MY_SPINOR rs __attribute__ ((aligned (16)));
-
-/*
-void check_alignment(void)
-{
-   unsigned int au,as,af1,af2,ars;
-   su3 *u;
-   MY_SPINOR *s;
-
-   u=&gauge_field[0][0];
-   s=&spinor_field[0][0];
-
-   au=(unsigned int)u;
-   as=(unsigned int)s;
-   
-   if ((au!=(au&~BASE))||(as!=(as&~BASE)))
-   {
-      printf("Error in check_alignment (operator.c):\n");
-      printf("The fields are not properly aligned\n");
-      printf("Program aborted\n");
-      exit(2);
-   }
-   
-   if ((sizeof(*u)!=(18*8))||(sizeof(*s)!=(24*8)))
-   {
-      printf("Error in check_alignment (operator.c):\n");      
-      printf("The structures are not packed, or sizeof(double) is not 8\n");
-      printf("Program aborted\n");
-      exit(3);
-   }
-
-   af1=(unsigned int)(&fact1);
-   af2=(unsigned int)(&fact2);
-   ars=(unsigned int)(&rs);
-
-   if ((af1!=(af1&~0xf))||(af2!=(af2&~0xf))||(ars!=(ars&~0xf)))
-   {
-      printf("Error in check_alignment (operator.c):\n");      
-      printf("The static local variables are not properly aligned\n");
-      printf("Program aborted\n");
-      exit(4);
-   }
-   
-   init=1;
-}*/
-
 
 
 void D_psi_fun(size_t lo,size_t hi, int id, const void *ptr);
@@ -703,6 +543,9 @@ void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
 
   for (ix1=lo;ix1<hi;ix1+=1) 
   {
+#ifdef PREFDIST
+#undef PREFDIST
+#endif
 #define PREFDIST 4
     sp=&psi[ix1];
     s1=&psi[ix1+PREFDIST];
@@ -955,6 +798,9 @@ void recons_plus_old(size_t lo, size_t hi, int id, const void *ptr)
  
   s3 = a_chia(0,rec_shift(lo,0));
 
+#ifdef PREFDIST
+#undef PREFDIST
+#endif
 #define PREFDIST 1
   /*printf("\n psi[0].c1.c1.re:%f",(psi[0]).c1.c1.re);
     printf("\n &psi[0]:%x",(&psi[0]));*/
@@ -1064,7 +910,9 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
   /* 	printf("\n &a:%x",&a);*/
  
   
-
+#ifdef PREFDIST
+#undef PREFDIST
+#endif
 #define PREFDIST 3
   /*printf("\n psi[0].c1.c1.re:%f",(psi[0]).c1.c1.re);
 	printf("\n &psi[0]:%x",(&psi[0]));*/
@@ -1233,6 +1081,10 @@ void decomp_minus(size_t lo, size_t hi, int id, const void *ptr)
 
   for (ix1=lo;ix1<hi;ix1+=1) 
   {
+
+#ifdef PREFDIST
+#undef PREFDIST
+#endif
 #define PREFDIST 4
     sp=&psi[ix1];
     s1=&psi[ix1+PREFDIST];
@@ -1517,6 +1369,10 @@ void recons_minus_old(size_t lo, size_t hi, int id, const void *ptr)
  
   s3 = a_chia(0,rec_shift(lo,0));
 
+#ifdef PREFDIST
+#undef PREFDIST
+#endif
+
 #define PREFDIST 1
   /*printf("\n psi[0].c1.c1.re:%f",(psi[0]).c1.c1.re);
     printf("\n &psi[0]:%x",(&psi[0]));*/
@@ -1626,7 +1482,9 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
   /* 	printf("\n &a:%x",&a);*/
  
   
-
+#ifdef PREFDIST
+#undef PREFDIST
+#endif
 #define PREFDIST 3
   /*printf("\n psi[0].c1.c1.re:%f",(psi[0]).c1.c1.re);
     printf("\n &psi[0]:%x",(&psi[0]));*/
@@ -1838,14 +1696,14 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
       QMP_abort(1);
     }
 
-#if 1
+
   num = latt_size[0] / machine_size[0];
   if ( num & 1 != 0 )
   {
     QMP_error("This SSE Dslash does not work for odd x-sublattice. Here the sublattice is odd in dimension 0 with length %d\n", num);
     QMP_abort(1);
   }
-#endif
+
 
   subgrid_vol_cb = subgrid_cb_size[0];
   for(mu = 1; mu < Nd; mu++)
@@ -1853,14 +1711,14 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
 
   subgrid_vol = subgrid_vol_cb << 1;
 
-#if 1
+
   // The SSE code expects to have at least 2 sites after checkerboarding.
   if ( subgrid_vol_cb <= 1 )
   {
     QMP_error("This SSE Dslash expects there to be at least 2 subgrid sites after checkerboarding");
     QMP_abort(1);
   }
-#endif
+
 
   /* Allocated space for the floating temps */
   /* Wasteful - allocate 3 times subgrid_vol_cb. Otherwise, need to pack the TAIL{1,2} offsets */
@@ -2150,15 +2008,6 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
   }		
 }
 
-#else
-
-#warning "unsupported options, use -DSZIN -DP4 -DSSE2"
-
-void sse_su3dslash_wilson(double *u, double *psi, double *res, int isign, int cb)
-{
-  fprintf(stderr, "sse_su3dslash: not implemented for non-P4\n");
-}
-#endif
 
 #ifdef __cplusplus
 }

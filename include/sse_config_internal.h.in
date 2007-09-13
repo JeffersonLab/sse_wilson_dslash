@@ -3,9 +3,6 @@
 /* Use QMT Threads library */
 #undef DSLASH_USE_QMT_THREADS
 
-/* Define Pentium 4 */
-#undef P4
-
 /* Name of package */
 #undef PACKAGE
 
@@ -24,17 +21,8 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Define SSE */
-#undef SSE
-
-/* Define SSE2 */
-#undef SSE2
-
 /* Double Precision */
 #undef SSE_PRECISION
-
-/* Use SZIN layouts */
-#undef SZIN
 
 /* Version number of package */
 #undef VERSION
