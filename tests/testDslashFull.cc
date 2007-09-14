@@ -58,11 +58,13 @@ testDslashFull::run(void)
   QDPIO::cout << endl;
 
   // Go through the test cases -- apply SSE dslash versus, QDP Dslash 
-  for(int isign=-1; isign <=1; isign += 2) {
+  for(int isign=1; isign >= -1; isign -=2) {
     for(int cb=0; cb < 2; cb++) { 
       int source_cb = 1 - cb;
       int target_cb = cb;
-      
+      chi = zero;
+      chi2 = zero;
+
       // Apply SSE Dslash
       sse_su3dslash_wilson((SSEREAL *)&(packed_gauge[0]),
 			   (SSEREAL *)&(psi.elem(0).elem(0).elem(0).real()),
@@ -73,9 +75,9 @@ testDslashFull::run(void)
       dslash(chi2,u,psi, isign, target_cb);
       
       // Check the difference per number in chi vector
-      LatticeFermion diff = zero;
-      diff[rb[target_cb]] = chi2 - chi;
-      Double diff_norm = sqrt( norm2( diff, rb[target_cb] ) ) 
+      LatticeFermion diff = chi2 -chi;
+
+      Double diff_norm = sqrt( norm2( diff ) ) 
 	/ ( Real(4*3*2*Layout::vol()) / Real(2));
 	
       QDPIO::cout << "\t cb = " << cb << "  isign = " << isign << "  diff_norm = " << diff_norm << endl;      

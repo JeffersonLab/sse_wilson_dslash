@@ -1,4 +1,4 @@
-// $Id: t_dslash.cc,v 1.1 2007-09-12 19:33:13 bjoo Exp $
+// $Id: t_dslash.cc,v 1.2 2007-09-14 19:33:08 bjoo Exp $
 
 #include <iostream>
 #include <cstdio>
@@ -14,7 +14,7 @@ using namespace QDP;
 int main(int argc, char **argv)
 {
   // Initialize QDP++ with argc, and argv. Set Lattice Dimensions
-  const int latdims[] = {4,4,8,8};
+  const int latdims[] = {4,2,6,10};
 
   // Initialize UnitTest jig
   TestRunner  tests(&argc, &argv, latdims);
