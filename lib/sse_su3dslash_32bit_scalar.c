@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_scalar.c,v 1.2 2007-09-12 21:00:50 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_scalar.c,v 1.3 2007-09-14 19:32:11 bjoo Exp $
  * 
  * Action of the 32bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -21,6 +21,8 @@
  *******************************************************************************/
 
 #include <sse_config.h>
+#include <sse_align.h>
+#include <shift_tables_scalar.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,83 +65,32 @@ extern "C" {
 
 
 
-/* note we will have to change the way we handle multidimensional arrays because they will be dynamic and not static */
-
-/* note for using array indices instead of structures, will need new types, or macro overlays 
-   especailly for sse_pair_load and fpr sse_pair_store */
-
-/* iup idn shift table overlays with packed/unpacked gauge lookerupper*/
-
-/* include stuff from the Word file */
-#include <sse_align.h>
-
-  /* Note: packed data objects must be aligned on 16-byte or more boundaries or SSE
-     inline asm will segfault....I've found that I needed to redeclare constants such as
-     {1,-1,1,-1} in each routine they are used in */
-  
-  /* note: I align on larger multiples of 16 bytes for cache line alignment */
-
-
-  static int total_vol = 1;
+  /* Volume and initialization */
   static int initP = 0;
 
-  extern void make_shift_tables(int *soffsets, int icolor_start[2], const int lat_size[4]);
-  
-  static int *soffsets;
+  /* These are needed for the shift tables */
+  static int *shift_table;
   static int icolor_start[2];    /* starting site for each coloring (cb) */
   static int icolor_end[2];      /* end site for each coloring (cb) */
-  
-#define iup(mysite,mymu) soffsets[mymu + Nd*(mysite + total_vol*(1))]
-#define idn(mysite,mymu) soffsets[mymu + Nd*(mysite + total_vol*(0))]
-
-  /*isign = 0 => *(soffsets+mysite + global_vol_cb*2*(1-cb)+global_vol_cb*2*2*dir
-    isign = 1 =>  *(soffsets+mysite + global_vol_cb*2*(1-cb)+global_vol_cb*2*2*dir+global_vol_cb) */
-
-
-  /* SZIN uses the NO_U_PACK clause (referring to not interleaving adjacent sites and directions' worth of gauge fields), even though the gauge fields must be packed according to pack_gauge_field,
-     however the default was packed...that's why the statements look non-intuitive...packed will work if you use Luescher's lattice geometry and insert
-     special switches to handle the meshing in direction 3 that he has in his code  */
-
-
-#define _gauge_field0_0(mysite) gauge_field[mysite][0]
-#define _gauge_field0_1(mysite) gauge_field[mysite+1][0]
-#define _gauge_field0_2(mysite) gauge_field[mysite][1]
-#define _gauge_field0_3(mysite) gauge_field[mysite+1][1]
-#define _gauge_field1_0(mysite) gauge_field[mysite][2]
-#define _gauge_field1_1(mysite) gauge_field[mysite+1][2]
-#define _gauge_field1_2(mysite) gauge_field[mysite][3]
-#define _gauge_field1_3(mysite) gauge_field[mysite+1][3]
 
 
 /* now overlays for spinors as arrays or structs */
-  typedef float chi_float[2];
-  typedef chi_float chi_two[2];
-  typedef float u_mat_array[3][3][2]  ALIGN;  /* color color re/im */ 
-  typedef float spinor_array[4][3][2] ALIGN; /* Nspin4 color re/im */
-  typedef chi_two chi_array[3]    ALIGN; /*..color Nspin2 re/im ::note:: color slowest varying */
-  typedef u_mat_array (*my_mat_array)[4] ALIGN;  
+  typedef float chi_float[2];                    /* 2 floats => chi float */
+  typedef chi_float chi_two[2];                  /* 2 chi_floats = 4 floats => chi_two */
+  typedef float u_mat_array[3][3][2]  ALIGN;     /* color color re/im */ 
+  typedef float spinor_array[4][3][2] ALIGN;     /* Nspin4 color re/im */
+  typedef chi_two chi_array[3]    ALIGN; /* half vector: ..color Nspin2 re/im ::note:: color slowest varying */
+  typedef u_mat_array (*my_mat_array)[4] ALIGN;  /* an array of 4 u_mat_array pointers */
+
+  
+  /* macros for spin basis note: assume first two rows are linearly independent except for gamma3 */
+  /* it should be possible to change the spin basis by just correctly modifying these macros. However,
+     some non-chiral spin basis may need additional modifications inside the dslash routine*/
 
 
-#define MY_SPINOR spinor_array
-#define MY_SSE_VECTOR chi_array
-#define MY_SSE_FLOAT sse_float  
-#define _c1__ [0] 
-#define _c2__ [1] 
-#define _c3__ [2]
-#define _c4__ [3]
-
-#define MY_GAUGE u_mat_array
-#define MY_GAUGE_ARRAY my_mat_array
-
-
-/* macros for spin basis note: assume first two rows are linearly independent except for gamma3 */
-/* it should be possible to change the spin basis by just correctly modifying these macros. However,
-some non-chiral spin basis may need additional modifications inside the dslash routine*/
-
-
-/* use SZIN spin basis */
-
-/* gamma 0 */
+  /* use SZIN spin basis */
+  
+  /* gamma 0 */
 
 #define _sse_42_gamma0_minus()   _sse_vector_xch_i_sub()
 
@@ -201,11 +152,10 @@ some non-chiral spin basis may need additional modifications inside the dslash r
 
 /***************** start of initialization routine ***************************************/
 
-#define Nd 4
-
 void init_sse_su3dslash(const int latt_size[])
 {
-  int mu, total_vol_cb;
+  int mu;
+  int vol_cb=-1;
 
   /* If we are already initialised, then increase the refcount and return */
   if (initP > 0) 
@@ -214,36 +164,33 @@ void init_sse_su3dslash(const int latt_size[])
     return;
   }
 
-//  printf("init_sse_su3dslash: enter\n");
-
+  
   /* Check problem and subgrid size */
-  for(mu=0; mu < Nd; mu++) 
-    if ( latt_size[mu] & 1 != 0 )
-    {
+  for(mu=0; mu < 4; mu++) {
+    if ( latt_size[mu] % 2 != 0 ) {
       fprintf(stderr,"This SSE Dslash only supports even problem sizes. Here the lattice is odd in dimension %d with length %d\n", mu, latt_size[mu]);
       exit(1);
     }
-
-
-  total_vol = latt_size[0];
-  for(mu = 1; mu < Nd; mu++)
-    total_vol *= latt_size[mu];
-  total_vol_cb = total_vol >> 1;
+  }
 
   /* Construct all the shift tables needed */
-  if ((soffsets = (int *)malloc(Nd*total_vol*2*sizeof(int))) == 0)
-  {
-    fprintf(stderr,"init_sse_su3dslash: could not initialize soffsets\n");
-    exit(1);
-  }
-    
-  make_shift_tables(soffsets, icolor_start, latt_size);
-  icolor_end[0] = icolor_start[0] + total_vol_cb;
-  icolor_end[1] = icolor_start[1] + total_vol_cb;
+  /* 4 dimensions * 2 directions { aka FORWARD and BACKWARD } * volume */
+    /* shift_table and icolor start are set, latt_size is read */
+  shift_table = make_shift_tables(icolor_start, latt_size);
 
+  vol_cb = getTotalVolCB();
+  if ( vol_cb <= 0 ) { 
+    fprintf(stderr,"Something is wrong. volcb = %d\n", vol_cb);
+      exit(1);
+  }
+  
+  /* Assume cb-s are contiguous */
+  icolor_end[0] = icolor_start[0] + vol_cb;
+  icolor_end[1] = icolor_start[1] + vol_cb;
+
+  /* Set flag to signify initialization */
   initP = 1;
 
-//  printf("init_sse_su3dslash: exit\n");
 }
 
 
@@ -257,29 +204,27 @@ void free_sse_su3dslash(void)
   /* Otherwise decrease the refcount */
   initP--;
 
-  /* If the refcount has now hit 0 then free stuff */
-  if( initP == 0 )
-    free(soffsets);
-
+  /* If the refcount has now hit 0 then free the shift tables*/
+  if( initP == 0 ) {
+    free_shift_tables(&shift_table);
+  }
 }
 
 /***************** end of initialization routine ***************************************/
 
 
-/* prototypes */
-
-void D_psi_fun(size_t lo,size_t hi, int id, const void *ptr);
-
+/* Apply Dslash */
 void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr);
 
-
+/* Apply Dslash Dagger */
 void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr);
 
+/* Thread Argument */
 typedef struct {
-  MY_SPINOR *psi;    /* input spinor */
-  MY_SPINOR *res;    /* output spinor */
-  MY_GAUGE (*u)[4];    /* gauge field on the output checkerboard */
-  MY_GAUGE (*u2)[4];   /* gauge field on the input checkerboard */
+  spinor_array *psi;    /* input spinor */
+  spinor_array *res;    /* output spinor */
+  u_mat_array (*u)[4];    /* gauge field on the output checkerboard */
+  u_mat_array (*u2)[4];   /* gauge field on the input checkerboard */
   int cb;            /* output checkerboard  */
 } Arg_s;
 
@@ -306,197 +251,180 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 {
   Arg_s a;
 
-  if (isign == 1) 
-  {
-//    printf("sse_su3dslash_wilson: isign=+1, output_cb=%d\n",1-cb);
-
+  if (isign == 1) {
     smpscaller2(a, D_psi_fun_plus, 
-		(MY_SPINOR*)psi,
-		(MY_SPINOR*)res,
-		(MY_GAUGE_ARRAY)u,
+		(spinor_array*)psi,
+		(spinor_array*)res,
+		(my_mat_array)u,
 		1-cb);
   }
 
   if( isign == -1) 
   {
-//    printf("sse_su3dslash_wilson: isign=-1, output_cb=%d\n",1-cb);
-
     smpscaller2(a, D_psi_fun_minus, 
-		(MY_SPINOR*)psi,
-		(MY_SPINOR*)res,
-		(MY_GAUGE_ARRAY)u,
+		(spinor_array*)psi,
+		(spinor_array*)res,
+		(my_mat_array)u,
 		1-cb);
   }
-
-//  printf("sse_su3dslash_wilson: exit\n");
 }
 
   
 #include <sse32.h>
 
 
-#define BASE 0x3f
-
-static int init=1;
-static MY_SSE_FLOAT fact1,fact2;
-/*static MY_SSE_VECTOR r12_1,r34_1,r12_2,r34_2;*/
-/* thse must be actually declared within the routine to be assured of
-being aligned properly */
-
-
-
-
-/*void D_psi_fun(size_t lo,size_t hi, int id, const void *ptr );*/
-
-
-
-
 void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
 {
-/* declare stuff */
-  const Arg_s *a  = (const Arg_s*)ptr; 
-  int ix1,iy1,iy2,iz1;
-  const int low  =  lo; 
-  const int high  =  hi;
-  MY_GAUGE (*gauge_field)[4]  =  a->u;
-  MY_SPINOR *psi  =  a->psi;
-  MY_SPINOR *res  =  a->res;
-  /* there is nothing wrong with superfluous ALIGN's */
-  MY_GAUGE *up1 ALIGN, *up2 ALIGN, *um1 ALIGN,*um2 ALIGN;   
-  MY_SPINOR *s1 ALIGN,*sp1 ALIGN,*sp2 ALIGN,*sm1 ALIGN,*sm2 ALIGN,*sn1 ALIGN;
-  MY_SSE_VECTOR r12_1,r34_1,r12_2,r34_2;
+
+  const Arg_s *a  = (const Arg_s*)ptr;  /* Cast the (void *) to an (Arg_s*) */
+  int ix1;                              /* Index of current site */
+  int iy1,iy2;                          /* Index of neighbour of current site (iy1) 
+					   and current site+1 (iy2) */
+
+  int iz1;                              /* Index of next site in loop */
+  const int low  =  lo;                 /* First site for this thread */
+  const int high  =  hi;                /* Last site for this thread */
+
+  u_mat_array (*gauge_field)[4]  =  a->u; /* Packed Gauge fields */
+  spinor_array *psi  =  a->psi;           /* Source spinor */
+  spinor_array *res  =  a->res;           /* Result spinor */
+
+
+  /* Pointers to the neighboring u-s */
+  u_mat_array *up1 ALIGN;                  /* U[ x  ] */
+  u_mat_array *up2 ALIGN;                  /* U[ (x+1)  ] */
+  u_mat_array *um1 ALIGN;                  /* U[ x - mu ] */
+  u_mat_array *um2 ALIGN;                  /* U[ (x+1)-mu ] */
+
+  /* 4 - Spinor pointers */
+  spinor_array *sp1 ALIGN;
+  spinor_array *sp2 ALIGN;
+  spinor_array *sm1 ALIGN;
+  spinor_array *sm2 ALIGN;
+  spinor_array *sn1 ALIGN;
+
+  /* Half Vectors */
+  chi_array r12_1 ALIGN; /* Site 1 upper */
+  chi_array r34_1 ALIGN; /* Site 1 lower */
+  chi_array r12_2 ALIGN; /* Site 2 upper */
+  chi_array r34_2 ALIGN; /* Site 2 lower */
+
   /* note these guys need to be declared in each routine in which they are used*/
-  static sse_float _sse_sgn12 ALIGN ={-1.0f,-1.0f,1.0f,1.0f};
-  static sse_float _sse_sgn13 ALIGN ={-1.0f,1.0f,-1.0f,1.0f};
-  static sse_float _sse_sgn14 ALIGN ={-1.0f,1.0f,1.0f,-1.0f};
-  static sse_float _sse_sgn23 ALIGN ={1.0f,-1.0f,-1.0f,1.0f};
-  static sse_float _sse_sgn24 ALIGN ={1.0f,-1.0f,1.0f,-1.0f};
-  static sse_float _sse_sgn34 ALIGN ={1.0f,1.0f,-1.0f,-1.0f};
-  static sse_float _sse_sgn1234 ALIGN = {-1.0f,-1.0f,-1.0f,-1.0f};
+  /* Is this still true? */
+  /* These are used to flip the signs of various members of a 4-wide sse register */
+  static sse_float _sse_sgn12 ALIGN ={-1.0f,-1.0f,1.0f,1.0f};      /* Negate 1st and 2nd */
+  static sse_float _sse_sgn13 ALIGN ={-1.0f,1.0f,-1.0f,1.0f};      /* Negate 1st and 3rd */
+  static sse_float _sse_sgn14 ALIGN ={-1.0f,1.0f,1.0f,-1.0f};      /* Negate 1st and 4th */
+  static sse_float _sse_sgn23 ALIGN ={1.0f,-1.0f,-1.0f,1.0f};      /* Negate 2nd and 3rd */
+  static sse_float _sse_sgn24 ALIGN ={1.0f,-1.0f,1.0f,-1.0f};      /* Negate 2nd and 4th */
+  static sse_float _sse_sgn34 ALIGN ={1.0f,1.0f,-1.0f,-1.0f};      /* Negate 3rd and 4th */
+  static sse_float _sse_sgn1234 ALIGN = {-1.0f,-1.0f,-1.0f,-1.0f}; /* Negate All */
   
-//  printf("low=%i high=%i\n", lo, hi);
-  
-	
-  /*
-    if (init == 0)
-    check_alignment();
-  */
-
   /* note that we want the spinors from the checkerboard opposite the one we are writing to */
-  iy1 = iup(low,0);
-  iy2 = iup(low+1,0);
+  /* We are doing things in bunches of two sites */
 
-//  printf("iup(ix1=%d, dir=0) ->  iy1=%d iy2=%d\n", low,iy1,iy2);
+  /* Get forward neighbour of low in the x direction */
+  sp1 = &psi[ forward_neighbor(shift_table,low,0)  ];
 
-  sp1 = &psi[iy1];
-  sp2 = &psi[iy2];
+  /* Get forward neighbour of low + 1 in the x direction. */
+  sp2 = &psi[ forward_neighbor(shift_table,low+1,0)];
+
   /* note: the gauge fields at x - mu^ are on the checkerboard opposite the one we are writing to */
-  up1 = &_gauge_field0_0(low);
-  up2 = &_gauge_field0_1(low);
-  /************************ loop over all lattice sites *************************/
+  up1 = &(gauge_field[low][0]);
+  up2 = &(gauge_field[low+1][0]);
 
   for (ix1 = low;ix1<high;ix1+= 2) 
   {
-    /*  printf("m0:%f  k:%i l:%i low:%i high:%i id:%i\n, ix1:%i\n", m0, k, l, low, high, id, ix1);*/
-    /*s1 = &psi[ix1];
-      _prefetch_spinor(s1);*/
-      
+       
     /******************************* direction +0 *********************************/
 
-    /* ...(1-isign*gamma(0))... */
+    /* ...(1-isign*gamma(0)) psi(x + \hat{0}) */
 
-    /* the signs on the isign*gamma(mu^) are different than the direction in which the
-       input spinors are pulled from */
-      
-    /* compute shift addresses by reading from table...note: it may be faster to compute
-       these on the fly using MMX registers which can run concurrent with XMM */
-    iy1 = idn(ix1,0);
-    iy2 = idn(ix1+1,0);
+    /* Prefetch the backward neighbours for the following 1 + isign gamma(0) case */
+    iy1 =  backward_neighbor(shift_table,ix1,0);
+    iy2 =  backward_neighbor(shift_table,ix1+1,0); 
 
-//    printf("idn(ix1=%d, dir=0) ->  iy1=%d iy2=%d\n", ix1,iy1,iy2);
-
-	  /* prefetch */	   
-    sm1 = &psi[iy1];
+    /* prefetch backward neighbor spinors  */	   
+    sm1 = &psi[ iy1   ];
     _prefetch_single(sm1);
-    sm2 = &psi[iy2];
+    sm2 = &psi[ iy2   ];
     _prefetch_single(sm2);
 
     /*loads in the appropriate spinor and does the spin projection */
     /* sp denotes spinors in the x+mu^ direction, sm denotes spinors in the x - mu^ direction */
-         
-    _sse_pair_load((*sp1)_c1__,(*sp1)_c2__);
-    _sse_pair_load_up((*sp1)_c3__,(*sp1)_c4__);
+    
+    /* Do it for the first site */
+    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+
+    /* Spin Project */
     _sse_42_gamma0_minus();
     
     /* do the SU(3) * 3x2 multiply ....3 colors...both spin components of the spin-projected halfspinor*/ 
-    
     _sse_su3_multiply((*up1));
-    
-
        
-    /* the output is in xmm3-5, so we store_up...this is a _set since it is the first term in the sum over mu */
+    /* Reconstruct */
 
+    /* the output is in xmm3-5, so we store_up...this is a _set since it is the first term in the sum over mu */
     /* top two spin components, the top two rows of the 4x2 reconstruction matrix will be the identity, so just store */
     _sse_vector_store_up(r12_1);
-
-      
         
     /* bottom two spin components, use the bottom two components of the 4x2 reconstruction matrix ...whatever was done to the identity
        to get that submatrix needs to be done likewise to the halfspinor to reconstruct the bottom two components */     
     _sse_24_gamma0_minus_set();
     _sse_vector_store_up(r34_1);
 
-      
-    /* prefetch */
+    /* Done */
 
-    um1 = &_gauge_field0_0(iy1);
+    /* Now prefetch for the  1 + \gamma_0 U^\dagger case */
+
+    um1 = &(gauge_field[iy1][0]);
     _prefetch_single(um1);
-    um2 = &_gauge_field0_0(iy2);
+    um2 = &(gauge_field[iy2][0]);
     _prefetch_single(um2);
 
-		/*same stuff again...this time, for the next site in lexical order*/
+    /* Now do the spin proj, multiply, spin recon for the second site */
+    /* Load spinor */
+    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
+    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
 
-    _sse_pair_load((*(sp2))_c1__,(*(sp2))_c2__);
-    _sse_pair_load_up((*(sp2))_c3__,(*(sp2))_c4__);
-
+    /* Project */
     _sse_42_gamma0_minus();
 
+    /* Multiply */
     _sse_su3_multiply((*(up2)));
 
-        
-    
+    /* Reconstruct */
     _sse_vector_store_up(r12_2);
-
-     
-     
     _sse_24_gamma0_minus_set(); 
     _sse_vector_store_up(r34_2);
       
     /******************************* direction -0 *********************************/
-
+    /* Hopefully sm1 sm2 the backward neighbours are prefetched and in cache. The shifted 
+       matrices should be prefetched too */
+   
 
       /* ...(1+isign*gamma(0))... */
-
-      /* same kind of stuff again */
-
-    iy1 = iup(ix1,1);
-    iy2 = iup(ix1+1,1);
-  
-//    printf("iup(ix1=%d, dir=1) ->  iy1=%d iy2=%d\n", ix1,iy1,iy2);
-
-    sp1 = &psi[iy1];
+    
+    /* Prefetch the forward spinors for the next direction */
+    sp1 = &psi[ forward_neighbor(shift_table,ix1,1) ];
     _prefetch_single(sp1);
-    sp2 = &psi[iy2];
+    sp2 = &psi[ forward_neighbor(shift_table,ix1+1,1)];
     _prefetch_single(sp2);
 
 
-    _sse_pair_load((*sm1)_c1__,(*sm1)_c2__);
-    _sse_pair_load_up((*sm1)_c3__,(*sm1)_c4__);
+    /* Now load backward neighbours into SSE vectors */
+    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
+
+    /* Project */
     _sse_42_gamma0_plus();
 	 
-
+    /* Multiply with inverse */
     _sse_su3_inverse_multiply((*um1));
 
+
+    /* Reconstruct accumulate */
 
     /*ok here's where things are different..now we load the partial sum over directions of the
       output spinor, then add on to them the spin reconstructed terms (using the bottom two rows of the 4x2 reconstruction
@@ -511,33 +439,32 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     */
 
     _sse_vector_load(r12_1);
-
     _sse_vector_add();
     _sse_vector_store(r12_1);
-
-
-
 
     _sse_vector_load(r34_1);
     _sse_24_gamma0_plus_add();
     _sse_vector_store(r34_1);  
 
-
-      /* now for the other site's worth */
-
-    up1 = &_gauge_field0_2(ix1);
+    /* Prefetch gauge field for next direction */
+    up1 = &(gauge_field[ix1][1]);
     _prefetch_single(up1);      
-    up2 = &_gauge_field0_3(ix1);
-    _prefetch_single(up2);
+    up2 = &(gauge_field[ix1+1][1]); 
+    _prefetch_single(up2); 
     
 
-      
-    _sse_pair_load((*(sm2))_c1__,(*(sm2))_c2__);
-    _sse_pair_load_up((*(sm2))_c3__,(*(sm2))_c4__);
+    /* Now do second site */
+    /* Load */
+    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
+    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
+
+    /* Project */
     _sse_42_gamma0_plus();
 
+    /* Multiply */
     _sse_su3_inverse_multiply((*(um2)));
 
+    /* reconstruct accumulate */
     _sse_vector_load(r12_2);
     _sse_vector_add();
     _sse_vector_store(r12_2);
@@ -546,48 +473,53 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     _sse_24_gamma0_plus_add();
     _sse_vector_store(r34_2);  
       
-      /******************************* direction +1 *********************************/
+    /******************************* direction +1 *********************************/
+    /* OK, sp1, sp2 and up1, up2 should be prefetched */
 
-
-      /*same kind of stuff.......different stuff comes in at direction 3 */
-
-    iy1 = idn(ix1,1);
-    iy2 = idn(ix1+1,1);
+    /* Prefetch spinors for the -1 direction */
+    iy1 = backward_neighbor(shift_table,ix1,1);
+    iy2 = backward_neighbor(shift_table,ix1+1,1);
     sm1 = &psi[iy1];
     _prefetch_single(sm1);
     sm2 = &psi[iy2];
     _prefetch_single(sm2);
 
-    _sse_pair_load((*sp1)_c1__,(*sp1)_c2__);
-    _sse_pair_load_up((*sp1)_c3__,(*sp1)_c4__);
+    /* First site */
+    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+
+    /* Project */
     _sse_42_gamma1_minus();
 
+    /* Multiply */
     _sse_su3_multiply((*up1));
 
+    /* Reconstruct accumulate */
     _sse_vector_load(r12_1);
-
-  
     _sse_vector_add();
-	  
     _sse_vector_store(r12_1);
-
-
     _sse_vector_load(r34_1);
     _sse_24_gamma1_minus();
     _sse_vector_store(r34_1);
 
-    um1 = &_gauge_field0_2(iy1);
+    /* Prefetch gauge field for - direction */
+    um1 = &(gauge_field[iy1][1]);
     _prefetch_single(um1);      
-    um2 = &_gauge_field0_2(iy2);
+    um2 = &(gauge_field[iy2][1]);
     _prefetch_single(um2);
 
-      
-    _sse_pair_load((*(sp2))_c1__,(*(sp2))_c2__);
-    _sse_pair_load_up((*(sp2))_c3__,(*(sp2))_c4__);
+    /* Second site: */
+    /* Load */
+    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
+    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
+
+    /* Project */
     _sse_42_gamma1_minus();
 
+    /* Multiply */
     _sse_su3_multiply((*(up2)));
 
+    /* Reconstruct accumulate */
     _sse_vector_load(r12_2);
     _sse_vector_add();
     _sse_vector_store(r12_2); 
@@ -595,48 +527,51 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     _sse_vector_load(r34_2);
     _sse_24_gamma1_minus();
     _sse_vector_store(r34_2);
+    
+    /******************************* direction -1 *********************************/
 
-      /******************************* direction -1 *********************************/
-
-
-
-
-
-    iy1 = iup(ix1,2);
-    iy2 = iup(ix1+1,2);
-    sp1 = &psi[iy1];
+    /* Prefetch forward neighbour for direction 2+ */
+    sp1 = &psi[forward_neighbor(shift_table,ix1,2)];
     _prefetch_single(sp1);
-    sp2 = &psi[iy2];
+    sp2 = &psi[forward_neighbor(shift_table,ix1+1,2)];
     _prefetch_single(sp2);
 
-    _sse_pair_load((*sm1)_c1__,(*sm1)_c2__);
-    _sse_pair_load_up((*sm1)_c3__,(*sm1)_c4__);
+    /* Site 1: */
+    /* Load */
+    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
+
+    /* Project */
     _sse_42_gamma1_plus();
 	  
-
+    /* Multiply */
     _sse_su3_inverse_multiply((*um1));
 
+    /* Reconstruct Accumulate */
     _sse_vector_load(r12_1);
-
     _sse_vector_add();
     _sse_vector_store(r12_1);      
-
-
     _sse_vector_load(r34_1);
     _sse_24_gamma1_plus();
     _sse_vector_store(r34_1);      
 
-    up1 = &_gauge_field1_0(ix1);
+    /* Prefetch Gauge for next case: Direction 2 + */
+    up1 = &(gauge_field[ix1][2]);
     _prefetch_single(up1);      
-    up2 = &_gauge_field1_1(ix1);
+    up2 = &(gauge_field[ix1+1][2]);
     _prefetch_single(up2);
 
-    _sse_pair_load((*(sm2))_c1__,(*(sm2))_c2__);
-    _sse_pair_load_up((*(sm2))_c3__,(*(sm2))_c4__);
+    /* Load */
+    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
+    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
+
+    /* Project */
     _sse_42_gamma1_plus();
 
+    /* Multiply */
     _sse_su3_inverse_multiply((*(um2)));
 
+    /* Recons Accumulate */
     _sse_vector_load(r12_2);
     _sse_vector_add();
     _sse_vector_store(r12_2);      
@@ -645,381 +580,409 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     _sse_24_gamma1_plus();
     _sse_vector_store(r34_2); 
 
-      /******************************* direction +2 *********************************/
+
+    /******************************* direction +2 *********************************/
+    /* sp1, sp2, up1, up2 should be prefetched and in cache */
 
 
-
-
-
-    iy1 = idn(ix1,2);
+    /* Prefetch sm1 & sm2 for -ve direction */
+    iy1 = backward_neighbor(shift_table,ix1,2);
     sm1 = &psi[iy1];
     _prefetch_single(sm1);
-    iy2 = idn(ix1+1,2);
+    iy2 = backward_neighbor(shift_table,ix1+1,2);
     sm2 = &psi[iy2];
     _prefetch_single(sm2);
 
-    _sse_pair_load((*sp1)_c1__,(*sp1)_c2__);
-    _sse_pair_load_up((*sp1)_c3__,(*sp1)_c4__);
+    /* Load */
+    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+
+    /* Project */
     _sse_42_gamma2_minus();
 
+    /* Multiply */
     _sse_su3_multiply((*up1));
 
+    /* Recons Accumulate */
     _sse_vector_load(r12_1);
     _sse_vector_add();
     _sse_vector_store(r12_1);       
-
     _sse_vector_load(r34_1);
     _sse_24_gamma2_minus();
     _sse_vector_store(r34_1);       
 
-    um1 = &_gauge_field1_0(iy1);
+    /* Prefetch gauge field for -ve case */
+    um1 = &(gauge_field[iy1][2]);
     _prefetch_single(um1);
-    um2 = &_gauge_field1_0(iy2);
+    um2 = &(gauge_field[iy2][2]);
     _prefetch_single(um2);
 
-    _sse_pair_load((*(sp2))_c1__,(*(sp2))_c2__);
-    _sse_pair_load_up((*(sp2))_c3__,(*(sp2))_c4__);
+    /* Second site: load */
+    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
+    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
+
+    /* Project */
     _sse_42_gamma2_minus();
 
+    /* Multiply */
     _sse_su3_multiply((*(up2)));
 
+    /* Recons/Accumulate */
     _sse_vector_load(r12_2);
     _sse_vector_add();
     _sse_vector_store(r12_2);       
-
     _sse_vector_load(r34_2);
     _sse_24_gamma2_minus();
     _sse_vector_store(r34_2); 
 
-      /******************************* direction -2 *********************************/
-
-
-
-
-
-    iy1 = iup(ix1,3);
-    sp1 = &psi[iy1];
+    
+    /******************************* direction -2 *********************************/
+    /* sm1, sm2, um1, um2, should be prefetched and in cache                      */
+    /******************************************************************************/
+    
+    /* Prefetch spinors for direction 3+ */
+    sp1 = &psi[ forward_neighbor(shift_table,ix1,3) ];
     _prefetch_single(sp1);
-    iy2 = iup(ix1+1,3); 
-    sp2 = &psi[iy2];
+    sp2 = &psi[ forward_neighbor(shift_table,ix1+1,3) ];
     _prefetch_single(sp2);
     
       
-      
-    _sse_pair_load((*sm1)_c1__,(*sm1)_c2__);
-    _sse_pair_load_up((*sm1)_c3__,(*sm1)_c4__);
+    /* First site: Load */
+    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
+
+    /* Project */
     _sse_42_gamma2_plus();      
 
+    /* Multiply */
     _sse_su3_inverse_multiply((*um1));
 
+    /* Recons/Accumulate */
     _sse_vector_load(r12_1);
-    _sse_vector_add();
+    _sse_vector_add(); 
     _sse_vector_store(r12_1);
-      
     _sse_vector_load(r34_1);
     _sse_24_gamma2_plus();
-    
     _sse_vector_store(r34_1);
 
-    up1 = &_gauge_field1_2(ix1);
+    /* Prefetch Gauge for the 3+ case */
+    up1 = &(gauge_field[ix1][3]);
     _prefetch_single(up1);
-    up2 = &_gauge_field1_3(ix1);
+    up2 = &(gauge_field[ix1+1][3]);
     _prefetch_single(up2);
 
-    _sse_pair_load((*(sm2))_c1__,(*(sm2))_c2__);
-    _sse_pair_load_up((*(sm2))_c3__,(*(sm2))_c4__);
+    /* Load */
+    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
+    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
+
+    /* Project */
     _sse_42_gamma2_plus();      
 
+    /* Multiply */
     _sse_su3_inverse_multiply((*(um2)));
 
+    /* Recons Accumulate */
     _sse_vector_load(r12_2);
     _sse_vector_add();
     _sse_vector_store(r12_2);
-      
     _sse_vector_load(r34_2);
     _sse_24_gamma2_plus();
     _sse_vector_store(r34_2);
 
-      /******************************* direction +3 *********************************/
 
+    /******************************* direction +3 *********************************/
+    /* sp1, sp2, up1, up2, should be prefetched and in cache already              */
 
+    /* Pre Fetch neigbour spinors for the backwards case                          */
+    iy1 = backward_neighbor(shift_table,ix1,3);
+    iy2 = backward_neighbor(shift_table,ix1+1,3);
+    sm1 = &psi[iy1]; 
+    _prefetch_single(iy1); 
+    sm2 = &psi[iy2]; 
+    _prefetch_single(iy2) ;
 
+    /* Load */
+    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
 
-
-    iy1 = idn(ix1,3);
-    iy2 = idn(ix1+1,3);
-    sm1 = &psi[iy1];
-    _prefetch_single(iy1);
-    sm2 = &psi[iy2];
-    _prefetch_single(iy2);
-
-    
-
-
-    _sse_pair_load((*sp1)_c1__,(*sp1)_c2__);
-    _sse_pair_load_up((*sp1)_c3__,(*sp1)_c4__);
+    /* Project */
     _sse_42_gamma3_minus();
       
+    /* Multiply */
     _sse_su3_multiply((*up1));
 
+    /* Recons/Accumulate */
     _sse_vector_load(r12_1);
     _sse_24_gamma3_minus_rows12();
     _sse_vector_store(r12_1);
-
     _sse_vector_load(r34_1);
     _sse_24_gamma3_minus();
     _sse_vector_store(r34_1);      
 
      
-
-    um1 = &_gauge_field1_2(iy1); 
+    /* Prefetch um for - case */
+    um1 = &(gauge_field[iy1][3]); 
     _prefetch_single(um1);
-    um2 = &_gauge_field1_2(iy2);
+    um2 = &(gauge_field[iy2][3]);
     _prefetch_single(um2);
 
-    _sse_pair_load((*sp2)_c1__,(*sp2)_c2__);
-    _sse_pair_load_up((*sp2)_c3__,(*sp2)_c4__);
+    /* Site 2: Load */
+    _sse_pair_load((*sp2)[0],(*sp2)[1]);
+    _sse_pair_load_up((*sp2)[2],(*sp2)[3]);
+
+    /* Project */
     _sse_42_gamma3_minus();
       
+    /* Multiply */
     _sse_su3_multiply((*(up2)));
 
+    /* Recons / Accumulate */
     _sse_vector_load(r12_2);
     _sse_24_gamma3_minus_rows12();
     _sse_vector_store(r12_2);
-
     _sse_vector_load(r34_2);
     _sse_24_gamma3_minus();
     _sse_vector_store(r34_2); 
 
-      /******************************* direction -3 *********************************/
+    /******************************* direction -3 *********************************/
+    /* ok, here's where things change up a bit...we have to set the output instead of saving it back to temp */
+    /* also, the rows12 stuff is for spin basis that have the first two rows of the 4x2 matrix anything other
+       than the identity...I only allow this for direction 3 because that's the only place I've seen it in the other
+       spin basis I've worked with... */
 
-
-
-      /* ok, here's where things change up a bit...we have to set the output instead of saving it back to temp */
-		/* also, the rows12 stuff is for spin basis that have the first two rows of the 4x2 matrix anything other
-		than the identity...I only allow this for direction 3 because that's the only place I've seen it in the other
-		spin basis I've worked with... */
-
+    /* Iz is the next site (in step of 2) ie it is ix + 2 */
     iz1 = ix1+2;
-    if (iz1 == high)
-      iz1 = 0;
-    iy1 = iup(iz1,0);
-    sp1 = &psi[iy1];
+
+    if (iz1 == high) {
+      iz1 = 0;       /* If we reach high then set back to 0, so we don't access data from over 
+			the array bound */
+    }
+
+    /* Prefetch forward neighbour spinor */
+    sp1 = &psi[ forward_neighbor(shift_table,iz1,0) ];
     _prefetch_single(sp1);
-    iy2 = iup(iz1+1,0);
-    sp2 = &psi[iy2];
+    sp2 = &psi[ forward_neighbor(shift_table,iz1+1,0) ];
     _prefetch_single(sp2);
-    _sse_pair_load((*sm1)_c1__,(*sm1)_c2__);
-    _sse_pair_load_up((*sm1)_c3__,(*sm1)_c4__);
+
+    /* Site1 : Load */
+    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
+    
+    /* Project */
     _sse_42_gamma3_plus();
       
+    /* Multiply */
     _sse_su3_inverse_multiply((*um1));
 
+    /* Get address of result site */
     sn1 = &res[ix1];  /*we always walk across the result lexicographically */
-     
-      
+       
+    /* Recons 1st two rows */
     _sse_vector_load(r12_1);
     _sse_24_gamma3_plus_rows12();
-      
-    _sse_pair_store((*sn1)_c1__,(*sn1)_c2__);
+     
+    /* Store */
+    _sse_pair_store((*sn1)[0],(*sn1)[1]);
 
     _sse_vector_load(r34_1);
+    
+    /* Recons 2nd two rows */
     _sse_24_gamma3_plus();
       
-    _sse_pair_store((*sn1)_c3__,(*sn1)_c4__);      
+    /* Store */
+    _sse_pair_store((*sn1)[2],(*sn1)[3]);      
 
-    up1 = &_gauge_field0_0(iz1);
+
+    /* Prefetch gauge field for next loop iteration (0 direction) */
+    up1 = &(gauge_field[iz1][0]);
     _prefetch_single(up1);
-    up2 = &_gauge_field0_1(iz1);
+    up2 = &(gauge_field[iz1+1][0]);
     _prefetch_single(up2);
 
-    _sse_pair_load((*sm2)_c1__,(*sm2)_c2__);
-    _sse_pair_load_up((*sm2)_c3__,(*sm2)_c4__);
+
+    /* Second site */
+
+    /* Load */
+    _sse_pair_load((*sm2)[0],(*sm2)[1]);
+    _sse_pair_load_up((*sm2)[2],(*sm2)[3]);
+
+    /* Recons */
     _sse_42_gamma3_plus();
       
+    /* Multiply */
     _sse_su3_inverse_multiply((*um2));
 
+    /* Recons row 12 */
     _sse_vector_load(r12_2);
     _sse_24_gamma3_plus_rows12();
       
-    _sse_pair_store((*(sn1+1))_c1__,(*(sn1+1))_c2__);
+    /* Store */
+    _sse_pair_store((*(sn1+1))[0],(*(sn1+1))[1]);
 
+    /* Recons row 34 */
     _sse_vector_load(r34_2);
     _sse_42_gamma3_plus();
      
-    _sse_pair_store((*(sn1+1))_c3__,(*(sn1+1))_c4__); 
+    /* Store */
+    _sse_pair_store((*(sn1+1))[2],(*(sn1+1))[3]); 
 	  
 
     /******************************** end of loop *********************************/
       
   }
-
-
 }
 
 /*ok, now this routine here is just like the one above except isign has a different value, which means that the
 signs used for 1 +- gamma(mu^) must be swapped...*/ 
-
-
 void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
 {
-  const Arg_s *a  = (const Arg_s*)ptr; 
-  int ix1,iy1,iy2,iz1;
-  const int low  =  lo; 
-  const int high  =  hi;
-  MY_GAUGE (*gauge_field)[4]  =  a->u;
-  MY_SPINOR *psi  =  a->psi;
-  MY_SPINOR *res  =  a->res;
-  MY_GAUGE *up1 ALIGN, *up2 ALIGN, *um1 ALIGN,*um2 ALIGN;   
-  MY_SPINOR *s1 ALIGN,*sp1 ALIGN,*sp2 ALIGN,*sm1 ALIGN,*sm2 ALIGN,*sn1 ALIGN;
-  MY_SSE_VECTOR r12_1,r34_1,r12_2,r34_2;
+  const Arg_s *a  = (const Arg_s*)ptr;   /* Downcast to args */
+  int ix1,iy1,iy2,iz1;                   /* Coordinates ix1 - current
+					    iy1 - index of neighbour
+					    iy1 - index of neighbour of ix1+1 
+					    iz1 - index of first of next pair (ix+2) */
+
+  const int low  =  lo;                    /* First site */
+  const int high  =  hi;                   /* Last site+1 */
+  u_mat_array (*gauge_field)[4]  =  a->u;  /* Gauge field */
+
+  spinor_array *psi  =  a->psi;            /* Source 4-spinor */
+  spinor_array *res  =  a->res;            /* Result 4-spinor */
+
+  u_mat_array *up1 ALIGN;                  /* U[ ix ] */
+  u_mat_array *up2 ALIGN;                  /* U[ ix+1 ] */
+  u_mat_array *um1 ALIGN;                  /* U[ ix - mu ] */
+  u_mat_array *um2 ALIGN;                  /* U[ ix+1 - mu ] */
+
+  spinor_array *sp1 ALIGN;                 /* 4 spinor psi[ix1+mu] */
+  spinor_array *sp2 ALIGN;                 /* 4 spinor psi[ix1+1 + mu] */
+  spinor_array *sm1 ALIGN;                 /* 4 spinor psi[ix1-mu] */
+  spinor_array *sm2 ALIGN;                 /* 4 spinor psi[ix1+1 - mu */
+  spinor_array *sn1 ALIGN;                 /* 4 spinor result */
+
+  chi_array r12_1;                         /* site 1 halfspinor top half */
+  chi_array r34_1;                         /* site 1 halfspinor bottom half */
+  chi_array r12_2;                         /* site 2 halfspinor top half */
+  chi_array r34_2;                         /* site 2 halfspinor bottom half */
   
-  static sse_float _sse_sgn12 ALIGN ={-1.0f,-1.0f,1.0f,1.0f};
-  static sse_float _sse_sgn13 ALIGN ={-1.0f,1.0f,-1.0f,1.0f};
-  static sse_float _sse_sgn14 ALIGN ={-1.0f,1.0f,1.0f,-1.0f};
-  static sse_float _sse_sgn23 ALIGN ={1.0f,-1.0f,-1.0f,1.0f};
-  static sse_float _sse_sgn24 ALIGN ={1.0f,-1.0f,1.0f,-1.0f};
-  static sse_float _sse_sgn34 ALIGN ={1.0f,1.0f,-1.0f,-1.0f};
+  static sse_float _sse_sgn12 ALIGN ={-1.0f,-1.0f,1.0f,1.0f}; 
+  static sse_float _sse_sgn13 ALIGN ={-1.0f,1.0f,-1.0f,1.0f}; 
+  static sse_float _sse_sgn14 ALIGN ={-1.0f,1.0f,1.0f,-1.0f}; 
+  static sse_float _sse_sgn23 ALIGN ={1.0f,-1.0f,-1.0f,1.0f}; 
+  static sse_float _sse_sgn24 ALIGN ={1.0f,-1.0f,1.0f,-1.0f}; 
+  static sse_float _sse_sgn34 ALIGN ={1.0f,1.0f,-1.0f,-1.0f}; 
   static sse_float _sse_sgn1234 ALIGN = {-1.0f,-1.0f,-1.0f,-1.0f};
 
-  /*printf("%i %i",low, high);*/
 
+  /* Pull these out of the loop kind a like a prefetch */
+  iy1 = forward_neighbor(shift_table,low,0); 
+  iy2 = forward_neighbor(shift_table,low+1,0) ;
+  sp1 = &psi[iy1]; 
+  sp2 = &psi[iy2]; 
+  up1 = &(gauge_field[low][0]);
+  up2 = &(gauge_field[low+1][0]); 
 
-  /*
-    if (init == 0)
-    check_alignment();
-  */
-
-
-  iy1 = iup(low,0);
-  iy2 = iup(low+1,0);
-  sp1 = &psi[iy1];
-  sp2 = &psi[iy2];
-  up1 = &_gauge_field0_0(low);
-  up2 = &_gauge_field0_1(low);
   /************************ loop over all lattice sites *************************/
 
-  for (ix1 = low;ix1<high;ix1+= 2) 
-  {
-    /*  printf("m0:%f  k:%i l:%i low:%i high:%i id:%i\n, ix1:%i\n", m0, k, l, low, high, id, ix1);*/
-    /*s1 = &psi[ix1];
-	_prefetch_spinor(s1);*/
-      
-      /******************************* direction +0 *********************************/
+  for (ix1 = low;ix1<high;ix1+= 2) {
+    /******************************* direction +0 *********************************/
+    
+    /* ...(1-isign*gamma(0))... */
 
-      /* ...(1-isign*gamma(0))... */
+    /* Prefetch  spinor for 0- case */
+    iy1 = backward_neighbor(shift_table,ix1,0);
+    iy2 = backward_neighbor(shift_table,ix1+1,0);
 
-
-
-    iy1 = idn(ix1,0);
-    iy2 = idn(ix1+1,0);
-   
     sm1 = &psi[iy1];
     _prefetch_single(sm1);
     sm2 = &psi[iy2];
     _prefetch_single(sm2);
 
+    /* Site1: Load */
+    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
 
-
-    _sse_pair_load((*sp1)_c1__,(*sp1)_c2__);
-    _sse_pair_load_up((*sp1)_c3__,(*sp1)_c4__);
+    /* Project */
     _sse_42_gamma0_plus();
     
-
-    
+    /* Multiply */
     _sse_su3_multiply((*up1));
 
-
-       
-    
-     
+    /* Recons */
     _sse_vector_store_up(r12_1);
-
-
-
-     
     _sse_24_gamma0_plus_set();
     _sse_vector_store_up(r34_1);
 
-
-
-
-
-    um1 = &_gauge_field0_0(iy1);
+    /* Prefetch gauge field for next part */
+    um1 = &(gauge_field[iy1][0]);
     _prefetch_single(um1);
-    um2 = &_gauge_field0_0(iy2);
+    um2 = &(gauge_field[iy2][0]);
     _prefetch_single(um2);
 
-    _sse_pair_load((*(sp2))_c1__,(*(sp2))_c2__);
-    _sse_pair_load_up((*(sp2))_c3__,(*(sp2))_c4__);
+    /* Site 2: Load */
+    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
+    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
 
+    /* Project */
     _sse_42_gamma0_plus();
 
+    /* Multiply */
     _sse_su3_multiply((*(up2)));
 
-        
-    
+    /* Recons */
     _sse_vector_store_up(r12_2);
-
-     
-     
     _sse_24_gamma0_plus_set(); 
     _sse_vector_store_up(r34_2);
       
-      /******************************* direction -0 *********************************/
+    /******************************* direction -0 *********************************/
+    /* sm1, sm2, um1, um2 should be prefetched */
 
+    /* ...(1+isign*gamma(0))... */
 
-      /* ...(1+isign*gamma(0))... */
-
-
-
-    iy1 = iup(ix1,1);
-    iy2 = iup(ix1+1,1);
-  
-    sp1 = &psi[iy1];
+    /* Prefetch for next part (1+) */
+    iy1 = forward_neighbor(shift_table,ix1,1);
+    iy2 = forward_neighbor(shift_table,ix1+1,1);
+      sp1 = &psi[iy1];
     _prefetch_single(sp1);
     sp2 = &psi[iy2];
     _prefetch_single(sp2);
 
+    /* Site 1: Load */
+    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
 
-    _sse_pair_load((*sm1)_c1__,(*sm1)_c2__);
-    _sse_pair_load_up((*sm1)_c3__,(*sm1)_c4__);
+    /* Project */
     _sse_42_gamma0_minus();
 	 
-
+    /* Multiply */
     _sse_su3_inverse_multiply((*um1));
 
-
-
-
+    /* Recons/Accumulate */
     _sse_vector_load(r12_1);
-
     _sse_vector_add();
     _sse_vector_store(r12_1);
-    
-
-
-
     _sse_vector_load(r34_1);
     _sse_24_gamma0_minus_add();
     _sse_vector_store(r34_1);  
 
 
-
-
-    up1 = &_gauge_field0_2(ix1);
+    /* Prefetch gauge field for next part: (1+) */
+    up1 = &(gauge_field[ix1][1]);
     _prefetch_single(up1);      
-    up2 = &_gauge_field0_3(ix1);
+    up2 = &(gauge_field[ix1+1][1]);
     _prefetch_single(up2);
 
-
-
-    _sse_pair_load((*(sm2))_c1__,(*(sm2))_c2__);
-    _sse_pair_load_up((*(sm2))_c3__,(*(sm2))_c4__);
+    /* Site 2: Load */
+    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
+    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
+    
+    /* Project */
     _sse_42_gamma0_minus();
 
+    /* Multiply */
     _sse_su3_inverse_multiply((*(um2)));
 
+    /* Recons / Accumulate */
     _sse_vector_load(r12_2);
     _sse_vector_add();
     _sse_vector_store(r12_2);
@@ -1028,97 +991,110 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     _sse_24_gamma0_minus_add();
     _sse_vector_store(r34_2);  
       
-      /******************************* direction +1 *********************************/
 
+    /******************************* direction +1 *********************************/
+    /* sp1, sp2, up1, up2 should be prefetched                                    */
 
-
-
-    iy1 = idn(ix1,1);
-    iy2 = idn(ix1+1,1);
+    /* Prefetch Spinors for next part (1-) */
+    iy1 = backward_neighbor(shift_table,ix1,1);
+    iy2 = backward_neighbor(shift_table,ix1+1,1);
     sm1 = &psi[iy1];
     _prefetch_single(sm1);
     sm2 = &psi[iy2];
     _prefetch_single(sm2);
 
-    _sse_pair_load((*sp1)_c1__,(*sp1)_c2__);
-    _sse_pair_load_up((*sp1)_c3__,(*sp1)_c4__);
+    /* Site 1: Load */
+    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+
+    /* Project */
     _sse_42_gamma1_plus();
 
+    /* Multiply */
     _sse_su3_multiply((*up1));
 
+    /* Recons / Accumulate */
     _sse_vector_load(r12_1);
-
-  
     _sse_vector_add();
-	  
     _sse_vector_store(r12_1);
-
 
     _sse_vector_load(r34_1);
     _sse_24_gamma1_plus();
     _sse_vector_store(r34_1);
 
-    um1 = &_gauge_field0_2(iy1);
+    /* Prefetch gauge links for next part (1-) */
+    um1 = &(gauge_field[iy1][1]);
     _prefetch_single(um1);      
-    um2 = &_gauge_field0_2(iy2);
-    _prefetch_single(um2);
+    um2 = &(gauge_field[iy2][1]);
+    _prefetch_single(um2); 
 
       
-    _sse_pair_load((*(sp2))_c1__,(*(sp2))_c2__);
-    _sse_pair_load_up((*(sp2))_c3__,(*(sp2))_c4__);
+    /* Site2: Load */
+    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
+    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
+
+    /* Project */
     _sse_42_gamma1_plus();
 
+    /* Multiply */
     _sse_su3_multiply((*(up2)));
 
+    /* Recons Accumulate */
     _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2); 
-      
-    _sse_vector_load(r34_2);
-    _sse_24_gamma1_plus();
-    _sse_vector_store(r34_2);
+    _sse_vector_add(); 
+    _sse_vector_store(r12_2);  
 
-      /******************************* direction -1 *********************************/
+    _sse_vector_load(r34_2); 
+    _sse_24_gamma1_plus(); 
+    _sse_vector_store(r34_2); 
 
 
+    /******************************* direction -1 *********************************/
 
-
-
-    iy1 = iup(ix1,2);
-    iy2 = iup(ix1+1,2);
+    /* Prefetch spinors for next part: (2+) */
+    iy1 = forward_neighbor(shift_table,ix1,2);
+    iy2 = forward_neighbor(shift_table,ix1+1,2);
     sp1 = &psi[iy1];
     _prefetch_single(sp1);
     sp2 = &psi[iy2];
     _prefetch_single(sp2);
 
-    _sse_pair_load((*sm1)_c1__,(*sm1)_c2__);
-    _sse_pair_load_up((*sm1)_c3__,(*sm1)_c4__);
+    /* Site 1:  Load */
+    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
+
+    /* Project */
     _sse_42_gamma1_minus();
 	  
-
+    /* Multiply */
     _sse_su3_inverse_multiply((*um1));
 
+    /* Recons / Accumulate */
     _sse_vector_load(r12_1);
-
     _sse_vector_add();
     _sse_vector_store(r12_1);      
-
 
     _sse_vector_load(r34_1);
     _sse_24_gamma1_minus();
     _sse_vector_store(r34_1);      
 
-    up1 = &_gauge_field1_0(ix1);
-    _prefetch_single(up1);      
-    up2 = &_gauge_field1_1(ix1);
-    _prefetch_single(up2);
+    /* Prefetch gauge field for next part (2+) */
+    up1 = &(gauge_field[ix1][2]);
+    _prefetch_single(up1);       
+    up2 = &(gauge_field[ix1+1][2]); 
+    _prefetch_single(up2); 
 
-    _sse_pair_load((*(sm2))_c1__,(*(sm2))_c2__);
-    _sse_pair_load_up((*(sm2))_c3__,(*(sm2))_c4__);
+    /* Site 2: Load */
+    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
+    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
+
+    /* Project */
     _sse_42_gamma1_minus();
 
+    /* Multiply */
     _sse_su3_inverse_multiply((*(um2)));
 
+    /* Recons Accumulate */
     _sse_vector_load(r12_2);
     _sse_vector_add();
     _sse_vector_store(r12_2);      
@@ -1127,25 +1103,28 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     _sse_24_gamma1_minus();
     _sse_vector_store(r34_2); 
 
-      /******************************* direction +2 *********************************/
+    /******************************* direction +2 *********************************/
+    /* sp1, sp2, up1, up2 should  be in cache                                     */
 
-
-
-
-
-    iy1 = idn(ix1,2);
+    /* Prefetch spinors for next part: 2- */
+    iy1 = backward_neighbor(shift_table,ix1,2);
     sm1 = &psi[iy1];
     _prefetch_single(sm1);
-    iy2 = idn(ix1+1,2);
+     iy2 = backward_neighbor(shift_table,ix1+1,2);
     sm2 = &psi[iy2];
     _prefetch_single(sm2);
 
-    _sse_pair_load((*sp1)_c1__,(*sp1)_c2__);
-    _sse_pair_load_up((*sp1)_c3__,(*sp1)_c4__);
+    /* Site 1: Load */
+    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+
+    /* Project */
     _sse_42_gamma2_plus();
 
+    /* Multiply */
     _sse_su3_multiply((*up1));
 
+    /* Accumulate / recons */
     _sse_vector_load(r12_1);
     _sse_vector_add();
     _sse_vector_store(r12_1);       
@@ -1154,115 +1133,112 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     _sse_24_gamma2_plus();
     _sse_vector_store(r34_1);       
 
-    um1 = &_gauge_field1_0(iy1);
+    /* Prefetch Gauge field for next part: 2- */
+    um1 = &(gauge_field[iy1][2]);
     _prefetch_single(um1);
-    um2 = &_gauge_field1_0(iy2);
+    um2 = &(gauge_field[iy2][2]);
     _prefetch_single(um2);
 
-    _sse_pair_load((*(sp2))_c1__,(*(sp2))_c2__);
-    _sse_pair_load_up((*(sp2))_c3__,(*(sp2))_c4__);
+    /* Site 2: Load */
+    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
+    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
+
+    /* Project */
     _sse_42_gamma2_plus();
 
+    /* Multiply */
     _sse_su3_multiply((*(up2)));
 
+    /* Recons / Accumulate */
     _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);       
+    _sse_vector_add(); 
+    _sse_vector_store(r12_2);        
 
     _sse_vector_load(r34_2);
     _sse_24_gamma2_plus();
     _sse_vector_store(r34_2); 
+ 
+    /******************************* direction -2 *********************************/
 
-      /******************************* direction -2 *********************************/
+    /* sm1, sm2, um1, um2 should be cached */
 
-
-
-
-
-    iy1 = iup(ix1,3);
+    /* Prefetch spinor for next case: 3+ */
+    iy1 = forward_neighbor(shift_table,ix1,3);
     sp1 = &psi[iy1];
     _prefetch_single(sp1);
-    iy2 = iup(ix1+1,3); 
+    iy2 = forward_neighbor(shift_table,ix1+1,3); 
     sp2 = &psi[iy2];
     _prefetch_single(sp2);
-    
-      /*if (iy1<iy2)
-	{
-	sp2 = sp1+1;
-	_prefetch_spinor(sp1);
-	}
-	else
-	{
-	sp2 = sp1-1;
-	_prefetch_spinor(sp2);
-	} */
-      
-    _sse_pair_load((*sm1)_c1__,(*sm1)_c2__);
-    _sse_pair_load_up((*sm1)_c3__,(*sm1)_c4__);
+
+
+    /* Site 1: Load */
+    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
+
+    /* Project */
     _sse_42_gamma2_minus();      
 
+    /* Multiply */
     _sse_su3_inverse_multiply((*um1));
 
+    /* Recons/Accumulate*/
     _sse_vector_load(r12_1);
     _sse_vector_add();
     _sse_vector_store(r12_1);
       
     _sse_vector_load(r34_1);
     _sse_24_gamma2_minus();
-    
     _sse_vector_store(r34_1);
 
-    up1 = &_gauge_field1_2(ix1);
+    /* Prefetch gauge for next case: 3+ */
+    up1 = &(gauge_field[ix1][3]);
     _prefetch_single(up1);
-    up2 = &_gauge_field1_3(ix1);
+    up2 = &(gauge_field[ix1+1][3]);
     _prefetch_single(up2);
-
-    _sse_pair_load((*(sm2))_c1__,(*(sm2))_c2__);
-    _sse_pair_load_up((*(sm2))_c3__,(*(sm2))_c4__);
+     
+    /* Site 2: Load */
+    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
+    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
+    
+    /* Project */
     _sse_42_gamma2_minus();      
 
+    /* Multiply */
     _sse_su3_inverse_multiply((*(um2)));
 
+    /* Recons/ Accumulate */
     _sse_vector_load(r12_2);
     _sse_vector_add();
     _sse_vector_store(r12_2);
       
     _sse_vector_load(r34_2);
     _sse_24_gamma2_minus();
-    _sse_vector_store(r34_2);
+    _sse_vector_store(r34_2); 
 
-      /******************************* direction +3 *********************************/
+    
+    /******************************* direction +3 *********************************/
+    /* sp1, sp2, up1, up2 should be in cache */
 
-
-
-
-
-    iy1 = idn(ix1,3);
-    iy2 = idn(ix1+1,3);
+    /* Prefetch spinors for next case: dir 3- */
+    iy1 = backward_neighbor(shift_table,ix1,3);
+    iy2 = backward_neighbor(shift_table,ix1+1,3);
     sm1 = &psi[iy1];
     _prefetch_single(iy1);
     sm2 = &psi[iy2];
     _prefetch_single(iy2);
 
-    /*if (iy1<iy2)
-      {
-      sm2 = sm1+1;
-      _prefetch_spinor(sm1);
-      }
-      else
-      {
-      sm2 = sm1-1;
-      _prefetch_spinor(sm2);
-      } */
 
+    /* Site 1: Load */
+    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
 
-
-    _sse_pair_load((*sp1)_c1__,(*sp1)_c2__);
-    _sse_pair_load_up((*sp1)_c3__,(*sp1)_c4__);
+    /* project */
     _sse_42_gamma3_plus();
       
+    /* Multiply */
     _sse_su3_multiply((*up1));
 
+    /* Recons Accumulate */
     _sse_vector_load(r12_1);
     _sse_24_gamma3_plus_rows12();
     _sse_vector_store(r12_1);
@@ -1271,30 +1247,23 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     _sse_24_gamma3_plus();
     _sse_vector_store(r34_1);      
 
-      /*if (iy1<iy2)
-	{
-	um1 = &_gauge_field1_0(iy2);
-	um2 = um1+1;
-	_prefetch_su3(um1);
-	}
-	else
-	{
-	um2 = &_gauge_field1_0(iy1);
-	um1 = um2+1;
-	_prefetch_su3(um2);
-	} */
-
-    um1 = &_gauge_field1_2(iy1); 
+    /* Prefetch gauge field for next part: 3- */
+    um1 = &(gauge_field[iy1][3]); 
     _prefetch_single(um1);
-    um2 = &_gauge_field1_2(iy2);
+    um2 = &(gauge_field[iy2][3]);
     _prefetch_single(um2);
 
-    _sse_pair_load((*sp2)_c1__,(*sp2)_c2__);
-    _sse_pair_load_up((*sp2)_c3__,(*sp2)_c4__);
+    /* Site 2: Load */
+    _sse_pair_load((*sp2)[0],(*sp2)[1]);
+    _sse_pair_load_up((*sp2)[2],(*sp2)[3]);
+
+    /* Project */
     _sse_42_gamma3_plus();
       
+    /* Multiply */
     _sse_su3_multiply((*(up2)));
 
+    /* Recons Accumulate */
     _sse_vector_load(r12_2);
     _sse_24_gamma3_plus_rows12();
     _sse_vector_store(r12_2);
@@ -1303,108 +1272,79 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     _sse_24_gamma3_plus();
     _sse_vector_store(r34_2); 
 
-      /******************************* direction -3 *********************************/
+    /******************************* direction -3 *********************************/
+    
+    /* OK this was peeled off the loop, so we only want to do it if there are sites 
+       left */
 
-
-
-
-
+    /* First of the next pair of sites - what ix1 would be after loop iteration increment */
     iz1 = ix1+2;
+
+    /* If we have reached the last site, set this to site zero. No harm in prefetching those. */
     if (iz1 == high)
       iz1 = 0;
-    iy1 = iup(iz1,0);
+
+    /* Prefetch spinor for firt case: 0+ */
+    iy1 = forward_neighbor(shift_table,iz1,0);
     sp1 = &psi[iy1];
     _prefetch_single(sp1);
-    iy2 = iup(iz1+1,0);
+    iy2 = forward_neighbor(shift_table,iz1+1,0);
     sp2 = &psi[iy2];
     _prefetch_single(sp2);
-    _sse_pair_load((*sm1)_c1__,(*sm1)_c2__);
-    _sse_pair_load_up((*sm1)_c3__,(*sm1)_c4__);
+
+    /* Site 1: Load */
+    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
+
+    /* Project */
     _sse_42_gamma3_minus();
       
+    /* Multiply */
     _sse_su3_inverse_multiply((*um1));
 
-    sn1 = &res[ix1];  /*we always walk across the result lexicographically */
-     
-      
+    /* Recons/Accumulate and set in res */
+    sn1 = &res[ix1];     
+   
+    /* Top half spinor */
     _sse_vector_load(r12_1);
     _sse_24_gamma3_minus_rows12();
-      
-    _sse_pair_store((*sn1)_c1__,(*sn1)_c2__);
+    _sse_pair_store((*sn1)[0],(*sn1)[1]);
 
+    /* Bottom half spinor */
     _sse_vector_load(r34_1);
     _sse_24_gamma3_minus();
-      
-    _sse_pair_store((*sn1)_c3__,(*sn1)_c4__);      
+    _sse_pair_store((*sn1)[2],(*sn1)[3]);      
 
-    up1 = &_gauge_field0_0(iz1);
+    /* Prefetch Gauge field for next case: 0+ */
+    up1 = &(gauge_field[iz1][0]);
     _prefetch_single(up1);
-    up2 = &_gauge_field0_1(iz1);
+    up2 = &(gauge_field[iz1+1][0]);
     _prefetch_single(up2);
 
-    _sse_pair_load((*sm2)_c1__,(*sm2)_c2__);
-    _sse_pair_load_up((*sm2)_c3__,(*sm2)_c4__);
+    /* Site 2: Load */
+    _sse_pair_load((*sm2)[0],(*sm2)[1]);
+    _sse_pair_load_up((*sm2)[2],(*sm2)[3]);
+
+    /* Project */
     _sse_42_gamma3_minus();
       
+    /* Multiply */
     _sse_su3_inverse_multiply((*um2));
 
+    /* Recons/Accumulate and set in res */
+    /* Top Half */
     _sse_vector_load(r12_2);
     _sse_24_gamma3_minus_rows12();
-      
-    _sse_pair_store((*(sn1+1))_c1__,(*(sn1+1))_c2__);
+    _sse_pair_store((*(sn1+1))[0],(*(sn1+1))[1]);
 
+    /* Bottom Half */
     _sse_vector_load(r34_2);
     _sse_42_gamma3_minus();
-     
-    _sse_pair_store((*(sn1+1))_c3__,(*(sn1+1))_c4__); 
-	  
-
+    _sse_pair_store((*(sn1+1))[2],(*(sn1+1))[3]); 
     /******************************** end of loop *********************************/
-      
   }
 
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifdef __cplusplus
 }
