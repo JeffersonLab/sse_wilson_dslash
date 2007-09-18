@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.1 2007-09-12 19:33:13 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.2 2007-09-18 17:20:15 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -48,6 +48,8 @@ extern "C" {
 /* Max machine size */
 #define ND  4
 
+  static int subgrid_vol = -1;
+  static int subgrid_vol_cb = -1;
 
 /* Number of dimensions */
 static int getNumDim()
@@ -99,21 +101,16 @@ static int* getLattSize()
 
 
 /* Subgrid volume */
-static int getSubgridVol()
+int getSubgridVol()
 {
-  static int first = 1;
-  static int subgrid_vol = 1;
-
-  if (first == 1)
-  {
-    int i;
-    for(i=0; i < getNumDim(); ++i)
-      subgrid_vol *= getSubgridSize()[i];
-
-    first = 0;
-  }
-  
   return subgrid_vol;
+}
+
+
+/* Subgrid volume */
+int getSubgridVolCB()
+{
+  return subgrid_vol_cb;
 }
 
 
@@ -281,15 +278,44 @@ static int parity(const int coord[])
 }
 
 
-void make_shift_tables(int *shift, int icolor_start[2], int bound[2][4][4])
+int* make_shift_tables(int icolor_start[2], int bound[2][4][4])
 { 
-  int type, cb, dir; 
+  volatile int type, cb, dir; 
   const int my_node = QMP_get_node_number();
-  int subgrid_vol = getSubgridVol();
-  int subgrid_vol_cb = subgrid_vol >> 1;
-  int coord[ND];
+  int coord[4];
   int linear;
   int Nd = getNumDim();
+  int nsize;
+  int *shift;
+
+  int i;
+
+  /* Setup the subgrid volume for ever after */
+  subgrid_vol = 1;
+  for(i=0; i < getNumDim(); ++i) {
+    subgrid_vol *= getSubgridSize()[i]; 
+  }
+
+  /* Get the checkerboard size for ever after */
+  subgrid_vol_cb = subgrid_vol / 2;
+
+  /* Allocate the shift table */
+  /* The structure is as follows: There are 4 shift tables in order:
+
+    [ Table 1 | Table 2 | Table 3 | Table 4 ]
+
+    Table 1: decomp_hvv_scatter_index[mu][site]
+    Table 2: decomp_scatter_index[mu][site]
+    Table 3: recons_mvv_gather_index[mu][site]
+    Table 4: recons_gather_index[mu][site]
+  
+  */
+ 
+  if ((shift = (int *)malloc(Nd*subgrid_vol*4*sizeof(int))) == 0) {
+    QMP_error("init_wnxtsu3dslash: could not initialize shift_table");
+    QMP_abort(1);
+  }
+
 
   /* Determine what is the starting site for each color (checkerboard) */
   getSiteCoords(coord, my_node, 0);   /* try linear=0 */
@@ -298,24 +324,21 @@ void make_shift_tables(int *shift, int icolor_start[2], int bound[2][4][4])
   getSiteCoords(coord, my_node, subgrid_vol_cb);   /* try linear=subgrid_vol_cb */
   icolor_start[parity(coord)] = subgrid_vol_cb;
 
-/*  sprintf(filename,"shift_table.out%d", my_node);
-    f = fopen(filename, "w"); */
-
-/*  QMP_fprintf(f,"icolor_start[0]=%d  icolor_start[1]=%d",
-	      icolor_start[0], icolor_start[1]); */
-
   /* Initialize the boundary counters */
-  for(cb=0; cb < 2; cb++)
-    for(type=0; type < 4; type++) 
-      for(dir=0; dir < Nd; dir++)
+  for(cb=0; cb < 2; cb++) {
+    for(type=0; type < 4; type++) {
+      for(dir=0; dir < Nd; dir++) {
 	bound[cb][type][dir] = 0;	
+      }
+    }
+  }
 
 
   /* Loop over directions and sites, building up shift tables */
-  for(dir=0; dir < Nd; dir++) 
-  { 
-    for(linear=0; linear < subgrid_vol; ++linear)
-    {
+  for(dir=0; dir < Nd; dir++) {
+ 
+    for(linear=0; linear < subgrid_vol; ++linear) {
+    
       int fcoord[ND], bcoord[ND];
       int fnode, bnode;
       int blinear, flinear;
@@ -333,10 +356,6 @@ void make_shift_tables(int *shift, int icolor_start[2], int bound[2][4][4])
       offs(fcoord, coord, dir, +1);
       fnode   = getNodeNumber(fcoord);
       flinear = getLinearSiteIndex(fcoord);
-
-/*      QMP_fprintf(f,"dir=%d crd=[%d,%d,%d,%d] cb=%d  l=%d n=%d fl=%d fn=%d bl=%d bn=%d",
-		  dir, coord[0],coord[1],coord[2],coord[3],cb,
-		  linear,my_node,flinear,fnode,blinear,bnode); */
 
       /* Scatter:  decomp_{plus,minus} */
       /* Operation: a^F(shift(x,type=0),dir) <- decomp(psi(x),dir) */ 
@@ -418,9 +437,34 @@ void make_shift_tables(int *shift, int icolor_start[2], int bound[2][4][4])
 	QMP_abort(1);
       }
     }
+  
+  return shift;
 
-/*  fclose(f); */
 } 
+
+/* decomp plus, decomp minus scatter using these indices */
+int decomp_hvv_scatter_index(int *table, int mysite, int mymu) 
+{
+  return table[mymu+4*(mysite+subgrid_vol)];
+}
+
+/*  decomp_hvv_plus, decomp_hvv_minus scatters using these indices */
+int decomp_scatter_index(int *table, int mysite, int mymu) 
+{
+  return table[mymu+4*(mysite)];
+}
+
+/*  mvv_recons_plus, gathers from this index */
+int recons_mvv_gather_index(int *table, int mysite, int mymu) 
+{
+  return table[mymu+4*(mysite+subgrid_vol*(2))];
+}
+
+/* recons_plus, recons_minux gather from this index */
+int recons_gather_index(int *table, int mysite, int mymu) 
+{
+  return table[mymu+4*(mysite+subgrid_vol*(3))];
+}
 
 #ifdef __cplusplus
 }
