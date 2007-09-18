@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.4 2007-09-18 19:25:23 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.5 2007-09-18 19:33:47 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -162,33 +162,15 @@ to a lattice temporary */
   void decomp_plus(size_t lo,size_t hi, int id, const void *ptr) /*need to fix decomp_minus */
   {
 
-    int ix1,iy2,iz1;
-    spinor_array* s1 ALIGN;
-    spinor_array* sp1 ALIGN;
-    spinor_array* sp2 ALIGN;
-    spinor_array* sm2 ALIGN;
-    spinor_array* sm1 ALIGN;
-    spinor_array* sn1 ALIGN;
-    sse_float _sse_sgn12 ALIGN ={-1.0f,-1.0f,1.0f,1.0f};
-    sse_float _sse_sgn13 ALIGN ={-1.0f,1.0f,-1.0f,1.0f};
-    sse_float _sse_sgn14 ALIGN ={-1.0f,1.0f,1.0f,-1.0f};
-    sse_float _sse_sgn23 ALIGN ={1.0f,-1.0f,-1.0f,1.0f};
-    sse_float _sse_sgn24 ALIGN ={1.0f,-1.0f,1.0f,-1.0f};
-    sse_float _sse_sgn34 ALIGN ={1.0f,1.0f,-1.0f,-1.0f};
-    sse_float _sse_sgn1234 ALIGN = {-1.0f,-1.0f,-1.0f,-1.0f};
-    
+    int ix1, iz1;                           /* Site index - iz1 used at loop end */
+    spinor_array* sp1 ALIGN;                /* Spinor under consideration */
     int subgrid_vol_cb = getSubgridVolCB();
-    halfspinor_array r12_1 ALIGN,r34_1 ALIGN,r12_2 ALIGN,r34_2 ALIGN;
-    
-    const Arg_s *a = (Arg_s *)ptr;
-    
+       
+    const Arg_s *a = (Arg_s *)ptr;          /* Cast the argument */
     halfspinor_array* chia = a->half_spinor; /* needs to be changed to halfspinor_array and be an array*/
-    
-    halfspinor_array* s3;
-    halfspinor_array* s4;
-    
     int cb = a->cb;
     
+    halfspinor_array* s3;
     int  low = icolor_start[cb]+(int)lo;
     int high = icolor_start[cb]+(int)hi;
     
@@ -200,29 +182,25 @@ to a lattice temporary */
     /************************ loop over all lattice sites *************************/
     for (ix1=low;ix1<high;ix1+=2) {
       
-      s1=&spinor_field[ix1+2];
-      _prefetch_spinor(s1);
+      _prefetch_spinor(&spinor_field[ix1+2]);
       
-      /* prefetched input spinor for next two sites */
-      
+            
       /******************************* direction +0 *********************************/
-      
-      
       /* first of two sites */
+
       _sse_pair_load((*sp1)[0],(*sp1)[1]);
       s3 = buffer_address(chia,0,decomp_scatter_index(shift_table,ix1,0));
       _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+
       _sse_42_gamma0_minus();
-      
-      /* the halfspinor is now in xmm0-2 , so _store*/
-      
-      /* note: if the communications hardware likes its buffers out to memory instead of in cache, then non-temporal stores may be in order...check one of the #define switches above for more details */
+
       _sse_vector_store(*s3);
       
       /* second of two sites */
       _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
       s3 = buffer_address(chia,0,decomp_scatter_index(shift_table,ix1+1,0));
       _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
+
       _sse_42_gamma0_minus();
       
       _sse_vector_store(*s3);
@@ -232,6 +210,7 @@ to a lattice temporary */
       _sse_pair_load((*sp1)[0],(*sp1)[1]);
       _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
       s3 = buffer_address(chia,1,decomp_scatter_index(shift_table,ix1,1));
+
       _sse_42_gamma1_minus();
       
       _sse_vector_store(*s3);
@@ -239,6 +218,7 @@ to a lattice temporary */
       _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
       s3 = buffer_address(chia,1,decomp_scatter_index(shift_table,ix1+1,1));
       _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
+
       _sse_42_gamma1_minus();
       
       _sse_vector_store(*s3);
@@ -247,6 +227,7 @@ to a lattice temporary */
       _sse_pair_load((*sp1)[0],(*sp1)[1]);
       s3 = buffer_address(chia,2,decomp_scatter_index(shift_table,ix1,2));
       _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+
       _sse_42_gamma2_minus();
       
       _sse_vector_store(*s3);
@@ -254,23 +235,24 @@ to a lattice temporary */
       _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
       s3 = buffer_address(chia,2,decomp_scatter_index(shift_table,ix1+1,2));
       _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
+
       _sse_42_gamma2_minus();
       
       _sse_vector_store(*s3);   	
-      
-      sp2=sp1+1;
       
       /******************************* direction +3 *********************************/
       _sse_pair_load((*sp1)[0],(*sp1)[1]);
       s3 = buffer_address(chia,3,decomp_scatter_index(shift_table,ix1,3));
       _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+
       _sse_42_gamma3_minus();
       
       _sse_vector_store(*s3);
       
-      _sse_pair_load((*sp2)[0],(*sp2)[1]);
+      _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
       s3 = buffer_address(chia,3,decomp_scatter_index(shift_table,ix1+1,3));
-      _sse_pair_load_up((*sp2)[2],(*sp2)[3]);
+      _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
+
       _sse_42_gamma3_minus();
       
       _sse_vector_store(*s3);
