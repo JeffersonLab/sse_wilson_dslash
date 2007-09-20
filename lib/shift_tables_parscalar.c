@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.3 2007-09-20 15:25:37 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.4 2007-09-20 20:05:44 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -40,8 +40,9 @@ extern "C" {
 #endif
 
 
-  static int** shift_table;
-  
+  static offset** offset_table;
+
+
 /* Max machine size */
   static int subgrid_vol = -1;
   static int subgrid_vol_cb = -1;
@@ -280,21 +281,22 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
   int coord[4];
   int linear;
   int Nd = getNumDim();
- 
-  int i;
+  int **shift_table;
 
+  int i;
+  
   /* Setup the subgrid volume for ever after */
   subgrid_vol = 1;
   for(i=0; i < getNumDim(); ++i) {
     subgrid_vol *= getSubgridSize()[i]; 
   }
-
+  
   /* Get the checkerboard size for ever after */
   subgrid_vol_cb = subgrid_vol / 2;
-
+  
   /* Allocate the shift table */
   /* The structure is as follows: There are 4 shift tables in order:
-
+     
     [ Table 1 | Table 2 | Table 3 | Table 4 ]
     Table 1: decomp_scatter_index[mu][site]
     Table 2: decomp_hvv_scatter_index[mu][site]
@@ -306,9 +308,9 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
   if ((shift_table = (int **)malloc(4*sizeof(int))) == 0 ) {
     QMP_error("init_wnxtsu3dslash: could not initialize shift_table");
     QMP_abort(1);
-
+    
   }
-
+  
   for(i=0; i < 4; i++) { 
     if ((shift_table[i] = (int *)malloc(Nd*subgrid_vol*sizeof(int))) == 0) {
       QMP_error("init_wnxtsu3dslash: could not initialize shift_table");
@@ -405,6 +407,7 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
     } 
   }
 
+
   /* Sanity check - make sure the sending and receiving counters match */
   for(cb=0; cb < 2; cb++) {
     for(dir=0; dir < Nd; dir++) {
@@ -424,64 +427,73 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
       }
     }
   }
-  //  return shift;
+
+  
+  offset_table = (offset **)malloc(4*sizeof(offset*));
+  if( offset_table == 0 ) {
+    QMP_error("init_wnxtsu3dslash: could not initialize offset_table");
+    QMP_abort(1);
+  }
+
+  for(i=0; i < 4; i++) { 
+    offset_table[i] = (offset *)malloc(subgrid_vol*sizeof(offset));
+    if( offset_table[i] == 0 ) {
+      QMP_error("init_wnxtsu3dslash: could not initialize offset_table[i]");
+      QMP_abort(1);
+    }
+  }
+
+  for(linear=0; linear < subgrid_vol; linear++) { 
+    for(type=0; type < 4; type++) {
+      for(dir=0; dir < 4; dir++) { 
+	offset_table[type][linear][dir] =  shift_table[type][dir+4*linear] +3*subgrid_vol_cb*dir;
+      }
+    }
+  }
+
+
+  /* Free shift table - it is no longer needed. We deal solely with offsets */
+  for(i=0; i < 4; i++) { 
+    free( (shift_table)[i] );
+  }
+  free( shift_table );
 
 } 
-
-/* decomp plus, decomp minus scatter using these indices */
-int decomp_hvv_scatter_index(int mysite, int mymu) 
-{
-  //  return table[mymu+4*(mysite+subgrid_vol)];
-  return shift_table[1][mymu+4*mysite];}
-
-/*  decomp_hvv_plus, decomp_hvv_minus scatters using these indices */
-int decomp_scatter_index(int mysite, int mymu) 
-{
-  return shift_table[0][mymu+4*mysite];
-}
-
-/*  mvv_recons_plus, gathers from this index */
-int recons_mvv_gather_index(int mysite, int mymu) 
-{
-  return shift_table[2][mymu+4*mysite];
-}
-
-/* recons_plus, recons_minux gather from this index */
-int recons_gather_index(int mysite, int mymu) 
-{
-  return shift_table[3][mymu+4*mysite];
-}
 
 
 void free_shift_tables(void) 
 {
   int i;
   for(i=0; i < 4; i++) { 
-    free( (shift_table)[i] );
+    free( (offset_table)[i] );
   }
-  free( shift_table );
+  free( offset_table );
 }
 
 
 int offset_decomp_scatter(int site, int mu)
 {
-  return shift_table[0][mu+4*site]+3*subgrid_vol_cb*mu;
+  //  return shift_table[0][mu+4*site] +3*subgrid_vol_cb*mu;
+  return offset_table[DECOMP_SCATTER][site][mu];
 }
 
 int offset_decomp_hvv_scatter(int site, int mu)
 {
-  return shift_table[1][mu+4*site]+3*subgrid_vol_cb*mu;
+  //return shift_table[1][mu+4*site]  +3*subgrid_vol_cb*mu;
+  return offset_table[DECOMP_HVV_SCATTER][site][mu];
 }
 
 
 int offset_recons_mvv_gather(int site, int mu)
 {
-  return shift_table[2][mu+4*site]+3*subgrid_vol_cb*mu;
+  // return shift_table[2][mu+4*site]  + 3*subgrid_vol_cb*mu;
+  return offset_table[RECONS_MVV_GATHER][site][mu];
 }
 
 int offset_recons_gather(int site, int mu)
 {
-  return shift_table[3][mu+4*site]+3*subgrid_vol_cb*mu;
+  //  return shift_table[3][mu+4*site]  + 3*subgrid_vol_cb*mu;
+  return offset_table[RECONS_GATHER][site][mu];
 }
 
 

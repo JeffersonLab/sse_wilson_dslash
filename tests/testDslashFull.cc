@@ -80,7 +80,7 @@ testDslashFull::run(void)
       Double diff_norm = sqrt( norm2( diff ) ) 
 	/ ( Real(4*3*2*Layout::vol()) / Real(2));
 	
-      QDPIO::cout << "\t cb = " << cb << "  isign = " << isign << "  diff_norm = " << diff_norm << endl;      
+      QDPIO::cout << "\t cb = " << source_cb << "  isign = " << isign << "  diff_norm = " << diff_norm << endl;      
       // Assert things are OK...
       assertion( toBool( diff_norm < small ) );
 

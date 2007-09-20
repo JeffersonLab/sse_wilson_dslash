@@ -1,23 +1,28 @@
 #ifndef SHIFT_TABLES_PARSCALAR_H
 #define SHIFT_TABLES_PARSCALAR_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-
-
+  typedef int offset[4];
   
-  int decomp_scatter_index(int *table, int mysite, int mymu);
-  int decomp_hvv_scatter_index(int *table, int mysite, int mymu);
-  int recons_mvv_gather_index(int *table, int mysite, int mymu);
-  int recons_gather_index(int *table, int mysite, int mymu);
-  
+  #define DECOMP_SCATTER 0
+  #define DECOMP_HVV_SCATTER 1
+  #define RECONS_MVV_GATHER 2
+  #define RECONS_GATHER 3
+
   int getSubgridVol();
   int getSubgridVolCB();
-  int* make_shift_tables(int icolor_start[2], int bound[2][4][4]);
-
+  void make_shift_tables(int icolor_start[2], int bound[2][2][4]);
+  void free_shift_tables(void);
+  
+  int offset_decomp_scatter(int site, int mu);
+  int offset_decomp_hvv_scatter(int mu, int site);
+  int offset_recons_mvv_gather(int mu, int site);
+  int offset_recons_gather(int mu, int site);
 
 #ifdef __cplusplus
 };

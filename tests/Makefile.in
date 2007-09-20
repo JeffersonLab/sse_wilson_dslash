@@ -52,7 +52,6 @@ am_t_dslash_OBJECTS = dslashm_w.$(OBJEXT) reunit.$(OBJEXT) \
 	t_dslash.$(OBJEXT) testDslashFull.$(OBJEXT)
 t_dslash_OBJECTS = $(am_t_dslash_OBJECTS)
 t_dslash_LDADD = $(LDADD)
-t_dslash_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
@@ -191,6 +190,7 @@ t_dslash_SOURCES = unittest.h \
 	testDslashFull.h \
 	testDslashFull.cc
 
+t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
 all: all-am
 
 .SUFFIXES:
