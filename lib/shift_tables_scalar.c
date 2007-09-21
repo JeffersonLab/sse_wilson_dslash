@@ -1,4 +1,4 @@
-/* $Id: shift_tables_scalar.c,v 1.2 2007-09-14 19:32:11 bjoo Exp $
+/* $Id: shift_tables_scalar.c,v 1.3 2007-09-21 17:19:48 bjoo Exp $
 
 /* Set the offset tables used by the 32-bit and 64-bit single node dslash */
 
@@ -96,7 +96,7 @@ static int local_site(int coord[], int latt_size[])
 static void getSiteCoords(int coord[], int node, int linearsite) // ignore node
 {
   int cb, cbb, m;
-  int vol_cb = getTotalVolCB();
+  int vol_cb = getSubgridVolCB();
   int cb_nrow[4];
 
   for(m=0; m < getNumDim(); ++m)
@@ -119,7 +119,7 @@ static void getSiteCoords(int coord[], int node, int linearsite) // ignore node
 /*! This layout is appropriate for a 2 checkerboard (red/black) lattice */
 int getLinearSiteIndex(const int coord[])
 {
-  int vol_cb = getTotalVolCB();
+  int vol_cb = getSubgridVolCB();
   int cb_nrow[4];
   int cb_coord[4];
   int cb, m;
@@ -249,13 +249,13 @@ void free_shift_tables(int **table) {
 }
 
 /* Total volume */
-int getTotalVol()
+int getSubgridVol()
 {
   return total_vol;
 }
 
 /* Total CB volume */
-int getTotalVolCB()
+int getSubgridVolCB()
 {
   return total_vol_cb;
 }

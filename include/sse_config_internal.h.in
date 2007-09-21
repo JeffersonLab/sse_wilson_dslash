@@ -21,8 +21,14 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Parscalar Arch */
+#undef SSE_PARSCALAR
+
 /* Double Precision */
 #undef SSE_PRECISION
+
+/* Scalar Arch */
+#undef SSE_SCALAR
 
 /* Version number of package */
 #undef VERSION

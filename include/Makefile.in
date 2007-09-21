@@ -36,10 +36,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-@SCALAR_SINGLE_TRUE@am__append_1 = sse32.h shift_tables_scalar.h
-@SCALAR_DOUBLE_TRUE@am__append_2 = sse64.h shift_tables_scalar.h
-@PARSCALAR_SINGLE_TRUE@am__append_3 = sse32.h shift_tables_parscalar.h
-@PARSCALAR_DOUBLE_TRUE@am__append_4 = sse64.h shift_tables_parscalar.h
+@SCALAR_SINGLE_TRUE@am__append_1 = sse32.h types32.h shift_tables_scalar.h dispatch_scalar.h
+@SCALAR_DOUBLE_TRUE@am__append_2 = sse64.h types64.h shift_tables_scalar.h dispatch_scalar.h
+@PARSCALAR_SINGLE_TRUE@am__append_3 = sse32.h types32.h shift_tables_parscalar.h dispatch_parscalar.h
+@PARSCALAR_DOUBLE_TRUE@am__append_4 = sse64.h types64.h shift_tables_parscalar.h  dispatch_parscalar.h
 subdir = include
 DIST_COMMON = $(am__nobase_include_HEADERS_DIST) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/sse_config_internal.h.in
@@ -54,8 +54,9 @@ CONFIG_CLEAN_FILES =
 SOURCES =
 DIST_SOURCES =
 am__nobase_include_HEADERS_DIST = sse_align.h sse_config.h \
-	sse_dslash.h sse_dslash_qdp_packer.h sse32.h \
-	shift_tables_scalar.h sse64.h shift_tables_parscalar.h
+	sse_dslash.h sse_dslash_qdp_packer.h sse32.h types32.h \
+	shift_tables_scalar.h dispatch_scalar.h sse64.h types64.h \
+	shift_tables_parscalar.h dispatch_parscalar.h
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \

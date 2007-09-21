@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.2 2007-09-13 13:52:14 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.3 2007-09-21 17:19:48 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -50,10 +50,6 @@
 /* ISign     D' or D'  ( +1 | -1 ) respectively	                (Read) */
 /* CB	     Checkerboard of input vector			(Read) */
 
-/* xchi1     Pseudo-halffermion field with 2 tail buffers       (Read) */
-/* xchi2     Pseudo-halffermion field with 2 tail buffers       (Read)  */
-/* shift     Shift table to use..see intpar_table.c                  */
-/* bound     an array with the number of boundaries per direction...see intpar_table.c (Read) */
 
 #include <sse_config.h>
 
@@ -67,43 +63,16 @@ extern "C" {
 #include <qmp.h>
 
 #include <sse64.h>
-
-extern void make_shift_tables(int *shift, int icolor_start[2], int bound[2][4][4]);
-
-#define BASE 0x3f
-
 #include <sse_align.h>
+#include <dispatch_parscalar.h>
+#include <shift_tables_parscalar.h>
 
-static int subgrid_vol = 0;
-static int subgrid_vol_cb = 0;
 static int initP=0;
 
 /* now overlays for spinors as arrays or structs */
 
-static int *newshift;
 static int icolor_start[2];    /* starting site for each coloring (cb) */
 static int icolor_end[2];      /* end site for each coloring (cb) */
-
-#ifdef BACKWARD 
-#undef BACKWARD
-#endif
-
-#define BACKWARD 0 
-
-#ifdef FORWARD
-#undef FORWARD
-#endif
-#define FORWARD 1
-
-
-#define iup(mysite,mymu) newshift[mymu+4*(mysite+subgrid_vol*(1))]
-#define idn(mysite,mymu) newshift[mymu+4*(mysite+subgrid_vol*(0))]
-#define mvv_shift(mysite,mymu) newshift[mymu+4*(mysite+subgrid_vol*(2))]
-#define rec_shift(mysite,mymu) newshift[mymu+4*(mysite+subgrid_vol*(3))]
-
-
-#define a_chia(mymu,mysite) (chi+mysite+3*subgrid_vol_cb*mymu)
-#define a_chib(mymu,mysite) (chi+mysite+3*subgrid_vol_cb*mymu)
 
 #define _gauge_field0_0(mysite) gauge_field[mysite][0]
 #define _gauge_field0_1(mysite) gauge_field[mysite][1]
@@ -114,44 +83,15 @@ static int icolor_end[2];      /* end site for each coloring (cb) */
 #define _gauge_field_opp0_2(mysite) gauge_field_opp[mysite+1][2]
 #define _gauge_field_opp0_3(mysite) gauge_field_opp[mysite+1][3]
 
+#if 0
 /* now overlays for spinors as arrays or structs */
 typedef double chi_double[2] __attribute__ ((aligned (16)));
 typedef chi_double chi_three[3] __attribute__ ((aligned (16)));
 typedef double u_mat_array[3][3][2]  ALIGN;  /* color color re/im */ 
 typedef double spinor_array[4][3][2] ALIGN; /* Nspin4 color re/im */
-typedef chi_three chi_array[2]    ALIGN; /*.. Nspin2 color re/im ::note:: Nspin2 has to be slowest varying */
+typedef chi_three halfspinor_array[2]    ALIGN; /*.. Nspin2 color re/im ::note:: Nspin2 has to be slowest varying */
 typedef u_mat_array (*my_mat_array)[4] ALIGN;  
-
-
-#define MY_SPINOR spinor_array
-#define MY_SSE_VECTOR chi_array
-#define MY_SSE_HALFVECT chi_three
-#define MY_SSE_DOUBLE sse_double  
-#define _c1__ [0] 
-#define _c2__ [1] 
-#define _c3__ [2]
-#define _c4__ [3]
-#define rs_c1__ rs[0]
-#define rs_c2__ rs[1]
-#define rs_c3__ rs[2]
-#define rs_c4__ rs[3]
-
-
-/* now overlays for gauge matrices as arrays or structs */
-#define MY_GAUGE u_mat_array
-#define MY_GAUGE_ARRAY my_mat_array
-
-#define MY_SPINOR spinor_array
-#define MY_SSE_VECTOR chi_array
-#define _c1__ [0]
-#define _c2__ [1]
-#define _c3__ [2]
-#define _c4__ [3]
-
-
-/* now overlays for gauge matrices as arrays or structs */
-#define MY_GAUGE u_mat_array
-
+#endif 
 
 
 /* end overlays */
@@ -159,105 +99,105 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 
 /* macros for spin basis note: assume first two rows are linearly independent except for gamma3 */
 
-#define _sse_load_temp_1(chi) _sse_load((chi)_c1__)
-#define _sse_load_temp_2(chi) _sse_load((chi)_c2__)
-#define _sse_load_up_temp_1(chi) _sse_load_up((chi)_c1__)
-#define _sse_load_up_temp_2(chi) _sse_load_up((chi)_c2__)
+#define _sse_load_temp_1(chi) _sse_load((chi)[0])
+#define _sse_load_temp_2(chi) _sse_load((chi)[1])
+#define _sse_load_up_temp_1(chi) _sse_load_up((chi)[0])
+#define _sse_load_up_temp_2(chi) _sse_load_up((chi)[1])
 
-#define _sse_store_temp_1(chi) _sse_store((chi)_c1__)
-#define _sse_store_temp_2(chi) _sse_store((chi)_c2__)
-#define _sse_store_up_temp_1(chi) _sse_store_up((chi)_c1__)
-#define _sse_store_up_temp_2(chi) _sse_store_up((chi)_c2__)
+#define _sse_store_temp_1(chi) _sse_store((chi)[0])
+#define _sse_store_temp_2(chi) _sse_store((chi)[1])
+#define _sse_store_up_temp_1(chi) _sse_store_up((chi)[0])
+#define _sse_store_up_temp_2(chi) _sse_store_up((chi)[1])
 
 
 #define _sse_psum_set(psi) \
-	  rs_c1__ = (psi)_c1__; \
-	  rs_c2__ = (psi)_c2__; \
-	  rs_c3__ = (psi)_c3__; \
-	  rs_c4__ = (psi)_c4__
+	  rs[0] = (psi)[0]; \
+	  rs[1] = (psi)[1]; \
+	  rs[2] = (psi)[2]; \
+	  rs[3] = (psi)[3]
 
 
 /* gamma 0 */
 
 #define _sse_42_1_gamma0_minus(sp) \
-      _sse_load((sp)_c1__); \
-      _sse_load_up((sp)_c4__);\
+      _sse_load((sp)[0]); \
+      _sse_load_up((sp)[3]);\
       _sse_vector_i_mul();\
       _sse_vector_sub()
 
 #define _sse_24_1_gamma0_minus_set() \
-      _sse_store_up(rs_c1__);\
+      _sse_store_up(rs[0]);\
       _sse_vector_i_mul_up();\
-      _sse_store_up(rs_c4__) 
+      _sse_store_up(rs[3]) 
 
 #define _sse_24_1_gamma0_minus_add() \
-      _sse_load(rs_c1__);\
+      _sse_load(rs[0]);\
       _sse_vector_add();\
-      _sse_store(rs_c1__);\
-      _sse_load(rs_c4__);\
+      _sse_store(rs[0]);\
+      _sse_load(rs[3]);\
       _sse_vector_i_mul();\
       _sse_vector_add();\
-      _sse_store(rs_c4__) 
+      _sse_store(rs[3]) 
 	  
 #define _sse_42_2_gamma0_minus(sp) \
-      _sse_load((sp)_c2__);\
-      _sse_load_up((sp)_c3__);\
+      _sse_load((sp)[1]);\
+      _sse_load_up((sp)[2]);\
       _sse_vector_i_mul();\
       _sse_vector_sub()
 
 #define _sse_24_2_gamma0_minus_set() \
-	  _sse_store_up(rs_c2__);\
+	  _sse_store_up(rs[1]);\
       _sse_vector_i_mul_up();\
-      _sse_store_up(rs_c3__)
+      _sse_store_up(rs[2])
 
 #define _sse_24_2_gamma0_minus_add() \
-	  _sse_load(rs_c2__);\
+	  _sse_load(rs[1]);\
       _sse_vector_add();\
-      _sse_store(rs_c2__);\
-      _sse_load(rs_c3__);\
+      _sse_store(rs[1]);\
+      _sse_load(rs[2]);\
       _sse_vector_i_mul();\
       _sse_vector_add();\
-      _sse_store(rs_c3__)
+      _sse_store(rs[2])
 
 #define _sse_42_1_gamma0_plus(sm) \
-      _sse_load((sm)_c1__);\
-      _sse_load_up((sm)_c4__);\
+      _sse_load((sm)[0]);\
+      _sse_load_up((sm)[3]);\
       _sse_vector_i_mul();\
       _sse_vector_add()
 
 #define _sse_24_1_gamma0_plus_set() \
-	  _sse_store_up(rs_c1__);\
+	  _sse_store_up(rs[0]);\
       _sse_vector_i_mul_neg_up();\
-      _sse_store_up(rs_c4__)
+      _sse_store_up(rs[3])
 
 #define _sse_24_1_gamma0_plus_add() \
-	  _sse_load(rs_c1__);\
+	  _sse_load(rs[0]);\
       _sse_vector_add();\
-      _sse_store(rs_c1__);\
-      _sse_load(rs_c4__);\
+      _sse_store(rs[0]);\
+      _sse_load(rs[3]);\
       _sse_vector_i_mul();\
       _sse_vector_sub();\
-      _sse_store(rs_c4__)
+      _sse_store(rs[3])
 
 #define _sse_42_2_gamma0_plus(sm) \
-	  _sse_load((sm)_c2__);\
-      _sse_load_up((sm)_c3__);\
+	  _sse_load((sm)[1]);\
+      _sse_load_up((sm)[2]);\
       _sse_vector_i_mul();\
       _sse_vector_add()
 
 #define _sse_24_2_gamma0_plus_set() \
-      _sse_store_up(rs_c2__);\
+      _sse_store_up(rs[1]);\
       _sse_vector_i_mul_neg_up();  \
-      _sse_store_up(rs_c3__)
+      _sse_store_up(rs[2])
 
 #define _sse_24_2_gamma0_plus_add() \
-       _sse_load(rs_c2__);\
+       _sse_load(rs[1]);\
       _sse_vector_add();\
-      _sse_store(rs_c2__);\
-      _sse_load(rs_c3__);\
+      _sse_store(rs[1]);\
+      _sse_load(rs[2]);\
       _sse_vector_i_mul();  \
       _sse_vector_sub();\
-      _sse_store(rs_c3__)
+      _sse_store(rs[2])
 
 
 
@@ -265,56 +205,56 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 
 
 #define _sse_42_1_gamma1_minus(sp) \
-      _sse_load((sp)_c1__);\
-      _sse_load_up((sp)_c4__);\
+      _sse_load((sp)[0]);\
+      _sse_load_up((sp)[3]);\
       _sse_vector_add()
 
 #define _sse_24_1_gamma1_minus() \
-      _sse_load(rs_c1__);\
+      _sse_load(rs[0]);\
       _sse_vector_add();\
-      _sse_store(rs_c1__);\
-      _sse_load(rs_c4__);\
+      _sse_store(rs[0]);\
+      _sse_load(rs[3]);\
       _sse_vector_add();\
-      _sse_store(rs_c4__)
+      _sse_store(rs[3])
 	  
 #define _sse_42_2_gamma1_minus(sp) \
-      _sse_load((sp)_c2__);\
-      _sse_load_up((sp)_c3__);\
+      _sse_load((sp)[1]);\
+      _sse_load_up((sp)[2]);\
       _sse_vector_sub()
 
 #define _sse_24_2_gamma1_minus() \
-	  _sse_load(rs_c2__);\
+	  _sse_load(rs[1]);\
       _sse_vector_add();\
-      _sse_store(rs_c2__);\
-      _sse_load(rs_c3__);\
+      _sse_store(rs[1]);\
+      _sse_load(rs[2]);\
       _sse_vector_sub();\
-      _sse_store(rs_c3__)
+      _sse_store(rs[2])
 
 #define _sse_42_1_gamma1_plus(sm) \
-      _sse_load((sm)_c1__);\
-      _sse_load_up((sm)_c4__);\
+      _sse_load((sm)[0]);\
+      _sse_load_up((sm)[3]);\
       _sse_vector_sub()
 
 #define _sse_24_1_gamma1_plus() \
-      _sse_load(rs_c1__);\
+      _sse_load(rs[0]);\
       _sse_vector_add();\
-      _sse_store(rs_c1__);\
-      _sse_load(rs_c4__);\
+      _sse_store(rs[0]);\
+      _sse_load(rs[3]);\
       _sse_vector_sub();\
-      _sse_store(rs_c4__)
+      _sse_store(rs[3])
 
 #define _sse_42_2_gamma1_plus(sm) \
-	  _sse_load((sm)_c2__);\
-      _sse_load_up((sm)_c3__);\
+	  _sse_load((sm)[1]);\
+      _sse_load_up((sm)[2]);\
       _sse_vector_add()
 
 #define _sse_24_2_gamma1_plus() \
-       _sse_load(rs_c2__);\
+       _sse_load(rs[1]);\
       _sse_vector_add();\
-      _sse_store(rs_c2__);\
-      _sse_load(rs_c3__);\
+      _sse_store(rs[1]);\
+      _sse_load(rs[2]);\
       _sse_vector_add();\
-      _sse_store(rs_c3__)
+      _sse_store(rs[2])
 
 
 
@@ -324,64 +264,64 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 
 
 #define _sse_42_1_gamma2_minus(sp) \
-      _sse_load((sp)_c1__);\
-      _sse_load_up((sp)_c3__);\
+      _sse_load((sp)[0]);\
+      _sse_load_up((sp)[2]);\
       _sse_vector_i_mul();\
       _sse_vector_sub()
 
 #define _sse_24_1_gamma2_minus() \
-      _sse_load(rs_c1__);\
+      _sse_load(rs[0]);\
       _sse_vector_add();\
-      _sse_store(rs_c1__);\
-      _sse_load(rs_c3__);\
+      _sse_store(rs[0]);\
+      _sse_load(rs[2]);\
       _sse_vector_i_mul();   \
       _sse_vector_add();\
-      _sse_store(rs_c3__)
+      _sse_store(rs[2])
 	  
 #define _sse_42_2_gamma2_minus(sp) \
-      _sse_load((sp)_c2__);\
-      _sse_load_up((sp)_c4__);\
+      _sse_load((sp)[1]);\
+      _sse_load_up((sp)[3]);\
       _sse_vector_i_mul();\
       _sse_vector_add()
 
 #define _sse_24_2_gamma2_minus() \
-	   _sse_load(rs_c2__);\
+	   _sse_load(rs[1]);\
       _sse_vector_add();\
-      _sse_store(rs_c2__);\
-      _sse_load(rs_c4__);\
+      _sse_store(rs[1]);\
+      _sse_load(rs[3]);\
       _sse_vector_i_mul();   \
       _sse_vector_sub();\
-      _sse_store(rs_c4__)
+      _sse_store(rs[3])
 
 #define _sse_42_1_gamma2_plus(sm) \
-      _sse_load((sm)_c1__);\
-      _sse_load_up((sm)_c3__);\
+      _sse_load((sm)[0]);\
+      _sse_load_up((sm)[2]);\
       _sse_vector_i_mul();\
       _sse_vector_add()
 
 #define _sse_24_1_gamma2_plus() \
-      _sse_load(rs_c1__);\
+      _sse_load(rs[0]);\
       _sse_vector_add();\
-      _sse_store(rs_c1__);\
-      _sse_load(rs_c3__);\
+      _sse_store(rs[0]);\
+      _sse_load(rs[2]);\
       _sse_vector_i_mul();   \
       _sse_vector_sub();\
-      _sse_store(rs_c3__);
+      _sse_store(rs[2]);
 
 #define _sse_42_2_gamma2_plus(sm) \
-	  _sse_load((sm)_c2__);\
-      _sse_load_up((sm)_c4__);\
+	  _sse_load((sm)[1]);\
+      _sse_load_up((sm)[3]);\
       _sse_vector_i_mul();\
       _sse_vector_sub()
 
 #define _sse_24_2_gamma2_plus() \
-      _sse_load(rs_c2__);\
+      _sse_load(rs[1]);\
       _sse_vector_add();\
-      _sse_store(rs_c2__);\
-      _sse_load(rs_c4__);\
+      _sse_store(rs[1]);\
+      _sse_load(rs[3]);\
       _sse_vector_i_mul();     \
       _sse_vector_add();\
-      _sse_store(rs_c4__)
+      _sse_store(rs[3])
 
 
 
@@ -389,97 +329,95 @@ typedef u_mat_array (*my_mat_array)[4] ALIGN;
 
 /* gamma 3 */
 #define _sse_42_1_gamma3_minus(sp) \
-	  _sse_load((sp)_c1__); \
-	  _sse_load_up((sp)_c3__); \
+	  _sse_load((sp)[0]); \
+	  _sse_load_up((sp)[2]); \
       _sse_vector_sub()
 
 #define _sse_24_1_gamma3_minus_set() \
-	  _sse_load(rs_c1__);\
+	  _sse_load(rs[0]);\
       _sse_vector_add();\
-       _sse_store((*rn)_c1__);\
-      _sse_load(rs_c3__);\
+       _sse_store((*rn)[0]);\
+      _sse_load(rs[2]);\
       _sse_vector_sub();\
-       _sse_store((*rn)_c3__)
+       _sse_store((*rn)[2])
 
 #define _sse_24_1_gamma3_minus_add() \
-	  _sse_load(rs_c1__);\
+	  _sse_load(rs[0]);\
       _sse_vector_add();\
-       _sse_store(rs_c1__);\
-      _sse_load(rs_c3__);\
+       _sse_store(rs[0]);\
+      _sse_load(rs[2]);\
       _sse_vector_sub();\
-       _sse_store(rs_c3__)
+       _sse_store(rs[2])
 	  
 #define _sse_42_2_gamma3_minus(sp) \
-      _sse_load((sp)_c2__);\
-      _sse_load_up((sp)_c4__);\
+      _sse_load((sp)[1]);\
+      _sse_load_up((sp)[3]);\
       _sse_vector_sub()
 
 #define _sse_24_2_gamma3_minus_set() \
-	  _sse_load(rs_c2__);\
+	  _sse_load(rs[1]);\
       _sse_vector_add();\
-       _sse_store((*rn)_c2__);\
-      _sse_load(rs_c4__);\
+       _sse_store((*rn)[1]);\
+      _sse_load(rs[3]);\
       _sse_vector_sub();\
-      _sse_store((*rn)_c4__)
+      _sse_store((*rn)[3])
 
 #define _sse_24_2_gamma3_minus_add() \
-	  _sse_load(rs_c2__);\
+	  _sse_load(rs[1]);\
       _sse_vector_add();\
-       _sse_store(rs_c2__);\
-      _sse_load(rs_c4__);\
+       _sse_store(rs[1]);\
+      _sse_load(rs[3]);\
       _sse_vector_sub();\
-      _sse_store(rs_c4__)
+      _sse_store(rs[3])
 
 #define _sse_42_1_gamma3_plus(sm) \
-      _sse_load((sm)_c1__);\
-      _sse_load_up((sm)_c3__);\
+      _sse_load((sm)[0]);\
+      _sse_load_up((sm)[2]);\
       _sse_vector_add()
 
 #define _sse_24_1_gamma3_plus_set() \
-	  _sse_load(rs_c1__);\
+	  _sse_load(rs[0]);\
       _sse_vector_add();\
-       _sse_store((*rn)_c1__);\
-      _sse_load(rs_c3__);\
+       _sse_store((*rn)[0]);\
+      _sse_load(rs[2]);\
       _sse_vector_add();\
-      _sse_store((*rn)_c3__)
+      _sse_store((*rn)[2])
 
 #define _sse_24_1_gamma3_plus_add() \
-	  _sse_load(rs_c1__);\
+	  _sse_load(rs[0]);\
       _sse_vector_add();\
-       _sse_store(rs_c1__);\
-      _sse_load(rs_c3__);\
+       _sse_store(rs[0]);\
+      _sse_load(rs[2]);\
       _sse_vector_add();\
-      _sse_store(rs_c3__)
+      _sse_store(rs[2])
 
 #define _sse_42_2_gamma3_plus(sm) \
-	  _sse_load((sm)_c2__);\
-      _sse_load_up((sm)_c4__);\
+	  _sse_load((sm)[1]);\
+      _sse_load_up((sm)[3]);\
       _sse_vector_add()
 
 #define _sse_24_2_gamma3_plus_set() \
-       _sse_load(rs_c2__);\
+       _sse_load(rs[1]);\
       _sse_vector_add();\
-       _sse_store((*rn)_c2__);\
-      _sse_load(rs_c4__);\
+       _sse_store((*rn)[1]);\
+      _sse_load(rs[3]);\
       _sse_vector_add();\
-       _sse_store((*rn)_c4__)
+       _sse_store((*rn)[3])
 
 #define _sse_24_2_gamma3_plus_add() \
-       _sse_load(rs_c2__);\
+       _sse_load(rs[1]);\
        _sse_vector_add();\
-       _sse_store(rs_c2__);\
-       _sse_load(rs_c4__);\
+       _sse_store(rs[1]);\
+       _sse_load(rs[3]);\
        _sse_vector_add();\
-       _sse_store(rs_c4__);\
+       _sse_store(rs[3]);\
 
 
 
 static int init=0;
 static sse_double fact1,fact2;
-static MY_SPINOR rs __attribute__ ((aligned (16)));
+static spinor_array rs __attribute__ ((aligned (16)));
 
-
-void D_psi_fun(size_t lo,size_t hi, int id, const void *ptr);
 
 void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr);
 
@@ -498,39 +436,11 @@ typedef struct
 } sse_vector __attribute__ ((aligned (16)));
 
 
-typedef struct {
-  double m0;  /* the input array                          */
-  int  k;  /* the phase factors                        */
-  int l;
-  MY_SPINOR* psi;  /* for Luescher */
-  MY_SPINOR* res;
-  MY_SPINOR* spinfun;
-  MY_SSE_VECTOR *chifun;  /*note this must be allocated ..direction varying more slowly than vol */
-  MY_GAUGE       (*u)[4];
-  MY_GAUGE       (*u2)[4];
-  int cb;
-  /* the output array                         */
-} Arg_s;
-
 
 
 
 
 #define DECLARE_COMMON_STUFF \
-	  int ix,iy,iz;\
-     const Arg_s *a =(Arg_s *)ptr; \
-   static int ix1,iy1,iy2,iz1;\
-   const int low = lo; \
-   const int high = hi;\
-    MY_GAUGE (*gauge_field)[4] = a->u;\
-    MY_SPINOR *psi = a->spinfun;\
-	MY_SSE_VECTOR *chi = a->chifun;\
-   MY_GAUGE *up ALIGN,*um ALIGN;\
-   MY_SSE_VECTOR *s2 ALIGN,*s3 ALIGN, *s4 ALIGN; \
-   MY_SPINOR *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;\
-   const int cb = a->cb; \
-   sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; \
-   sse_double _minus_one ALIGN = {-1.0, -1.0}
  
 /* watch out for sm and sp */
 
@@ -539,9 +449,23 @@ typedef struct {
 spin component's worth must be handled seperately */
 void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
-  DECLARE_COMMON_STUFF;
 
-  for (ix1=lo;ix1<hi;ix1+=1) 
+  int ix,iy,iz;
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
+  static int ix1,iy1,iy2,iz1;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN,  *temp0,*temp1,*temp2,*temp3;
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
+  sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
+  sse_double _minus_one ALIGN = {-1.0, -1.0};
+
+  for (ix1=low;ix1<high;ix1+=1) 
   {
 #ifdef PREFDIST
 #undef PREFDIST
@@ -552,7 +476,7 @@ void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
     _prefetch_spinor(s1);
       
 /******************************* direction +0 *********************************/	   
-    s3 = a_chia(0,idn(ix1,0));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
     /*spin decomposition of first component of halfspinor */
     _sse_42_1_gamma0_minus(*sp);
     _sse_store_temp_1(*s3);
@@ -561,7 +485,7 @@ void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
     _sse_store_temp_2(*s3);
 
 /******************************* direction +1 *********************************/
-    s3 = a_chia(1,idn(ix1,1));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,1);
 	   
     _sse_42_1_gamma1_minus(*sp);
     _sse_store_temp_1(*s3);
@@ -570,7 +494,7 @@ void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
     _sse_store_temp_2(*s3);
    
 /******************************* direction +2 *********************************/
-    s3 = a_chia(2,idn(ix1,2));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,2);
 	   
     _sse_42_1_gamma2_minus(*sp);
     _sse_store_temp_1(*s3);
@@ -579,7 +503,7 @@ void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
     _sse_store_temp_2(*s3);
 
 /******************************* direction +3 *********************************/
-    s3 = a_chia(3,idn(ix1,3));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,3);
 	   
     _sse_42_1_gamma3_minus(*sp);
     _sse_store_temp_1(*s3);
@@ -592,16 +516,30 @@ void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
 
 void decomp_hvv_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
-  DECLARE_COMMON_STUFF;
+
+  int ix,iy,iz;
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
+  static int ix1,iy1,iy2,iz1;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN, *temp0,*temp1,*temp2,*temp3;
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
+  sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
+  sse_double _minus_one ALIGN = {-1.0, -1.0};
    
-  um=&_gauge_field0_0(lo);
+  um=&_gauge_field0_0(low);
   _prefetch_su3(um+1);
-  for (ix1=lo;ix1<hi;ix1++) 
+  for (ix1=low;ix1<high;ix1++) 
   {
     sm=&psi[ix1];
      
 /******************************* direction -0 *********************************/
-    s3 = a_chia(0,iup(ix1,0));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
 	   
     _sse_42_1_gamma0_plus(*sm);
     _sse_su3_inverse_multiply(*um);
@@ -616,7 +554,7 @@ void decomp_hvv_plus(size_t lo, size_t hi, int id, const void *ptr)
     um++;
     _prefetch_su3(um+1);
     /* in decomp_hvv */
-    s3 = a_chia(1,iup(ix1,1));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
     
     _sse_42_1_gamma1_plus(*sm);
     _sse_su3_inverse_multiply(*um);
@@ -632,7 +570,7 @@ void decomp_hvv_plus(size_t lo, size_t hi, int id, const void *ptr)
     um++;
     _prefetch_su3(um+1);
 
-    s3 = a_chia(2,iup(ix1,2));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
     
     _sse_42_1_gamma2_plus(*sm);
     _sse_su3_inverse_multiply(*um);
@@ -650,7 +588,7 @@ void decomp_hvv_plus(size_t lo, size_t hi, int id, const void *ptr)
     s1=&psi[ix1+1];
     _prefetch_spinor(s1);
 
-    s3 = a_chia(3,iup(ix1,3));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
 	   
 
     _sse_42_1_gamma3_plus(*sm);
@@ -658,7 +596,7 @@ void decomp_hvv_plus(size_t lo, size_t hi, int id, const void *ptr)
     _sse_store_up_temp_1(*s3);
 
     if(ix1 < hi) _prefetch_su3(um+1);
-    else _prefetch_su3(&_gauge_field0_0(lo));
+    else _prefetch_su3(&_gauge_field0_0(low));
 
     _sse_42_2_gamma3_plus(*sm);
     _sse_su3_inverse_multiply(*um);
@@ -673,23 +611,36 @@ void decomp_hvv_plus(size_t lo, size_t hi, int id, const void *ptr)
 
 void mvv_recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
-  DECLARE_COMMON_STUFF;
+  int ix,iy,iz;
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
+  static int ix1,iy1,iy2,iz1;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN, *temp0,*temp1,*temp2,*temp3 ; 
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
+  sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
+  sse_double _minus_one ALIGN = {-1.0, -1.0};
    	
    
  
-  up=&_gauge_field0_0(lo);
+  up=&_gauge_field0_0(low);
   _prefetch_su3(up+1);
-  s3 = a_chia(0,mvv_shift(lo,0));
+  s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,lo,0);
 
 
-  for (ix1=lo;ix1<hi;ix1++) 
+  for (ix1=low;ix1<high;ix1++) 
   {
     rn=&psi[ix1];
 	 
       
 /******************************* direction +0 *********************************/	
 
-    s4 = a_chia(1,mvv_shift(ix1,1));
+    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     _prefetch_spinor(s4);
 
 
@@ -712,7 +663,7 @@ void mvv_recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 
 	 
 
-    s3 = a_chia(2,mvv_shift(ix1,2));
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     _prefetch_spinor(s3);
  
 	   
@@ -737,7 +688,7 @@ void mvv_recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 
 	 
 
-    s4 = a_chia(3,mvv_shift(ix1,3));
+    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     _prefetch_spinor(s4);
 
     _sse_load_temp_1(*s3);
@@ -757,7 +708,7 @@ void mvv_recons_plus(size_t lo, size_t hi, int id, const void *ptr)
     /******************************* direction +3 *********************************/     
 	 
 
-    s3 = a_chia(0,mvv_shift(ix1+1,0));
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
     _prefetch_spinor(s3);
 
 
@@ -781,22 +732,25 @@ void mvv_recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 /*I'm hoping since the stuff should be in cache that the superfluous loads and stores won't be that bad */
 void recons_plus_old(size_t lo, size_t hi, int id, const void *ptr)
 {
-  int ix,iy,iz;
-  const Arg_s *a =(Arg_s *)ptr; 
-	 
-  static int ix1,iy1,iy2,iz1;
-  const int low = lo;
-  const int high = hi;
-  MY_GAUGE (*gauge_field)[4] ALIGN = a->u;
-  MY_SPINOR *psi = a->spinfun;
-  MY_SSE_VECTOR *chi = a->chifun;
-  MY_GAUGE *up,*um;
-  MY_SSE_VECTOR *s2,*s3 ALIGN, *s4; 
-  MY_SPINOR *s, *s1, *sp,*sm,rs ALIGN,*rn ALIGN;
-  const int cb = a->cb;
   /* 	printf("\n &a:%x",&a);*/
+  int ix,iy,iz;
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
+  static int ix1,iy1,iy2,iz1;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN, *temp1,*temp2,*temp3; 
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
+  sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
+  sse_double _minus_one ALIGN = {-1.0, -1.0};
+
+
  
-  s3 = a_chia(0,rec_shift(lo,0));
+  s3 = chi + halfspinor_buffer_offset(RECONS_GATHER,lo,0);
 
 #ifdef PREFDIST
 #undef PREFDIST
@@ -804,7 +758,7 @@ void recons_plus_old(size_t lo, size_t hi, int id, const void *ptr)
 #define PREFDIST 1
   /*printf("\n psi[0].c1.c1.re:%f",(psi[0]).c1.c1.re);
     printf("\n &psi[0]:%x",(&psi[0]));*/
-  for (ix1=lo;ix1<hi;ix1++) 
+  for (ix1=low;ix1<high;ix1++) 
   {
     rn=&psi[ix1];
 	 
@@ -813,8 +767,8 @@ void recons_plus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 #define rs (*rn)
 	   
-    s4 = a_chia(1,rec_shift(ix1,1));
-    s2 = a_chia(1,rec_shift(ix1+PREFDIST,1));
+    s4 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1);
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,1);
     _prefetch_single(s2);
      
 
@@ -829,8 +783,8 @@ void recons_plus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 	   
 
-    s3 = a_chia(2,rec_shift(ix1,2));
-    s2 = a_chia(2,rec_shift(ix1+PREFDIST,2));
+    s3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,2);
     _prefetch_single(s2);
  
 
@@ -845,8 +799,8 @@ void recons_plus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 	   
 
-    s4 = a_chia(3,rec_shift(ix1,3));
-    s2 = a_chia(3,rec_shift(ix1+PREFDIST,3));
+    s4 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,3);
     _prefetch_single(s2);
 	   
 
@@ -861,8 +815,8 @@ void recons_plus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 	   
        	
-    s3 = a_chia(0,rec_shift(ix1+1,0));
-    s2 = a_chia(0,rec_shift(ix1+1+PREFDIST,0));
+    s3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,0);
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1+PREFDIST,0);
     _prefetch_single(s2);
 
 
@@ -892,22 +846,22 @@ void recons_plus_old(size_t lo, size_t hi, int id, const void *ptr)
 /*optimized for SZIN spin basis */
 void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
+
+
   int ix,iy,iz;
-  const  Arg_s *a =(Arg_s *)ptr; 
-	 
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
   static int ix1,iy1,iy2,iz1;
-  const int low = lo;
-  const int high = hi;
-  MY_GAUGE (*gauge_field)[4] ALIGN = a->u;
-  MY_SPINOR *psi = a->spinfun;
-  MY_SSE_VECTOR *chi = a->chifun;
-  MY_GAUGE *up,*um;
-  MY_SSE_VECTOR *s2,*s3 ALIGN, *s4, *temp0,*temp1,*temp2,*temp3; 
-  MY_SPINOR *s, *s1, *sp,*sm,rs ALIGN,*rn ALIGN;
-  const int cb = a->cb;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN,*temp0, *temp1,*temp2,*temp3;
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
   sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
   sse_double _minus_one ALIGN = {-1.0, -1.0};
-  /* 	printf("\n &a:%x",&a);*/
  
   
 #ifdef PREFDIST
@@ -916,7 +870,7 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 #define PREFDIST 3
   /*printf("\n psi[0].c1.c1.re:%f",(psi[0]).c1.c1.re);
 	printf("\n &psi[0]:%x",(&psi[0]));*/
-  for (ix1=lo;ix1<hi;ix1++) 
+  for (ix1=low;ix1<high;ix1++) 
   {
     rn=&psi[ix1];
 	 
@@ -926,59 +880,59 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 	  
 
     /* first spin component of result */
-    temp0 = a_chia(0,rec_shift(ix1,0));
+    temp0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0);
 	  
 	    
 
     _sse_load_up_temp_1(*(temp0));
-    _sse_load((*rn)_c1__);
+    _sse_load((*rn)[0]);
 	   
     _sse_vector_add();
 
-    temp1 = a_chia(1,rec_shift(ix1,1));
+    temp1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1);
 
     _sse_load_up_temp_1(*(temp1));
     _sse_vector_add();
 
-    temp2 = a_chia(2,rec_shift(ix1,2));
+    temp2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);
 
     _sse_load_up_temp_1(*(temp2));
     _sse_vector_add();
 
-    temp3 = a_chia(3,rec_shift(ix1,3));
+    temp3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);
 
     _sse_load_up_temp_1(*(temp3));
     _sse_vector_add();
-    _sse_store((*rn)_c1__);
+    _sse_store((*rn)[0]);
 
 /* second spin component of result */
-    s2= a_chia(0,rec_shift(ix1+PREFDIST,0));
+    s2= chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,0);
     _prefetch_single(s2);
      
 
     _sse_load_up_temp_2(*(temp0));
-    _sse_load((*rn)_c2__);
+    _sse_load((*rn)[1]);
 	   
     _sse_vector_add();
 
-    s2 = a_chia(1,rec_shift(ix1+PREFDIST,1));
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,1);
     _prefetch_single(s2);
 
     _sse_load_up_temp_2(*(temp1));
     _sse_vector_add();
 
-    s2 = a_chia(2,rec_shift(ix1+PREFDIST,2));
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,2);
     _prefetch_single(s2);
 
     _sse_load_up_temp_2(*(temp2));
     _sse_vector_add();
 
-    s2 = a_chia(3,rec_shift(ix1+PREFDIST,3));
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,3);
     _prefetch_single(s2);
 
     _sse_load_up_temp_2(*(temp3));
     _sse_vector_add();
-    _sse_store((*rn)_c2__);
+    _sse_store((*rn)[1]);
 
 
 
@@ -991,7 +945,7 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
      
 
     _sse_load_up_temp_2(*(temp0));
-    _sse_load((*rn)_c3__);
+    _sse_load((*rn)[2]);
 	   
     _sse_vector_i_mul_up();
     _sse_vector_sub();
@@ -1018,7 +972,7 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 
     _sse_vector_add();
 
-    _sse_store((*rn)_c3__);
+    _sse_store((*rn)[2]);
 
 /* fourth spin component, again it gets tricky */
 	  
@@ -1027,7 +981,7 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
      
 
     _sse_load_up_temp_1(*(temp0));
-    _sse_load((*rn)_c4__);
+    _sse_load((*rn)[3]);
 	   
     _sse_vector_i_mul_up();
     _sse_vector_sub();
@@ -1054,7 +1008,7 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 
     _sse_vector_add();
 
-    _sse_store((*rn)_c4__);
+    _sse_store((*rn)[3]);
 
     /* end of loop */
 
@@ -1074,12 +1028,25 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 
 void decomp_minus(size_t lo, size_t hi, int id, const void *ptr)
 {
-  DECLARE_COMMON_STUFF;
    
+  int ix,iy,iz;
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
+  static int ix1,iy1,iy2,iz1;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN; 
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
+  sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
+  sse_double _minus_one ALIGN = {-1.0, -1.0};
     
  
 
-  for (ix1=lo;ix1<hi;ix1+=1) 
+  for (ix1=low;ix1<high;ix1+=1) 
   {
 
 #ifdef PREFDIST
@@ -1092,7 +1059,7 @@ void decomp_minus(size_t lo, size_t hi, int id, const void *ptr)
   
 	  
 	   
-    s3 = a_chia(0,idn(ix1,0));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
 	   
     _sse_42_1_gamma0_plus(*sp);
     _sse_store_temp_1(*s3);
@@ -1104,7 +1071,7 @@ void decomp_minus(size_t lo, size_t hi, int id, const void *ptr)
  
       printf("chi(ix1)[0]=%f,chi(ix1)[1] [2][0]=%f\n",(*s3)[0][2][0],(*s3)[1][2][0]); */
 
-    s3 = a_chia(1,idn(ix1,1));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,1);
 	   
     _sse_42_1_gamma1_plus(*sp);
     _sse_store_temp_1(*s3);
@@ -1118,7 +1085,7 @@ void decomp_minus(size_t lo, size_t hi, int id, const void *ptr)
       printf("chi(ix1)[0]=%f,chi(ix1)[1] [2][0]=%f\n",(*s3)[0][2][0],(*s3)[1][2][0]); */
 
 
-    s3 = a_chia(2,idn(ix1,2));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,2);
 	   
     _sse_42_1_gamma2_plus(*sp);
     _sse_store_temp_1(*s3);
@@ -1132,7 +1099,7 @@ void decomp_minus(size_t lo, size_t hi, int id, const void *ptr)
       printf("chi(ix1)[0]=%f,chi(ix1)[1] [2][0]=%f\n",(*s3)[0][2][0],(*s3)[1][2][0]); */
 
 
-    s3 = a_chia(3,idn(ix1,3));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,3);
 	   
     _sse_42_1_gamma3_plus(*sp);
     _sse_store_temp_1(*s3);
@@ -1152,19 +1119,32 @@ void decomp_minus(size_t lo, size_t hi, int id, const void *ptr)
 
 void decomp_hvv_minus(size_t lo, size_t hi, int id, const void *ptr)
 {
-  DECLARE_COMMON_STUFF;
+  int ix,iy,iz;
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
+  static int ix1,iy1,iy2,iz1;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN; 
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
+  sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
+  sse_double _minus_one ALIGN = {-1.0, -1.0};
    
  
-  um=&_gauge_field0_0(lo);
+  um=&_gauge_field0_0(low);
   _prefetch_su3(um+1);
-  for (ix1=lo;ix1<hi;ix1++) 
+  for (ix1=low;ix1<high;ix1++) 
   {
     sm=&psi[ix1];
 	 
      
 
        	   
-    s3 = a_chia(0,iup(ix1,0));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
 	   
     _sse_42_1_gamma0_minus(*sm);
     _sse_su3_inverse_multiply(*um);
@@ -1177,7 +1157,7 @@ void decomp_hvv_minus(size_t lo, size_t hi, int id, const void *ptr)
     um++;
     _prefetch_su3(um+1);
     /* in decomp_hvv */
-    s3 = a_chia(1,iup(ix1,1));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
 	   
 
     _sse_42_1_gamma1_minus(*sm);
@@ -1191,7 +1171,7 @@ void decomp_hvv_minus(size_t lo, size_t hi, int id, const void *ptr)
     um++;
     _prefetch_su3(um+1);
 
-    s3 = a_chia(2,iup(ix1,2));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
 	   
 
     _sse_42_1_gamma2_minus(*sm);
@@ -1208,7 +1188,7 @@ void decomp_hvv_minus(size_t lo, size_t hi, int id, const void *ptr)
     s1=&psi[ix1+1];
     _prefetch_spinor(s1);
 
-    s3 = a_chia(3,iup(ix1,3));
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
 	   
 
     _sse_42_1_gamma3_minus(*sm);
@@ -1216,7 +1196,7 @@ void decomp_hvv_minus(size_t lo, size_t hi, int id, const void *ptr)
     _sse_store_up_temp_1(*s3);
 
     if(ix1 < hi) _prefetch_su3(um+1);
-    else _prefetch_su3(&_gauge_field0_0(lo));
+    else _prefetch_su3(&_gauge_field0_0(low));
 
     _sse_42_2_gamma3_minus(*sm);
     _sse_su3_inverse_multiply(*um);
@@ -1231,16 +1211,29 @@ void decomp_hvv_minus(size_t lo, size_t hi, int id, const void *ptr)
 
 void mvv_recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 {
-  DECLARE_COMMON_STUFF;
    	
+  int ix,iy,iz;
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
+  static int ix1,iy1,iy2,iz1;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN; 
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN,  *temp0,*temp1,*temp2,*temp3; 
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
+  sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
+  sse_double _minus_one ALIGN = {-1.0, -1.0};
    
  
-  up=&_gauge_field0_0(lo);
+  up=&_gauge_field0_0(low);
   _prefetch_su3(up+1);
-  s3 = a_chia(0,mvv_shift(lo,0));
+  s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
 
 
-  for (ix1=lo;ix1<hi;ix1++) 
+  for (ix1=low;ix1<high;ix1++) 
   {
     rn=&psi[ix1];
 	 
@@ -1251,7 +1244,7 @@ void mvv_recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 	   
        printf("u(ix1)[0][0][0]=%f \n", (*up)[0][0][0]);*/
 
-    s4 = a_chia(1,mvv_shift(ix1,1));
+    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     _prefetch_spinor(s4);
 
 
@@ -1265,9 +1258,9 @@ void mvv_recons_minus(size_t lo, size_t hi, int id, const void *ptr)
     _sse_su3_multiply(*up);
     _sse_24_2_gamma0_plus_set();
 
-    /* printf("rs(ix1)[0]=%f,rs(ix1)[1] [0][0]=%f\n",(rs_c1__)[0][0],(rs_c2__)[0][0]);
+    /* printf("rs(ix1)[0]=%f,rs(ix1)[1] [0][0]=%f\n",(rs[0])[0][0],(rs[1])[0][0]);
  
-       printf("rs(ix1)[2]=%f,rs(ix1)[3] [0][0]=%f\n",(rs_c3__)[0][0],(rs_c4__)[0][0]);*/
+       printf("rs(ix1)[2]=%f,rs(ix1)[3] [0][0]=%f\n",(rs[2])[0][0],(rs[3])[0][0]);*/
 
     up++;
 
@@ -1276,7 +1269,7 @@ void mvv_recons_minus(size_t lo, size_t hi, int id, const void *ptr)
  
        printf("chi(ix1)[0]=%f,chi(ix1)[1] [2][0]=%f\n",(*s4)[0][2][0],(*s4)[1][2][0]); */
 
-    s3 = a_chia(2,mvv_shift(ix1,2));
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     _prefetch_spinor(s3);
  
 	   
@@ -1299,7 +1292,7 @@ void mvv_recons_minus(size_t lo, size_t hi, int id, const void *ptr)
  
       printf("chi(ix1)[0]=%f,chi(ix1)[1] [2][0]=%f\n",(*s3)[0][2][0],(*s3)[1][2][0]); */
 
-    s4 = a_chia(3,mvv_shift(ix1,3));
+    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     _prefetch_spinor(s4);
 
     _sse_load_temp_1(*s3);
@@ -1317,7 +1310,7 @@ void mvv_recons_minus(size_t lo, size_t hi, int id, const void *ptr)
  
        printf("chi(ix1)[0]=%f,chi(ix1)[1] [2][0]=%f\n",(*s4)[0][2][0],(*s4)[1][2][0]);  */
 
-    s3 = a_chia(0,mvv_shift(ix1+1,0));
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
     _prefetch_spinor(s3);
 
 
@@ -1353,21 +1346,21 @@ void mvv_recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 void recons_minus_old(size_t lo, size_t hi, int id, const void *ptr)
 {
   int ix,iy,iz;
-  const  Arg_s *a =(Arg_s *)ptr; 
-	 
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
   static int ix1,iy1,iy2,iz1;
-  const int low = lo;
-  const int high = hi;
-  MY_GAUGE (*gauge_field)[4] ALIGN = a->u;
-  MY_SPINOR *psi = a->spinfun;
-  MY_SSE_VECTOR *chi = a->chifun;
-  MY_GAUGE *up,*um;
-  MY_SSE_VECTOR *s2,*s3 ALIGN, *s4; 
-  MY_SPINOR *s, *s1, *sp,*sm,rs ALIGN,*rn ALIGN;
-  const int cb = a->cb;
-  /* 	printf("\n &a:%x",&a);*/
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN,  *temp0,*temp1,*temp2,*temp3;  
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
+  sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
+  sse_double _minus_one ALIGN = {-1.0, -1.0};
  
-  s3 = a_chia(0,rec_shift(lo,0));
+  s3 = chi + halfspinor_buffer_offset(RECONS_GATHER,lo,0);
 
 #ifdef PREFDIST
 #undef PREFDIST
@@ -1376,7 +1369,7 @@ void recons_minus_old(size_t lo, size_t hi, int id, const void *ptr)
 #define PREFDIST 1
   /*printf("\n psi[0].c1.c1.re:%f",(psi[0]).c1.c1.re);
     printf("\n &psi[0]:%x",(&psi[0]));*/
-  for (ix1=lo;ix1<hi;ix1++) 
+  for (ix1=low;ix1<high;ix1++) 
   {
     rn=&psi[ix1];
 	 
@@ -1385,8 +1378,8 @@ void recons_minus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 #define rs (*rn)
 	   
-    s4 = a_chia(1,rec_shift(ix1,1));
-    s2 = a_chia(1,rec_shift(ix1+PREFDIST,1));
+    s4 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1);
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,1);
     _prefetch_single(s2);
      
 
@@ -1401,8 +1394,8 @@ void recons_minus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 	   
 
-    s3 = a_chia(2,rec_shift(ix1,2));
-    s2 = a_chia(2,rec_shift(ix1+PREFDIST,2));
+    s3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,2);
     _prefetch_single(s2);
  
 
@@ -1417,8 +1410,8 @@ void recons_minus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 	   
 
-    s4 = a_chia(3,rec_shift(ix1,3));
-    s2 = a_chia(3,rec_shift(ix1+PREFDIST,3));
+    s4 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,3);
     _prefetch_single(s2);
 	   
 
@@ -1433,8 +1426,8 @@ void recons_minus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 	   
        	
-    s3 = a_chia(0,rec_shift(ix1+1,0));
-    s2 = a_chia(0,rec_shift(ix1+1+PREFDIST,0));
+    s3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,0);
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1+PREFDIST,0);
     _prefetch_single(s2);
 
 
@@ -1464,22 +1457,22 @@ void recons_minus_old(size_t lo, size_t hi, int id, const void *ptr)
 
 void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 {
+
   int ix,iy,iz;
-  const  Arg_s *a =(Arg_s *) ptr; 
-	 
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  const int cb = a->cb; 
   static int ix1,iy1,iy2,iz1;
-  const int low = lo;
-  const int high = hi;
-  MY_GAUGE (*gauge_field)[4] ALIGN = a->u;
-  MY_SPINOR *psi = a->spinfun;
-  MY_SSE_VECTOR *chi = a->chifun;
-  MY_GAUGE *up,*um;
-  MY_SSE_VECTOR *s2,*s3 ALIGN, *s4, *temp0,*temp1,*temp2,*temp3; 
-  MY_SPINOR *s, *s1, *sp,*sm,rs ALIGN,*rn ALIGN;
-  const int cb = a->cb;
+  const int low = icolor_start[cb]+lo; 
+  const int high = icolor_start[cb]+hi;
+  u_mat_array (*gauge_field)[4] = a->u;
+  spinor_array *psi = a->spinor;
+  halfspinor_array *chi = a->half_spinor;
+  u_mat_array *up ALIGN,*um ALIGN;
+  halfspinor_array *s2 ALIGN,*s3 ALIGN, *s4 ALIGN, *temp0,*temp1,*temp2,*temp3;   
+  spinor_array *s ALIGN, *s1 ALIGN, *sp ALIGN,*sm ALIGN,rs ALIGN,*rn ALIGN;
   sse_int _sse_sgn ALIGN = {0x0,0x80000000,0x0,0x0}; 
   sse_double _minus_one ALIGN = {-1.0, -1.0};
-  /* 	printf("\n &a:%x",&a);*/
+
  
   
 #ifdef PREFDIST
@@ -1488,7 +1481,7 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 #define PREFDIST 3
   /*printf("\n psi[0].c1.c1.re:%f",(psi[0]).c1.c1.re);
     printf("\n &psi[0]:%x",(&psi[0]));*/
-  for (ix1=lo;ix1<hi;ix1++) 
+  for (ix1=low;ix1<high;ix1++) 
   {
     rn=&psi[ix1];
 	 
@@ -1498,59 +1491,59 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 	  
 
     /* first spin component of result */
-    temp0 = a_chia(0,rec_shift(ix1,0));
+    temp0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0);
 	  
 	    
 
     _sse_load_up_temp_1(*(temp0));
-    _sse_load((*rn)_c1__);
+    _sse_load((*rn)[0]);
 	   
     _sse_vector_add();
 
-    temp1 = a_chia(1,rec_shift(ix1,1));
+    temp1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1);
 
     _sse_load_up_temp_1(*(temp1));
     _sse_vector_add();
 
-    temp2 = a_chia(2,rec_shift(ix1,2));
+    temp2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);
 
     _sse_load_up_temp_1(*(temp2));
     _sse_vector_add();
 
-    temp3 = a_chia(3,rec_shift(ix1,3));
+    temp3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);
 
     _sse_load_up_temp_1(*(temp3));
     _sse_vector_add();
-    _sse_store((*rn)_c1__);
+    _sse_store((*rn)[0]);
 
 /* second spin component of result */
-    s2= a_chia(0,rec_shift(ix1+PREFDIST,0));
+    s2= chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,0);
     _prefetch_single(s2);
      
 
     _sse_load_up_temp_2(*(temp0));
-    _sse_load((*rn)_c2__);
+    _sse_load((*rn)[1]);
 	   
     _sse_vector_add();
 
-    s2 = a_chia(1,rec_shift(ix1+PREFDIST,1));
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,1);
     _prefetch_single(s2);
 
     _sse_load_up_temp_2(*(temp1));
     _sse_vector_add();
 
-    s2 = a_chia(2,rec_shift(ix1+PREFDIST,2));
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,2);
     _prefetch_single(s2);
 
     _sse_load_up_temp_2(*(temp2));
     _sse_vector_add();
 
-    s2 = a_chia(3,rec_shift(ix1+PREFDIST,3));
+    s2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+PREFDIST,3);
     _prefetch_single(s2);
 
     _sse_load_up_temp_2(*(temp3));
     _sse_vector_add();
-    _sse_store((*rn)_c2__);
+    _sse_store((*rn)[1]);
 
 
 
@@ -1563,7 +1556,7 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
      
 
     _sse_load_up_temp_2(*(temp0));
-    _sse_load((*rn)_c3__);
+    _sse_load((*rn)[2]);
 	   
     _sse_vector_i_mul_up();
     _sse_vector_add();
@@ -1590,7 +1583,7 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 
     _sse_vector_sub();
 
-    _sse_store((*rn)_c3__);
+    _sse_store((*rn)[2]);
 
 /* fourth spin component, again it gets tricky */
 	  
@@ -1599,7 +1592,7 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
      
 
     _sse_load_up_temp_1(*(temp0));
-    _sse_load((*rn)_c4__);
+    _sse_load((*rn)[3]);
 	   
     _sse_vector_i_mul_up();
     _sse_vector_add();
@@ -1626,7 +1619,7 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 
     _sse_vector_sub();
 
-    _sse_store((*rn)_c4__);
+    _sse_store((*rn)[3]);
 
     /* end of loop */
 
@@ -1646,10 +1639,10 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 #define Ns 4
 #define Ns2 2
 
-static MY_SSE_VECTOR* chi1;
-static MY_SSE_VECTOR* chi2;
-#define TAIL1(chi,mymu) (chi+subgrid_vol_cb*(1+3*mymu))
-#define TAIL2(chi,mymu) (chi+0+subgrid_vol_cb*(2+3*mymu))
+static halfspinor_array* chi1;
+static halfspinor_array* chi2;
+//#define TAIL1(chi,mymu) (chi+subgrid_vol_cb*(1+3*mymu))
+//#define TAIL2(chi,mymu) (chi+0+subgrid_vol_cb*(2+3*mymu))
 
 static QMP_mem_t* xchi1;
 static QMP_mem_t* xchi2;
@@ -1669,7 +1662,7 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
 {
   const int *machine_size = QMP_get_logical_dimensions();
   const int *subgrid_cb_size = QMP_get_subgrid_dimensions();
-  int bound[2][4][Nd];
+  int bound[2][2][Nd];
   int mu, num, nsize;
 
   /* If we are already initialised, then increase the refcount and return */
@@ -1705,24 +1698,23 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
   }
 
 
-  subgrid_vol_cb = subgrid_cb_size[0];
-  for(mu = 1; mu < Nd; mu++)
-    subgrid_vol_cb *= subgrid_cb_size[mu];
-
-  subgrid_vol = subgrid_vol_cb << 1;
 
 
+    
+  make_shift_tables(icolor_start, bound);
   // The SSE code expects to have at least 2 sites after checkerboarding.
-  if ( subgrid_vol_cb <= 1 )
+  if ( getSubgridVolCB() <= 1 )
   {
     QMP_error("This SSE Dslash expects there to be at least 2 subgrid sites after checkerboarding");
     QMP_abort(1);
   }
 
+  icolor_end[0] = icolor_start[0] + getSubgridVolCB();
+  icolor_end[1] = icolor_start[1] + getSubgridVolCB();
 
   /* Allocated space for the floating temps */
-  /* Wasteful - allocate 3 times subgrid_vol_cb. Otherwise, need to pack the TAIL{1,2} offsets */
-  nsize = 2*Nc*Ns2*sizeof(double)*subgrid_vol_cb*3*Nd;  /* Note 3x4 half-ferm temps */
+  /* Wasteful - allocate 3 times subgrid_vol_cb. Otherwise, need to pack the TAIL{1,2} halfspinor_buffer_offsets */
+  nsize = 2*Nc*Ns2*sizeof(double)*getSubgridVolCB()*3*Nd;  /* Note 3x4 half-ferm temps */
   if ((xchi1 = QMP_allocate_aligned_memory(nsize,128,0)) == 0)
   {
     QMP_error("init_wnxtsu3dslash: could not initialize xchi1");
@@ -1734,20 +1726,8 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
     QMP_abort(1);
   }
     
-  chi1 = (MY_SSE_VECTOR*)QMP_get_memory_pointer(xchi1);
-  chi2 = (MY_SSE_VECTOR*)QMP_get_memory_pointer(xchi2);
-    
-  /* Construct all the shift tables needed */
-  /* Use malloc here: the aligned mem might be pinned */
-  if ((newshift = (int *)malloc(Nd*subgrid_vol*4*sizeof(int))) == 0)
-  {
-    QMP_error("init_wnxtsu3dslash: could not initialize newshift");
-    QMP_abort(1);
-  }
-    
-  make_shift_tables(newshift, icolor_start, bound);
-  icolor_end[0] = icolor_start[0] + subgrid_vol_cb;
-  icolor_end[1] = icolor_start[1] + subgrid_vol_cb;
+  chi1 = (halfspinor_array*)QMP_get_memory_pointer(xchi1);
+  chi2 = (halfspinor_array*)QMP_get_memory_pointer(xchi2);
   
   /* Loop over all communicating directions and build up the two message
    * handles. If there is no communications, the message handles will not
@@ -1765,8 +1745,8 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
 	QMP_abort(1);
       }
 
-      forw_msg[num][0] = QMP_declare_msgmem(TAIL1(chi1,mu), bound[0][0][mu]*sizeof(MY_SSE_VECTOR));
-      forw_msg[num][1] = QMP_declare_msgmem(TAIL2(chi1,mu), bound[0][0][mu]*sizeof(MY_SSE_VECTOR));
+      forw_msg[num][0] = QMP_declare_msgmem(chi1+getSubgridVolCB()*(1+3*mu), bound[0][0][mu]*sizeof(halfspinor_array));
+      forw_msg[num][1] = QMP_declare_msgmem(chi1+getSubgridVolCB()*(2+3*mu), bound[0][0][mu]*sizeof(halfspinor_array));
       forw_mh[num][0]  = QMP_declare_receive_relative(forw_msg[num][1], mu, +1, 0);
       forw_mh[num][1]  = QMP_declare_send_relative(forw_msg[num][0], mu, -1, 0);
 	
@@ -1776,8 +1756,8 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
 	QMP_abort(1);
       }
 
-      back_msg[num][0] = QMP_declare_msgmem(TAIL1(chi2,mu), bound[0][1][mu]*sizeof(MY_SSE_VECTOR));
-      back_msg[num][1] = QMP_declare_msgmem(TAIL2(chi2,mu), bound[0][1][mu]*sizeof(MY_SSE_VECTOR));
+      back_msg[num][0] = QMP_declare_msgmem(chi2+getSubgridVolCB()*(1+3*mu), bound[0][1][mu]*sizeof(halfspinor_array));
+      back_msg[num][1] = QMP_declare_msgmem(chi2+getSubgridVolCB()*(2+3*mu), bound[0][1][mu]*sizeof(halfspinor_array));
       back_mh[num][0]  = QMP_declare_receive_relative(back_msg[num][1], mu, -1, 0);
       back_mh[num][1]  = QMP_declare_send_relative(back_msg[num][0], mu, +1, 0);
 	
@@ -1813,7 +1793,7 @@ void free_sse_su3dslash(void)
     /* Free space */
     QMP_free_memory(xchi1);
     QMP_free_memory(xchi2);
-    free(newshift);
+    free_shift_tables();
     
     if (total_comm > 0) {
       
@@ -1868,7 +1848,6 @@ void free_sse_su3dslash(void)
 void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int cb)
 {
   int count, mu;
-  Arg_s a;
 
   if (initP == 0) {
     QMP_error("sse_su3dslash_wilson not initialised");
@@ -1877,11 +1856,12 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 
   if(isign==1) 
   {
-    smpscaller2(a,decomp_plus,
-		(MY_SPINOR*)psi,
-		chi1,
-		(MY_GAUGE_ARRAY)u,
-		cb);
+    dispatch_to_threads(decomp_plus,
+			(spinor_array*)psi,
+			chi1,
+			(my_mat_array)u,
+			cb,
+			getSubgridVolCB());
 
     _prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
     _prefetch_single(chi2);
@@ -1895,11 +1875,12 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
       }
 
     /*other checkerboard's worth */
-    smpscaller2(a,decomp_hvv_plus,
-		(MY_SPINOR*)psi,
-		chi2,
-		(MY_GAUGE_ARRAY)u,
-		cb);
+    dispatch_to_threads(decomp_hvv_plus,
+			(spinor_array*)psi,
+			chi2,
+			(my_mat_array)u,
+			cb,
+			getSubgridVolCB());
 	
     if (total_comm > 0)
       if (QMP_wait(forw_all_mh) != QMP_SUCCESS)
@@ -1918,11 +1899,12 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 	QMP_abort(1);
       }
 
-    smpscaller2(a,mvv_recons_plus,
-		(MY_SPINOR*)res,
-		chi1,
-		(MY_GAUGE_ARRAY)u,
-		1-cb);
+    dispatch_to_threads(mvv_recons_plus,
+			(spinor_array*)res,
+			chi1,
+			(my_mat_array)u,
+			1-cb,
+			getSubgridVolCB());
 	
     if (total_comm > 0)
       if (QMP_wait(back_all_mh) != QMP_SUCCESS)
@@ -1932,21 +1914,23 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
       }
 
 
-    smpscaller2(a,recons_plus,
-		(MY_SPINOR*)res, 
-		chi2,
-		(MY_GAUGE_ARRAY)u,	
-		1-cb);
+    dispatch_to_threads(recons_plus,
+			(spinor_array*)res, 
+			chi2,
+			(my_mat_array)u,	
+			1-cb,
+			getSubgridVolCB());
   }		
-
+  
   if(isign==-1) 
   {
-    smpscaller2(a,decomp_minus,
-		(MY_SPINOR*)psi,
-		chi1,
-		(MY_GAUGE_ARRAY)u,
-		cb);
-
+    dispatch_to_threads(decomp_minus,
+			(spinor_array*)psi,
+			chi1,
+			(my_mat_array)u,
+			cb,
+			getSubgridVolCB());
+    
     _prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
     _prefetch_single(chi2);
    
@@ -1959,14 +1943,15 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 	
 	
     /*other checkerboard's worth */
-    smpscaller2(a,decomp_hvv_minus,
-		(MY_SPINOR*)psi,
-		chi2,
-		(MY_GAUGE_ARRAY)u,
-		cb);
+    dispatch_to_threads(decomp_hvv_minus,
+			(spinor_array*)psi,
+			chi2,
+			(my_mat_array)u,
+			cb,
+			getSubgridVolCB());
     
     _prefetch_single(chi2);
-
+    
     if (total_comm > 0)
       if (QMP_wait(forw_all_mh) != QMP_SUCCESS)
       {
@@ -1985,12 +1970,13 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
       }
 
     /*current cb's u */
-    smpscaller2(a,mvv_recons_minus,
-		(MY_SPINOR*)res,
-		chi1,
-		(MY_GAUGE_ARRAY)u,
-		1-cb);
-
+    dispatch_to_threads(mvv_recons_minus,
+			(spinor_array*)res,
+			chi1,
+			(my_mat_array)u,
+			1-cb,
+			getSubgridVolCB());
+    
     _prefetch_single(chi2);
 
     if (total_comm > 0)
@@ -2000,11 +1986,12 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 	QMP_abort(1);
       }
 
-    smpscaller2(a,recons_minus,
-		(MY_SPINOR*)res, 
-		chi2,
-		(MY_GAUGE_ARRAY)u,	
-		1-cb);
+    dispatch_to_threads(recons_minus,
+			(spinor_array*)res, 
+			chi2,
+			(my_mat_array)u,	
+			1-cb,
+			getSubgridVolCB());
   }		
 }
 

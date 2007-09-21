@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# $Id: Makefile.in,v 1.2 2007-09-13 13:52:14 bjoo Exp $
+# $Id: Makefile.in,v 1.3 2007-09-21 17:19:48 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -45,13 +45,13 @@ host_triplet = @host@
 #
 # An AM_CONDITIONAL if statement to decide which fermion type
 #
-@SCALAR_SINGLE_TRUE@am__append_1 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c
+@SCALAR_SINGLE_TRUE@am__append_1 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c
 @BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@am__append_2 = qdp_packer_nopad.cc
-@SCALAR_DOUBLE_TRUE@am__append_3 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c
+@SCALAR_DOUBLE_TRUE@am__append_3 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c
 @BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@am__append_4 = qdp_packer_nopad.cc
-@PARSCALAR_SINGLE_TRUE@am__append_5 = shift_tables_parscalar.c packer_p4_pad.c sse_su3dslash_32bit_parscalar.c
+@PARSCALAR_SINGLE_TRUE@am__append_5 = shift_tables_parscalar.c packer_p4_pad.c sse_su3dslash_32bit_parscalar.c dispatch_parscalar.c
 @BUILD_QDP_PACKERS_TRUE@@PARSCALAR_SINGLE_TRUE@am__append_6 = qdp_packer_p4_pad.cc
-@PARSCALAR_DOUBLE_TRUE@am__append_7 = shift_tables_parscalar.c packer_nopad.c sse_su3dslash_64bit_parscalar.c
+@PARSCALAR_DOUBLE_TRUE@am__append_7 = shift_tables_parscalar.c packer_nopad.c sse_su3dslash_64bit_parscalar.c dispatch_parscalar.c
 @BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@am__append_8 = qdp_packer_nopad.cc
 subdir = lib
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -77,27 +77,32 @@ ARFLAGS = cru
 liblevel3_a_AR = $(AR) $(ARFLAGS)
 liblevel3_a_LIBADD =
 am__liblevel3_a_SOURCES_DIST = shift_tables_scalar.c packer_nopad.c \
-	sse_su3dslash_32bit_scalar.c qdp_packer_nopad.cc \
-	sse_su3dslash_64bit_scalar.c shift_tables_parscalar.c \
-	packer_p4_pad.c sse_su3dslash_32bit_parscalar.c \
+	sse_su3dslash_32bit_scalar.c dispatch_scalar.c \
+	qdp_packer_nopad.cc sse_su3dslash_64bit_scalar.c \
+	shift_tables_parscalar.c packer_p4_pad.c \
+	sse_su3dslash_32bit_parscalar.c dispatch_parscalar.c \
 	qdp_packer_p4_pad.cc sse_su3dslash_64bit_parscalar.c
 @SCALAR_SINGLE_TRUE@am__objects_1 = shift_tables_scalar.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	packer_nopad.$(OBJEXT) \
-@SCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_scalar.$(OBJEXT)
+@SCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_scalar.$(OBJEXT) \
+@SCALAR_SINGLE_TRUE@	dispatch_scalar.$(OBJEXT)
 @BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@am__objects_2 = qdp_packer_nopad.$(OBJEXT)
 @SCALAR_DOUBLE_TRUE@am__objects_3 = shift_tables_scalar.$(OBJEXT) \
 @SCALAR_DOUBLE_TRUE@	packer_nopad.$(OBJEXT) \
-@SCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_scalar.$(OBJEXT)
+@SCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_scalar.$(OBJEXT) \
+@SCALAR_DOUBLE_TRUE@	dispatch_scalar.$(OBJEXT)
 @BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@am__objects_4 = qdp_packer_nopad.$(OBJEXT)
 @PARSCALAR_SINGLE_TRUE@am__objects_5 =  \
 @PARSCALAR_SINGLE_TRUE@	shift_tables_parscalar.$(OBJEXT) \
 @PARSCALAR_SINGLE_TRUE@	packer_p4_pad.$(OBJEXT) \
-@PARSCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_parscalar.$(OBJEXT)
+@PARSCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_parscalar.$(OBJEXT) \
+@PARSCALAR_SINGLE_TRUE@	dispatch_parscalar.$(OBJEXT)
 @BUILD_QDP_PACKERS_TRUE@@PARSCALAR_SINGLE_TRUE@am__objects_6 = qdp_packer_p4_pad.$(OBJEXT)
 @PARSCALAR_DOUBLE_TRUE@am__objects_7 =  \
 @PARSCALAR_DOUBLE_TRUE@	shift_tables_parscalar.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	packer_nopad.$(OBJEXT) \
-@PARSCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_parscalar.$(OBJEXT)
+@PARSCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_parscalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_TRUE@	dispatch_parscalar.$(OBJEXT)
 @BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@am__objects_8 = qdp_packer_nopad.$(OBJEXT)
 am_liblevel3_a_OBJECTS = $(am__objects_1) $(am__objects_2) \
 	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
@@ -316,6 +321,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dispatch_parscalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dispatch_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/packer_nopad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/packer_p4_pad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qdp_packer_nopad.Po@am__quote@

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_scalar.c,v 1.3 2007-09-14 19:32:11 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_scalar.c,v 1.4 2007-09-21 17:19:48 bjoo Exp $
  * 
  * Action of the 32bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -23,6 +23,8 @@
 #include <sse_config.h>
 #include <sse_align.h>
 #include <shift_tables_scalar.h>
+#include <types32.h>
+#include <dispatch_scalar.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,8 +35,6 @@ extern "C" {
 #include <math.h>
 
 
-/* externally callable function:  inxtsu3dslash */
-/* requires gauge fields packed by no_funnystuff_pack_gauge_field of packer.c */
 
 /* This routine applies the operator D' to Psi, putting the result in Res. */
 
@@ -63,8 +63,6 @@ extern "C" {
 /*  ISign      D' or D'  ( +1 | -1 ) respectively		(Read) */
 /*  CB	      Checkerboard of input vector			(Read) */
 
-
-
   /* Volume and initialization */
   static int initP = 0;
 
@@ -72,21 +70,6 @@ extern "C" {
   static int *shift_table;
   static int icolor_start[2];    /* starting site for each coloring (cb) */
   static int icolor_end[2];      /* end site for each coloring (cb) */
-
-
-/* now overlays for spinors as arrays or structs */
-  typedef float chi_float[2];                    /* 2 floats => chi float */
-  typedef chi_float chi_two[2];                  /* 2 chi_floats = 4 floats => chi_two */
-  typedef float u_mat_array[3][3][2]  ALIGN;     /* color color re/im */ 
-  typedef float spinor_array[4][3][2] ALIGN;     /* Nspin4 color re/im */
-  typedef chi_two chi_array[3]    ALIGN; /* half vector: ..color Nspin2 re/im ::note:: color slowest varying */
-  typedef u_mat_array (*my_mat_array)[4] ALIGN;  /* an array of 4 u_mat_array pointers */
-
-  
-  /* macros for spin basis note: assume first two rows are linearly independent except for gamma3 */
-  /* it should be possible to change the spin basis by just correctly modifying these macros. However,
-     some non-chiral spin basis may need additional modifications inside the dslash routine*/
-
 
   /* use SZIN spin basis */
   
@@ -178,7 +161,7 @@ void init_sse_su3dslash(const int latt_size[])
     /* shift_table and icolor start are set, latt_size is read */
   shift_table = make_shift_tables(icolor_start, latt_size);
 
-  vol_cb = getTotalVolCB();
+  vol_cb = getSubgridVolCB();
   if ( vol_cb <= 0 ) { 
     fprintf(stderr,"Something is wrong. volcb = %d\n", vol_cb);
       exit(1);
@@ -219,26 +202,6 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr);
 /* Apply Dslash Dagger */
 void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr);
 
-/* Thread Argument */
-typedef struct {
-  spinor_array *psi;    /* input spinor */
-  spinor_array *res;    /* output spinor */
-  u_mat_array (*u)[4];    /* gauge field on the output checkerboard */
-  u_mat_array (*u2)[4];   /* gauge field on the input checkerboard */
-  int cb;            /* output checkerboard  */
-} Arg_s;
-
-
-/* Stripped out the sml_scall from this version -- non threaded */
-/* Hence n = 0. => lo = 0, hi = volume2, */
-
-#define smpscaller2(a,bleah,spinfun2,chifun2,u3,cb2) \
-    a.psi = spinfun2;\
-    a.res = chifun2;\
-    a.u = u3;  \
-    a.cb = cb2; \
-    (*bleah)(icolor_start[cb2], icolor_end[cb2], 0, &a);
-
 
 /* routine sse_su3dslash_wilson
    u: base pointer to gauge field
@@ -249,23 +212,24 @@ typedef struct {
 */
 void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 {
-  Arg_s a;
 
   if (isign == 1) {
-    smpscaller2(a, D_psi_fun_plus, 
-		(spinor_array*)psi,
-		(spinor_array*)res,
-		(my_mat_array)u,
-		1-cb);
+    dispatch_to_threads(D_psi_fun_plus, 
+			(spinor_array*)psi,
+			(spinor_array*)res,
+			(my_mat_array)u,
+			1-cb,
+			getSubgridVolCB());
   }
 
   if( isign == -1) 
   {
-    smpscaller2(a, D_psi_fun_minus, 
-		(spinor_array*)psi,
-		(spinor_array*)res,
-		(my_mat_array)u,
-		1-cb);
+    dispatch_to_threads(D_psi_fun_minus, 
+			(spinor_array*)psi,
+			(spinor_array*)res,
+			(my_mat_array)u,
+			1-cb,
+			getSubgridVolCB());
   }
 }
 
@@ -276,19 +240,23 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
 {
 
-  const Arg_s *a  = (const Arg_s*)ptr;  /* Cast the (void *) to an (Arg_s*) */
+  const ThreadWorkerArgs *a  = (const ThreadWorkerArgs*)ptr;  /* Cast the (void *) to an (ThreadWorkerArgs*) */
   int ix1;                              /* Index of current site */
   int iy1,iy2;                          /* Index of neighbour of current site (iy1) 
 					   and current site+1 (iy2) */
 
   int iz1;                              /* Index of next site in loop */
-  const int low  =  lo;                 /* First site for this thread */
-  const int high  =  hi;                /* Last site for this thread */
 
   u_mat_array (*gauge_field)[4]  =  a->u; /* Packed Gauge fields */
   spinor_array *psi  =  a->psi;           /* Source spinor */
   spinor_array *res  =  a->res;           /* Result spinor */
 
+  const int cb = a->cb;
+
+  const int low  =  icolor_start[cb]+lo;                 /* First site for this thread */
+  const int high  = icolor_start[cb]+ hi;                /* Last site for this thread */
+
+  
 
   /* Pointers to the neighboring u-s */
   u_mat_array *up1 ALIGN;                  /* U[ x  ] */
@@ -304,10 +272,10 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
   spinor_array *sn1 ALIGN;
 
   /* Half Vectors */
-  chi_array r12_1 ALIGN; /* Site 1 upper */
-  chi_array r34_1 ALIGN; /* Site 1 lower */
-  chi_array r12_2 ALIGN; /* Site 2 upper */
-  chi_array r34_2 ALIGN; /* Site 2 lower */
+  halfspinor_array r12_1 ALIGN; /* Site 1 upper */
+  halfspinor_array r34_1 ALIGN; /* Site 1 lower */
+  halfspinor_array r12_2 ALIGN; /* Site 2 upper */
+  halfspinor_array r34_2 ALIGN; /* Site 2 lower */
 
   /* note these guys need to be declared in each routine in which they are used*/
   /* Is this still true? */
@@ -836,14 +804,16 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
 signs used for 1 +- gamma(mu^) must be swapped...*/ 
 void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
 {
-  const Arg_s *a  = (const Arg_s*)ptr;   /* Downcast to args */
+  const ThreadWorkerArgs *a  = (const ThreadWorkerArgs*)ptr;   /* Downcast to args */
   int ix1,iy1,iy2,iz1;                   /* Coordinates ix1 - current
 					    iy1 - index of neighbour
 					    iy1 - index of neighbour of ix1+1 
 					    iz1 - index of first of next pair (ix+2) */
+  const int cb = a->cb;
 
-  const int low  =  lo;                    /* First site */
-  const int high  =  hi;                   /* Last site+1 */
+  const int low  =  icolor_start[cb]+lo;                 /* First site for this thread */
+  const int high  = icolor_start[cb]+ hi;                /* Last site for this thread */
+
   u_mat_array (*gauge_field)[4]  =  a->u;  /* Gauge field */
 
   spinor_array *psi  =  a->psi;            /* Source 4-spinor */
@@ -860,10 +830,10 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
   spinor_array *sm2 ALIGN;                 /* 4 spinor psi[ix1+1 - mu */
   spinor_array *sn1 ALIGN;                 /* 4 spinor result */
 
-  chi_array r12_1;                         /* site 1 halfspinor top half */
-  chi_array r34_1;                         /* site 1 halfspinor bottom half */
-  chi_array r12_2;                         /* site 2 halfspinor top half */
-  chi_array r34_2;                         /* site 2 halfspinor bottom half */
+  halfspinor_array r12_1;                         /* site 1 halfspinor top half */
+  halfspinor_array r34_1;                         /* site 1 halfspinor bottom half */
+  halfspinor_array r12_2;                         /* site 2 halfspinor top half */
+  halfspinor_array r34_2;                         /* site 2 halfspinor bottom half */
   
   static sse_float _sse_sgn12 ALIGN ={-1.0f,-1.0f,1.0f,1.0f}; 
   static sse_float _sse_sgn13 ALIGN ={-1.0f,1.0f,-1.0f,1.0f}; 

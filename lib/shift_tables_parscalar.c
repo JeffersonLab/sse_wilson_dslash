@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.4 2007-09-20 20:05:44 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.5 2007-09-21 17:19:48 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -39,6 +39,8 @@
 extern "C" {
 #endif
 
+
+  typedef int offset[4];
 
   static offset** offset_table;
 
@@ -363,10 +365,11 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
       if (bnode != my_node) {
 	/* append to tail 1, note in table */ 
 	bound[1-cb][0][dir]++;
-	shift_table[0][dir+Nd*linear] = subgrid_vol_cb + bound[1-cb][type][dir];
+	shift_table[DECOMP_SCATTER][dir+Nd*linear] 
+	  = subgrid_vol_cb + bound[1-cb][DECOMP_SCATTER][dir];
       }
       else {
-	shift_table[0][dir+Nd*linear] = blinear % subgrid_vol_cb;
+	shift_table[DECOMP_SCATTER][dir+Nd*linear] = blinear % subgrid_vol_cb;
       }
 
       /* Scatter:  decomp_hvv_{plus,minus} */
@@ -375,21 +378,28 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
       if (fnode != my_node) {
 	/* Append to tail 1 */
 	bound[1-cb][1][dir]++;
-	shift_table[1][dir+Nd*linear] = subgrid_vol_cb + bound[1-cb][type][dir];
+	shift_table[DECOMP_HVV_SCATTER][dir+Nd*linear] 
+	  = subgrid_vol_cb + bound[1-cb][DECOMP_HVV_SCATTER][dir];
       }
       else {
-	shift_table[1][dir+Nd*linear] = flinear % subgrid_vol_cb;
+	shift_table[DECOMP_HVV_SCATTER][dir+Nd*linear] 
+	  = flinear % subgrid_vol_cb;
       }
 
       /* Gather:  mvv_recons_{plus,minus} */
       /* Operation:  chi(x) <-  \sum_dir U(x,dir)*a^F(shift(x,type=2),dir) */
       /* Receive from forward */
       if (fnode != my_node) {
-	/* grab from tail 2 at the right spot */ 
-	shift_table[2][dir+Nd*linear] = 2*subgrid_vol_cb + (bound[cb][0][dir]);
+	/* grab from tail at the right spot - the place where it has been
+	   scattered. RECONS_MVV_GATHER is always the complement of a 
+	   DECOMP_SCATTER */ 
+
+	shift_table[RECONS_MVV_GATHER][dir+Nd*linear] =
+	  2*subgrid_vol_cb + (bound[cb][DECOMP_SCATTER][dir]);
       }
       else {
-	shift_table[2][dir+Nd*linear] = linear % subgrid_vol_cb;
+	shift_table[RECONS_MVV_GATHER][dir+Nd*linear] = 
+	  linear % subgrid_vol_cb;
       }
 
 
@@ -397,11 +407,15 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
       /* Operation:  chi(x) +=  \sum_dir recons(a^B(shift(x,type=3),dir),dir) */
       /* Receive from backward */
       if (bnode != my_node) {
-	/* grab from tail 2 at the right spot */ 
-	shift_table[3][dir+Nd*linear] = 2*subgrid_vol_cb + bound[cb][1][dir];
+	/* grab from tail 2 at the right spot - the place where it has been
+	   scattered. RECONS_GATHER is always the complement of a 
+	   DECOMP_HVV_SCATTER */ 
+
+	shift_table[RECONS_GATHER][dir+Nd*linear] = 
+	  2*subgrid_vol_cb + bound[cb][DECOMP_HVV_SCATTER][dir];
       }
       else {
-	shift_table[3][dir+Nd*linear] = linear % subgrid_vol_cb;
+	shift_table[RECONS_GATHER][dir+Nd*linear] = linear % subgrid_vol_cb;
       }
 
     } 
@@ -471,32 +485,10 @@ void free_shift_tables(void)
 }
 
 
-int offset_decomp_scatter(int site, int mu)
+int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu)
 {
-  //  return shift_table[0][mu+4*site] +3*subgrid_vol_cb*mu;
-  return offset_table[DECOMP_SCATTER][site][mu];
+  return offset_table[type][site][mu];
 }
-
-int offset_decomp_hvv_scatter(int site, int mu)
-{
-  //return shift_table[1][mu+4*site]  +3*subgrid_vol_cb*mu;
-  return offset_table[DECOMP_HVV_SCATTER][site][mu];
-}
-
-
-int offset_recons_mvv_gather(int site, int mu)
-{
-  // return shift_table[2][mu+4*site]  + 3*subgrid_vol_cb*mu;
-  return offset_table[RECONS_MVV_GATHER][site][mu];
-}
-
-int offset_recons_gather(int site, int mu)
-{
-  //  return shift_table[3][mu+4*site]  + 3*subgrid_vol_cb*mu;
-  return offset_table[RECONS_GATHER][site][mu];
-}
-
-
 
 
 #ifdef __cplusplus

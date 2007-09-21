@@ -7,22 +7,27 @@
 extern "C" {
 #endif
 
-  typedef int offset[4];
-  
-  #define DECOMP_SCATTER 0
-  #define DECOMP_HVV_SCATTER 1
-  #define RECONS_MVV_GATHER 2
-  #define RECONS_GATHER 3
+  typedef enum {
+    DECOMP_SCATTER=0,
+    DECOMP_HVV_SCATTER,
+    RECONS_MVV_GATHER,
+    RECONS_GATHER
+  } HalfSpinorOffsetType;
 
-  int getSubgridVol();
+  // int getSubgridVol();
   int getSubgridVolCB();
   void make_shift_tables(int icolor_start[2], int bound[2][2][4]);
   void free_shift_tables(void);
-  
-  int offset_decomp_scatter(int site, int mu);
-  int offset_decomp_hvv_scatter(int mu, int site);
-  int offset_recons_mvv_gather(int mu, int site);
-  int offset_recons_gather(int mu, int site);
+
+  /*! This is the key routine. It is a table lookup for an offset 
+    into the half spinor array. It indirects us to the tail regions
+    as appropriate for sites to be communicated off-node 
+    
+    \param type (HalfSpinorOffsetType). The type of operation whose offset we want (eg: DECOMP_SCATTER, DECOMP_HVV_SCATTER, RECONS_MVV_GATHER, RECONS_GATHER)
+    \param site (int) The site we want to do the offset lookup for
+    \param mu   (int) The index for the gamma matrix in the projector (0-3)
+  */
+  int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu); 
 
 #ifdef __cplusplus
 };

@@ -134,6 +134,7 @@ if test "X${QDPXX_GIVEN}X" = "XyesX"; then
      AC_MSG_NOTICE([QDP++ number of spin components: ${QDPXX_NS}])
 
      PARALLEL_ARCH="`${QDPXX_CONFIG} --parallel-arch`"
+
      AC_MSG_NOTICE([QDP++ has parallel arch: ${PARALLEL_ARCH} ] )
 
      PRECISION="`${QDPXX_CONFIG} --precision`"
@@ -266,6 +267,18 @@ double)
 	;;
 esac
 
+case ${PARALLEL_ARCH} in
+scalar)
+	AC_DEFINE_UNQUOTED(SSE_SCALAR, [1], [Scalar Arch])
+	;;
+parscalar)
+	AC_DEFINE_UNQUOTED(SSE_PARSCALAR, [1], [Parscalar Arch])
+	;;
+*)
+	AC_MSG_ERROR([Unsupported parallel arch])
+	;;
+esac
+	
 ARCH_HASH=${PARALLEL_ARCH}"_"${PRECISION}
 
 AM_CONDITIONAL(SCALAR_SINGLE, [ test "X${ARCH_HASH}X" == "Xscalar_singleX" ] )

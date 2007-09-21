@@ -3636,6 +3636,7 @@ echo "$as_me: QDP++ number of colors: ${QDPXX_NC}" >&6;}
 echo "$as_me: QDP++ number of spin components: ${QDPXX_NS}" >&6;}
 
      PARALLEL_ARCH="`${QDPXX_CONFIG} --parallel-arch`"
+
      { echo "$as_me:$LINENO: QDP++ has parallel arch: ${PARALLEL_ARCH}  " >&5
 echo "$as_me: QDP++ has parallel arch: ${PARALLEL_ARCH}  " >&6;}
 
@@ -4387,6 +4388,28 @@ _ACEOF
 *)
 	{ { echo "$as_me:$LINENO: error: Shouldnt have gotten here" >&5
 echo "$as_me: error: Shouldnt have gotten here" >&2;}
+   { (exit 1); exit 1; }; }
+	;;
+esac
+
+case ${PARALLEL_ARCH} in
+scalar)
+
+cat >>confdefs.h <<_ACEOF
+#define SSE_SCALAR 1
+_ACEOF
+
+	;;
+parscalar)
+
+cat >>confdefs.h <<_ACEOF
+#define SSE_PARSCALAR 1
+_ACEOF
+
+	;;
+*)
+	{ { echo "$as_me:$LINENO: error: Unsupported parallel arch" >&5
+echo "$as_me: error: Unsupported parallel arch" >&2;}
    { (exit 1); exit 1; }; }
 	;;
 esac

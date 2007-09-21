@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_scalar.c,v 1.3 2007-09-14 19:32:11 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_scalar.c,v 1.4 2007-09-21 17:19:48 bjoo Exp $
  * 
  * Action of the 64bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -65,6 +65,7 @@ extern "C" {
 #include <sse64.h>
 #include <sse_align.h>
 #include <shift_tables_scalar.h>
+#include <dispatch_scalar.h>
 
 
   
@@ -76,6 +77,7 @@ extern "C" {
   static int icolor_end[2];      /* end site for each coloring (cb) */
 
 
+#if 0
   /* now some typedefs */
   typedef double chi_double[2] __attribute__ ((aligned (16)));   /* chi_double: Two doubles (complex?) */
   typedef chi_double chi_two[2] __attribute__ ((aligned (16)));  /* chi_two   : Four doubles */
@@ -83,7 +85,7 @@ extern "C" {
   typedef double spinor_array[4][3][2] ALIGN;                    /* Nspin4 color re/im */
   typedef chi_two chi_array[3]    ALIGN;                         /* Halfspinor: re/im ::note:: color slowest varying */
   typedef u_mat_array (*my_mat_array)[4] ALIGN;  
-
+#endif
 
 
   /* Gamma Stuff: Here we use _sse_42_1_gammaX_plusminus to apply ( 1 +/- gamma_X ) and keep the top half of 
@@ -431,7 +433,7 @@ void init_sse_su3dslash(const int latt_size[])
 
   /* If make_shift_tables cannot allocate, it will barf */
   shift_table = make_shift_tables(icolor_start, latt_size);
-  vol_cb = getTotalVolCB();
+  vol_cb = getSubgridVolCB();
 
   /* Check that TotalVolCB has been set. If not it will be minus 1 */
   if ( vol_cb <= 0 ) { 
@@ -473,46 +475,28 @@ void free_sse_su3dslash(void)
 void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr);
 void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr);
 
-typedef struct {
-  spinor_array *psi;  /* input spinor */
-  spinor_array *res;   /* output spinor */
-  u_mat_array (*u)[4];  /* gauge field associated with the output checkerboard */
-  u_mat_array (*u2)[4];  /* gauge field associated with the input checkerboard */
-  int cb;             /* output checkerboard */
-  /* the output array                         */
-} Arg_s;
-
-
-/* Stripped out the sml_scall from this version -- non-threaded for now */
-/* Hence n = 0. => lo = 0, hi = volume2, */
-
-#define smpscaller2(a,bleah,spinfun2,chifun2,u3,cb2) \
-    a.psi = spinfun2;\
-    a.res = chifun2;\
-    a.u = u3;  \
-    a.cb = cb2; \
-    (*bleah)(icolor_start[cb2], icolor_end[cb2], 0, &a);
 
 
 /* External routine */
 void sse_su3dslash_wilson(double *u, double *psi, double *res, int isign, int cb)
 {
-  Arg_s a;
 
   if (isign == 1)  {
-    smpscaller2(a, D_psi_fun_plus, 
+    dispatch_to_threads(D_psi_fun_plus, 
 		(spinor_array*)psi,
 		(spinor_array*)res,
 		(my_mat_array)u,
-		1-cb);
+		1-cb,
+		getSubgridVolCB());
   }
 
   if( isign == -1) {
-    smpscaller2(a, D_psi_fun_minus, 
+    dispatch_to_threads(D_psi_fun_minus, 
 		(spinor_array*)psi,
 		(spinor_array*)res,
 		(my_mat_array)u,
-		1-cb);
+		1-cb,
+		getSubgridVolCB());
   }
 }
 
@@ -525,9 +509,10 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
                                                      /* Iy is a neighbour */
                                                      /* Iz is next site in loop */
 
-  const Arg_s *a = (const Arg_s*)ptr;                /* Downcast argument */
-  const int low = lo;                                /* Start site */
-  const int high = hi;                               /* End site + 1 */
+  const ThreadWorkerArgs *a = (const ThreadWorkerArgs*)ptr;                /* Downcast argument */
+  int cb = a->cb;
+  const int low = icolor_start[cb] + lo;                                /* Start site */
+  const int high = icolor_start[cb] + hi;                               /* End site + 1 */
 
   u_mat_array (*gauge_field)[4] ALIGN = a->u;        /* My gauge field */
   spinor_array *psi = a->psi;                        /* Source */
@@ -829,10 +814,11 @@ void D_psi_fun_minus(size_t lo, size_t hi, int id, const void *ptr )
                                          /* iz is the prefetch site for the 
 					    next loop iteration */
 
-  const Arg_s *a = (const Arg_s*)ptr;    /* Cast the void args pointer */
+  const ThreadWorkerArgs *a = (const ThreadWorkerArgs*)ptr;    /* Cast the void args pointer */
+  const int cb = a->cb;
 
-  const int low = lo;                     /* First site */
-  const int high = hi;                    /* Last site+1 */
+  const int low = icolor_start[cb] + lo;                     /* First site */
+  const int high = icolor_start[cb] + hi;                    /* Last site+1 */
 
   u_mat_array (*gauge_field)[4] ALIGN = a->u; /* Gauge field */
   spinor_array *psi = a->psi;                 /* Source spinor */

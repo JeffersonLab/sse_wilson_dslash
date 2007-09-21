@@ -12,8 +12,8 @@ extern "C" {
   /* backward_neighbor(site, mu) return site index of backward neighbour */
   //#define backward_neighbor(table,mysite,mymu) table[mymu + 4*mysite]
 
-  int getTotalVol();
-  int getTotalVolCB();
+  int getSubgridVol();
+  int getSubgridVolCB();
   int forward_neighbor(int *soffsets, int mysite, int mymu);
   int backward_neighbor(int *soffsets, int mysite, int mymu);
   int* make_shift_tables(int icolor_start[2], const int lat_size[4]);
