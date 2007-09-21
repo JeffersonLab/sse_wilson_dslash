@@ -20,4 +20,5 @@ t_dslash_SOURCES = unittest.h \
 	t_dslash.cc \
 	testDslashFull.h \
 	testDslashFull.cc
+
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
