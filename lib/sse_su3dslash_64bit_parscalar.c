@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.4 2007-09-21 19:12:09 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.5 2007-09-25 20:24:34 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -1250,7 +1250,7 @@ static QMP_msghandle_t back_all_mh;
 void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for scalar version
 {
   const int *machine_size = QMP_get_logical_dimensions();
-  int bound[2][2][4];
+  int bound[2][4][4];
 
   int mu, num, nsize;
 

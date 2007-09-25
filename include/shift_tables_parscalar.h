@@ -14,9 +14,10 @@ extern "C" {
     RECONS_GATHER
   } HalfSpinorOffsetType;
 
+
   // int getSubgridVol();
   int getSubgridVolCB();
-  void make_shift_tables(int icolor_start[2], int bound[2][2][4]);
+  void make_shift_tables(int icolor_start[2], int bound[2][4][4]);
   void free_shift_tables(void);
 
   /*! This is the key routine. It is a table lookup for an offset 

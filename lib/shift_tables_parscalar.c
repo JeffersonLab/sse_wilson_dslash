@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.6 2007-09-25 19:45:54 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.7 2007-09-25 20:24:34 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -276,7 +276,7 @@ static int parity(const int coord[])
 }
 
 
-void make_shift_tables(int icolor_start[2], int bound[2][2][4])
+void make_shift_tables(int icolor_start[2], int bound[2][4][4])
 { 
   volatile int type, cb, dir; 
   const int my_node = QMP_get_node_number();
@@ -286,7 +286,8 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
   int **shift_table;
 
   int i;
-  
+
+
   /* Setup the subgrid volume for ever after */
   subgrid_vol = 1;
   for(i=0; i < getNumDim(); ++i) {
@@ -332,6 +333,8 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
     for(dir=0; dir < Nd; dir++) {
       bound[cb][0][dir] = 0;	
       bound[cb][1][dir] = 0;	
+      bound[cb][2][dir] = 0;	
+      bound[cb][3][dir] = 0;	
     }
   }
 
@@ -364,9 +367,11 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
       /* Send backwards - also called a receive from forward */
       if (bnode != my_node) {
 	/* append to tail 1, note in table */ 
-	bound[1-cb][0][dir]++;
+
 	shift_table[DECOMP_SCATTER][dir+Nd*linear] 
 	  = subgrid_vol_cb + bound[1-cb][DECOMP_SCATTER][dir];
+
+	bound[1-cb][DECOMP_SCATTER][dir]++;
       }
       else {
 	shift_table[DECOMP_SCATTER][dir+Nd*linear] = blinear % subgrid_vol_cb;
@@ -377,9 +382,11 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
       /* Send forwards - also called a receive from backward */
       if (fnode != my_node) {
 	/* Append to tail 1 */
-	bound[1-cb][1][dir]++;
 	shift_table[DECOMP_HVV_SCATTER][dir+Nd*linear] 
 	  = subgrid_vol_cb + bound[1-cb][DECOMP_HVV_SCATTER][dir];
+
+	bound[1-cb][DECOMP_HVV_SCATTER][dir]++;
+
       }
       else {
 	shift_table[DECOMP_HVV_SCATTER][dir+Nd*linear] 
@@ -395,7 +402,10 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
 	   DECOMP_SCATTER */ 
 
 	shift_table[RECONS_MVV_GATHER][dir+Nd*linear] =
-	  2*subgrid_vol_cb + (bound[cb][DECOMP_SCATTER][dir]);
+	  2*subgrid_vol_cb + (bound[cb][RECONS_MVV_GATHER][dir]);
+
+	bound[cb][RECONS_MVV_GATHER][dir]++;
+
       }
       else {
 	shift_table[RECONS_MVV_GATHER][dir+Nd*linear] = 
@@ -412,7 +422,9 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
 	   DECOMP_HVV_SCATTER */ 
 
 	shift_table[RECONS_GATHER][dir+Nd*linear] = 
-	  2*subgrid_vol_cb + bound[cb][DECOMP_HVV_SCATTER][dir];
+	  2*subgrid_vol_cb + bound[cb][RECONS_GATHER][dir];
+
+	bound[cb][RECONS_GATHER][dir]++;
       }
       else {
 	shift_table[RECONS_GATHER][dir+Nd*linear] = linear % subgrid_vol_cb;
@@ -426,19 +438,18 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
   for(cb=0; cb < 2; cb++) {
     for(dir=0; dir < Nd; dir++) {
 
-      if (bound[1-cb][0][dir] != bound[cb][0][dir]) {
-
-	QMP_error("SSE Wilson dslash - make_shift_tables: type 0 diff. cb send/recv counts do not match: %d %d",
-		  bound[1-cb][0][dir],bound[cb][0][dir]);
-	QMP_abort(1);
+      /* Sanity 1: Must have same number of boundary sites on each cb for 
+	 a given operation */
+      for(i = 0; i < 4; i++) { 
+	if (bound[1-cb][0][dir] != bound[cb][0][dir]) {
+	  
+	  QMP_error("SSE Wilson dslash - make_shift_tables: type 0 diff. cb send/recv counts do not match: %d %d",
+		    bound[1-cb][0][dir],bound[cb][0][dir]);
+	  QMP_abort(1);
+	}
       }
 
-      if (bound[1-cb][1][dir] != bound[cb][1][dir]) {
-      
-	QMP_error("SSE Wilson dslash - make_shift_tables: type 1 diff. cb send/recv counts do not match: %d %d",
-		  bound[1-cb][1][dir],bound[cb][1][dir]);
-	QMP_abort(1);
-      }
+
     }
   }
 

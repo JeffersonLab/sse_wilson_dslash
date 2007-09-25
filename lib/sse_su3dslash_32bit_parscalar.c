@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.8 2007-09-21 17:19:48 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.9 2007-09-25 20:24:34 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -1330,7 +1330,7 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
   // const int *subgrid_cb_size = QMP_get_subgrid_dimensions();
  
   /* bound[cb][forward=0/backward=1][dir] */
-  int bound[2][2][4];
+  int bound[2][4][4];
 
   int mu, num, nsize;
 
