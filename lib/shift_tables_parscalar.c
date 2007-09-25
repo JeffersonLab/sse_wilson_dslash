@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.5 2007-09-21 17:19:48 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.6 2007-09-25 19:45:54 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -307,7 +307,7 @@ void make_shift_tables(int icolor_start[2], int bound[2][2][4])
   
   */
  
-  if ((shift_table = (int **)malloc(4*sizeof(int))) == 0 ) {
+  if ((shift_table = (int **)malloc(4*sizeof(int*))) == 0 ) {
     QMP_error("init_wnxtsu3dslash: could not initialize shift_table");
     QMP_abort(1);
     
