@@ -18,6 +18,8 @@ extern "C" {
   typedef float u_mat_array[3][3][2]  ALIGN;       /* color color re/im */ 
   typedef float spinor_array[4][3][2] ALIGN;       /* Nspin4 color re/im */
   typedef float halfspinor_array[3][2][2]    ALIGN;    /* Half Spinor re/im,spin2,color */
+  typedef float colorvec[3][2];
+
   typedef u_mat_array (*my_mat_array)[4] ALIGN;  
 
 #ifdef __cplusplus

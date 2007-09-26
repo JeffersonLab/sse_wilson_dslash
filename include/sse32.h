@@ -1,5 +1,5 @@
 /*******************************************************************************
-* $Id: sse32.h,v 1.2 2007-09-12 20:29:39 bjoo Exp $
+* $Id: sse32.h,v 1.3 2007-09-26 20:43:34 bjoo Exp $
 *
 * File sse32.h
 *
@@ -38,13 +38,13 @@ extern "C" {
   } sse_vector_wide __attribute__ ((aligned (16))); 
 
   /*! sign macros for shufs... */
-  static sse_float _sse_sgn12 __attribute__ ((unused)) ={-1.0f,-1.0f,1.0f,1.0f};
-  static sse_float _sse_sgn13 __attribute__ ((unused)) ={-1.0f,1.0f,-1.0f,1.0f};
-  static sse_float _sse_sgn14 __attribute__ ((unused)) ={-1.0f,1.0f,1.0f,-1.0f};
-  static sse_float _sse_sgn23 __attribute__ ((unused)) ={1.0f,-1.0f,-1.0f,1.0f};
-  static sse_float _sse_sgn24 __attribute__ ((unused)) ={1.0f,-1.0f,1.0f,-1.0f};
-  static sse_float _sse_sgn34 __attribute__ ((unused)) ={1.0f,1.0f,-1.0f,-1.0f};
-  static sse_float _sse_sgn1234 __attribute__ ((unused)) = {-1.0f,-1.0f,-1.0f,-1.0f};
+  static sse_float _sse_internal_sgn12 __attribute__ ((unused)) ={-1.0f,-1.0f,1.0f,1.0f};
+  static sse_float _sse_internal_sgn13 __attribute__ ((unused)) ={-1.0f,1.0f,-1.0f,1.0f};
+  static sse_float _sse_internal_sgn14 __attribute__ ((unused)) ={-1.0f,1.0f,1.0f,-1.0f};
+  static sse_float _sse_internal_sgn23 __attribute__ ((unused)) ={1.0f,-1.0f,-1.0f,1.0f};
+  static sse_float _sse_internal_sgn24 __attribute__ ((unused)) ={1.0f,-1.0f,1.0f,-1.0f};
+  static sse_float _sse_internal_sgn34 __attribute__ ((unused)) ={1.0f,1.0f,-1.0f,-1.0f};
+  static sse_float _sse_internal_sgn1234 __attribute__ ((unused)) = {-1.0f,-1.0f,-1.0f,-1.0f};
 
   /*******************************************************************************
    *
@@ -426,7 +426,7 @@ __asm__ __volatile__ ("shufps $0xb1, %%xmm3, %%xmm3 \n\t" \
                       "mulps %0, %%xmm5 \n\t" \
                        : \
                        : \
-                       "m" (_sse_sgn23));
+                       "m" (_sse_internal_sgn23));
 
 /*
 * Adds xmm3,xmm4,xmm5 to xmm1,xmm2,xmm3
@@ -465,7 +465,7 @@ __asm__ __volatile__ ("mulps %0, %%xmm3 \n\t" \
                       "addps %%xmm5, %%xmm2" \
                       : \
                       : \
-                      "m" (_sse_sgn34))
+                      "m" (_sse_internal_sgn34))
 
 /*
 * Multiplies the low words xmm3,xmm4,xmm5 with -1 and adds these registers
@@ -481,7 +481,7 @@ __asm__ __volatile__ ("mulps %0, %%xmm3 \n\t" \
                       "addps %%xmm5, %%xmm2" \
                       : \
                       : \
-                      "m" (_sse_sgn12))
+                      "m" (_sse_internal_sgn12))
 
 
 /*
@@ -500,7 +500,7 @@ __asm__ __volatile__ ("shufps $0xb1, %%xmm3, %%xmm3 \n\t" \
                       "addps %%xmm5, %%xmm2" \
                       : \
                       : \
-                      "m" (_sse_sgn13))
+                      "m" (_sse_internal_sgn13))
 
 /*
 * Multiplies xmm3,xmm4,xmm5 with i and subtracts them from xmm1,xmm2,xmm3
@@ -518,7 +518,7 @@ __asm__ __volatile__ ("shufps $0xb1, %%xmm3, %%xmm3 \n\t" \
                       "addps %%xmm5, %%xmm2" \
                       : \
                       : \
-                      "m" (_sse_sgn24))
+                      "m" (_sse_internal_sgn24))
 
 /*
 * Exchanges the high and low words of xmm3,xmm4,xmm5, multiplies them with i
@@ -537,7 +537,7 @@ __asm__ __volatile__ ("shufps $0x1b, %%xmm3, %%xmm3 \n\t" \
                       "addps %%xmm5, %%xmm2" \
                       : \
                       : \
-                      "m" (_sse_sgn13))
+                      "m" (_sse_internal_sgn13))
 
 #define _sse_vector_xch_i_mul_up() \
 __asm__ __volatile__ ("shufps $0x1b, %%xmm3, %%xmm3 \n\t" \
@@ -548,7 +548,7 @@ __asm__ __volatile__ ("shufps $0x1b, %%xmm3, %%xmm3 \n\t" \
                       "mulps %0, %%xmm5 \n\t" \
                       : \
                       : \
-                      "m" (_sse_sgn13))
+                      "m" (_sse_internal_sgn13))
 
 #define _sse_vector_xch_i_mul_neg_up() \
 __asm__ __volatile__ ("shufps $0x1b, %%xmm3, %%xmm3 \n\t" \
@@ -559,7 +559,7 @@ __asm__ __volatile__ ("shufps $0x1b, %%xmm3, %%xmm3 \n\t" \
                       "mulps %0, %%xmm5 \n\t" \
                       : \
                       : \
-                      "m" (_sse_sgn24))
+                      "m" (_sse_internal_sgn24))
 
 
 /*
@@ -579,7 +579,7 @@ __asm__ __volatile__ ("shufps $0x1b, %%xmm3, %%xmm3 \n\t" \
                       "addps %%xmm5, %%xmm2" \
                       : \
                       : \
-                      "m" (_sse_sgn24))
+                      "m" (_sse_internal_sgn24))
 
 /*
 * Multiplies the low and high words of xmm3,xmm4,xmm5 with i and -i
@@ -598,7 +598,7 @@ __asm__ __volatile__ ("shufps $0xb1, %%xmm3, %%xmm3 \n\t" \
                       "addps %%xmm5, %%xmm2" \
                       : \
                       : \
-                      "m" (_sse_sgn14))
+                      "m" (_sse_internal_sgn14))
 
 /*
 * Multiplies the low and high words of xmm3,xmm4,xmm5 with -i and i
@@ -617,7 +617,7 @@ __asm__ __volatile__ ("shufps $0xb1, %%xmm3, %%xmm3 \n\t" \
                       "addps %%xmm5, %%xmm2" \
                       : \
                       : \
-                      "m" (_sse_sgn23))
+                      "m" (_sse_internal_sgn23))
 
 /*
 * Exchanges the high and low words in xmm3,xmm4,xmm5 
@@ -743,7 +743,7 @@ __asm__ __volatile__ ("movss %0, %%xmm6 \n\t" \
                       "m" ((u)[2][0][1]), \
                       "m" ((u)[1][2][1]), \
                       "m" ((u)[2][1][1]), \
-                      "m" (_sse_sgn13))
+                      "m" (_sse_internal_sgn13))
 
 /*
 * Multiplies a pair sl,sh of su3 vectors with an su3 matrix u^dagger, 
@@ -851,7 +851,7 @@ __asm__ __volatile__ ("movss %0, %%xmm6 \n\t" \
                       "m" ((u)[0][2][1]), \
                       "m" ((u)[2][1][1]), \
                       "m" ((u)[1][2][1]), \
-                      "m" (_sse_sgn24));
+                      "m" (_sse_internal_sgn24));
 
 
 #ifdef __cplusplus
