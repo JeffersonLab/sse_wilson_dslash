@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.9 2007-09-25 20:24:34 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.10 2007-09-26 20:44:09 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -123,6 +123,9 @@ static int initP=0;
 #define _sse_24_gamma3_plus_rows12() _sse_vector_add()
 
 
+  
+
+  
 
 
 /****************************isign corresponding to +1  **************************/
@@ -154,103 +157,34 @@ to a lattice temporary */
       
       _prefetch_spinor(&spinor_field[ix1+2]);
       
-            
       /******************************* direction +0 *********************************/
       /* first of two sites */
-
-      _sse_pair_load((*sp1)[0],(*sp1)[1]);
-      
       s3 = chi+ halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
-      
-      _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-      _sse_42_gamma0_minus();
-
-      _sse_vector_store(*s3);
-      
-      /* second of two sites */
-      _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
-
+      decomp_gamma0_minus(sp1[0], *s3);
       s3 = chi+halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,0);
-      
-      _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
-
-      _sse_42_gamma0_minus();
-      
-      _sse_vector_store(*s3);
+      decomp_gamma0_minus(sp1[1], *s3);
       
       
       /******************************* direction +1 *********************************/
-      _sse_pair_load((*sp1)[0],(*sp1)[1]);
-      _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER, ix1, 1);
-
-      _sse_42_gamma1_minus();
-      
-      _sse_vector_store(*s3);
-      
-      _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
-
-
+      decomp_gamma1_minus(sp1[0], *s3);
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,1);
-      
-
-      _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
-
-      _sse_42_gamma1_minus();
-      
-      _sse_vector_store(*s3);
+      decomp_gamma1_minus(sp1[1], *s3);
       
       /******************************* direction +2 *********************************/
-      _sse_pair_load((*sp1)[0],(*sp1)[1]);
-
-
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,2);
-
-      _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-      _sse_42_gamma2_minus();
-      
-      _sse_vector_store(*s3);
-      
-      _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
-
+      decomp_gamma2_minus(sp1[0], *s3);
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,2);
-
-      _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
-
-      _sse_42_gamma2_minus();
-      
-      _sse_vector_store(*s3);   	
+      decomp_gamma2_minus(sp1[1], *s3);
       
       /******************************* direction +3 *********************************/
-      _sse_pair_load((*sp1)[0],(*sp1)[1]);
-
-
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,3);
-
-      _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-      _sse_42_gamma3_minus();
-      
-      _sse_vector_store(*s3);
-      
-      _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
-
-
+      decomp_gamma3_minus(sp1[0], *s3);
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,3);
-
-      _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
-
-      _sse_42_gamma3_minus();
+      decomp_gamma3_minus(sp1[1], *s3);
       
-      _sse_vector_store(*s3);
-      
-      iz1=ix1+2;
-      
+      iz1=ix1+2;      
       sp1=&spinor_field[iz1];
-      
       /******************************** end of loop *********************************/
     }
   }
@@ -312,6 +246,8 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
 
     _sse_su3_inverse_multiply((*um1));
     _sse_vector_store_up(*s3);
+
+
       
     _sse_pair_load((*(sm1+1))[0],(*(sm1+1))[1]);
     _sse_pair_load_up((*(sm1+1))[2],(*(sm1+1))[3]);
@@ -778,7 +714,6 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
   halfspinor_array* chi = a->half_spinor; /* needs to be changed to halfspinor_array and be an array*/
 
   halfspinor_array* s3;
-  halfspinor_array* s4;
 
   int cb = a->cb;
   int  low = icolor_start[cb]+(int)lo;
@@ -798,65 +733,28 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
       
     /******************************* direction +0 *********************************/
     /* ...(1-gamma(0))... */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
     s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-    _sse_42_gamma0_plus();
-    _sse_vector_store(*s3);
-      
-    _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
-    s4 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,0);
-    _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
-    _sse_42_gamma0_plus();
-    _sse_vector_store(*s4);
-
-    /******************************* direction -0 *********************************/
-   
+    decomp_gamma0_plus(sp1[0], *s3);
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,0);
+    decomp_gamma0_plus(sp1[1], *s3);
 
     /******************************* direction +1 *********************************/
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,1);
-    _sse_42_gamma1_plus();
-    _sse_vector_store(*s3);
-      
-    _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
-    s4 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,1);
-    _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
-    _sse_42_gamma1_plus();
-    _sse_vector_store(*s4);
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,1);    
+    decomp_gamma1_plus(sp1[0], *s3);
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,1);
+    decomp_gamma1_plus(sp1[1], *s3);
 
-    /******************************* direction -1 *********************************/
-     
-
-/******************************* direction +2 *********************************/
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
+    /******************************* direction +2 *********************************/
     s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,2);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-    _sse_42_gamma2_plus();
-    _sse_vector_store(*s3);
-
-    _sse_pair_load((*(sp1+1))[0],(*(sp1+1))[1]);
-    s4 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,2);
-    _sse_pair_load_up((*(sp1+1))[2],(*(sp1+1))[3]);
-    _sse_42_gamma2_plus();
-    _sse_vector_store(*s4);
-
-    /******************************* direction -2 *********************************/
-    sp2=sp1+1;
+    decomp_gamma2_plus(sp1[0], *s3);
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,2);
+    decomp_gamma2_plus(sp1[1], *s3);
 
     /******************************* direction +3 *********************************/
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
     s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,3);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-    _sse_42_gamma3_plus();
-    _sse_vector_store(*s3);
-      
-    _sse_pair_load((*sp2)[0],(*sp2)[1]);
-    s4 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,3);
-    _sse_pair_load_up((*sp2)[2],(*sp2)[3]);
-    _sse_42_gamma3_plus();
-    _sse_vector_store(*s4);
+    decomp_gamma3_plus(sp1[0], *s3);
+    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,3);
+    decomp_gamma3_plus(sp1[1], *s3);
 
 
     iz1=ix1+2;
