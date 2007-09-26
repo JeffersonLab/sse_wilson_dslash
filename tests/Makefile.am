@@ -19,6 +19,13 @@ t_dslash_SOURCES = unittest.h \
 	reunit.cc \
 	t_dslash.cc \
 	testDslashFull.h \
-	testDslashFull.cc
+	testDslashFull.cc \
+	testDecomp.h \
+	testDecompHvv.h
+
+if PARSCALAR_SINGLE
+t_dslash_SOURCES += testDecomp32bit.cc \
+	testDecompHvv32bit.cc
+endif
 
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
