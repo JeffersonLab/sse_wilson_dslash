@@ -1,4 +1,4 @@
-# $Id: Makefile.am,v 1.3 2007-09-26 20:44:09 bjoo Exp $
+# $Id: Makefile.am,v 1.4 2007-09-27 20:05:19 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -45,7 +45,9 @@ liblevel3_a_SOURCES += shift_tables_parscalar.c \
 	sse_su3dslash_32bit_parscalar.c \
 	dispatch_parscalar.c \
 	decomp_32bit_parscalar.c \
-	decomp_hvv_32bit_parscalar.c
+	decomp_hvv_32bit_parscalar.c \
+	mvv_recons_32bit_parscalar.c \
+	recons_32bit_parscalar.c
 
 if BUILD_QDP_PACKERS
 liblevel3_a_SOURCES += qdp_packer_p4_pad.cc

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.10 2007-09-26 20:44:09 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.11 2007-09-27 20:05:19 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -86,48 +86,6 @@ static int initP=0;
   */
 
 
-
-
-  /* Spin Matrices */
-  /* gamma 0 */
-#define _sse_42_gamma0_minus()     _sse_vector_xch_i_sub()
-#define _sse_42_gamma0_plus()      _sse_vector_xch_i_add()
-#define _sse_24_gamma0_minus_set() _sse_vector_xch_i_mul_up()
-#define _sse_24_gamma0_plus_set()  _sse_vector_xch_i_mul_neg_up()
-#define _sse_24_gamma0_minus_add() _sse_vector_xch_i_add()
-#define _sse_24_gamma0_plus_add()  _sse_vector_xch_i_sub()
-
-
-/* gamma 1 */
-#define _sse_42_gamma1_minus()     _sse_vector_xch();\
-				   _sse_vector_addsub()
-#define _sse_42_gamma1_plus()      _sse_vector_xch();\
-				   _sse_vector_subadd()
-#define _sse_24_gamma1_minus()     _sse_vector_xch();\
-				   _sse_vector_subadd()
-#define _sse_24_gamma1_plus()      _sse_vector_xch();\
-		 		   _sse_vector_addsub()
-
-/* gamma 2 */
-#define _sse_42_gamma2_minus()     _sse_vector_i_subadd()
-#define _sse_42_gamma2_plus()      _sse_vector_i_addsub()
-#define _sse_24_gamma2_minus()     _sse_vector_i_addsub()
-#define _sse_24_gamma2_plus()      _sse_vector_i_subadd()
-
-/* gamma 3 */
-#define _sse_42_gamma3_minus()     _sse_vector_sub()
-#define _sse_42_gamma3_plus()      _sse_vector_add()
-#define _sse_24_gamma3_minus()     _sse_vector_sub()
-#define _sse_24_gamma3_plus()      _sse_vector_add()
-#define _sse_24_gamma3_minus_rows12() _sse_vector_add()
-#define _sse_24_gamma3_plus_rows12() _sse_vector_add()
-
-
-  
-
-  
-
-
 /****************************isign corresponding to +1  **************************/
 
 /* the basic operation here is load up a spinor, do the spin decomposition, and store the halfspinor
@@ -161,6 +119,7 @@ to a lattice temporary */
       /* first of two sites */
       s3 = chi+ halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
       decomp_gamma0_minus(sp1[0], *s3);
+
       s3 = chi+halfspinor_buffer_offset(DECOMP_SCATTER,ix1+1,0);
       decomp_gamma0_minus(sp1[1], *s3);
       
@@ -230,121 +189,57 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
     sm1=&spinor_field[ix1];
     um1=&gauge_field[ix1][0]; 
     um2=&gauge_field[ix1][1];
+
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);    
     
+    decomp_hvv_gamma0_plus(*sm1,*um1,*s3);
 
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
     um3=&gauge_field[ix1][2];
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-
-    /* prefetch the next direction's worth of gauge fields */
     _prefetch_su3(um3);
 
-    /* do the spin projection */
-    _sse_42_gamma0_plus();
-
-    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
-
-    _sse_su3_inverse_multiply((*um1));
-    _sse_vector_store_up(*s3);
-
-
-      
-    _sse_pair_load((*(sm1+1))[0],(*(sm1+1))[1]);
-    _sse_pair_load_up((*(sm1+1))[2],(*(sm1+1))[3]);
-     
-    _sse_42_gamma0_plus();
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,0);
-
-    _sse_su3_inverse_multiply((*(um2)));
-    _sse_vector_store_up(*s4);
+    decomp_hvv_gamma0_plus(*(sm1+1),*um2,*s4);
 
     /******************************* direction +1 *********************************/
     um1=um3;
     um2=&gauge_field[ix1][3];
-   
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-	  
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
+    decomp_hvv_gamma1_plus(*sm1,*um1,*s3);
+
     um3=&gauge_field[ix1+1][0];
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
     _prefetch_su3(um3);
 
-    _sse_42_gamma1_plus();
-	  
-    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
-
-    _sse_su3_inverse_multiply((*um1));
-    _sse_vector_store_up(*s3);
-
-    _sse_pair_load((*(sm1+1))[0],(*(sm1+1))[1]);
-    _sse_pair_load_up((*(sm1+1))[2],(*(sm1+1))[3]);
-
-    _sse_42_gamma1_plus();
 
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,1);
-    
-
-    _sse_su3_inverse_multiply((*(um2)));
-
-    _sse_vector_store_up(*s4);
-
+    decomp_hvv_gamma1_plus(*(sm1+1),*um2,*s4);
 
     /******************************* direction +2 *********************************/
     um1=um3;
     um2=&gauge_field[ix1+1][1];
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
+    decomp_hvv_gamma2_plus(*sm1,*um1,*s3);
 
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
     um3=&gauge_field[ix1+1][2];
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
     _prefetch_su3(um3);
 
-    _sse_42_gamma2_plus();      
-
-    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
-
-    _sse_su3_inverse_multiply((*um1));
-
-    _sse_vector_store_up(*s3);
-      
-    _sse_pair_load((*(sm1+1))[0],(*(sm1+1))[1]);
-    _sse_pair_load_up((*(sm1+1))[2],(*(sm1+1))[3]);
-    _sse_42_gamma2_plus();      
-
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,2);
+    decomp_hvv_gamma2_plus(*(sm1+1),*um2,*s4);
 
-    _sse_su3_inverse_multiply((*(um2)));
-
-    _sse_vector_store_up(*s4);
-     
 
     /******************************* direction +3 *********************************/
     um1=um3;
     um2=&gauge_field[ix1+1][3];
-    sm2=sm1+1;
-	  
-    iz1=ix1+2;
+ 	  
+    iz1=ix1+2;  /* For Prefetcher only */
 
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
-
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-    sm1 = &spinor_field[iz1];
-
-    _sse_42_gamma3_plus();
-	  
-    _prefetch_spinor(sm1);
-    _sse_su3_inverse_multiply((*um1));
-    _sse_vector_store_up(*s3);
+    decomp_hvv_gamma3_plus(*sm1,*um1,*s3);
       
     um1=&gauge_field[iz1][0];  /* gauge packed or not this is the same */
     _prefetch_su3(um1);
       
-    _sse_pair_load((*sm2)[0],(*sm2)[1]);
-    _sse_pair_load_up((*sm2)[2],(*sm2)[3]);
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,3);
-
-    _sse_42_gamma3_plus();
-    _sse_su3_inverse_multiply((*um2));
-    _sse_vector_store_up(*s4);
+    decomp_hvv_gamma3_plus(*(sm1+1),*um2,*s4);
 
     /******************************** end of loop *********************************/
   }
@@ -394,168 +289,70 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
 
     /******************************* direction +0 *********************************/
     /* load from the temporary */
+    mvv_recons_gamma0_plus(*s3, *up1, r12_1, r34_1);
 
-    _sse_vector_load(*s3);
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
     
     /*prefetch the next temp into one way of lvl2 cache, and prefetch the next gague field */
     _prefetch_single_nta(s4);
     _prefetch_su3(up1+2); 
 
-      /* do the SU(3) normal multiplication */
-    _sse_su3_multiply((*up1));
-       
-    /* the first two rows of that 4x2 reconstruction matrix are the identity 2x2 matrix, 
-     * so just _store_up */
-    /* notation: 
-     *    r12_1 -- first two spin components, first of the two  adjacent sites 
-     *    r34_1 -- last two spin components, first site
-     *    r12_2 -- first two spin components, adjacent (ix1+1) site
-     *    r34_2 -- last two spin components, adjacent site
-     */
-    _sse_vector_store_up(r12_1);
-      
-    /* do some kind of multiplication to form the bottom two components from the top two */
-    _sse_24_gamma0_minus_set(); 
+    mvv_recons_gamma0_plus(*s4, *up2, r12_2, r34_2);
 
-    /*answer is still in xmm3-5, so store_up */
-    _sse_vector_store_up(r34_1);
-
-    /* now do the other sites's worth */
-    _sse_vector_load(*s4);
-
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
-    _prefetch_single_nta(s3);
-
-    _sse_su3_multiply((*(up2)));
-
-    _sse_vector_store_up(r12_2);
-
-    _sse_24_gamma0_minus_set(); 
-    _sse_vector_store_up(r34_2);
 
     /***************************** direction +1 ***********************************/
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
+    _prefetch_single_nta(s3);
     up1=&gauge_field[ix1][2];
     up2=&gauge_field[ix1][3];   
       
-    /* same kind of thing again */
-    _sse_vector_load(*s3);
+    mvv_recons_gamma1_plus_add(*s3, *up1, r12_1, r34_1);
+
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,1);
 
     _prefetch_single_nta(s4);
     _prefetch_su3(up1+2); 
 
-    _sse_su3_multiply((*up1));
-
-    /* ok here's where things are different..now we load the partial sum over 
-     * directions of the output spinor, then add on to them the spin 
-     * reconstructed terms (using the bottom two rows of the 4x2 reconstruction
-     * matrix for the spin reconstruction), and then save the temp
-     * and it should stay in cache */
-
-    /* remember, we load and store partial sums with xmm0-2, with the multiplied 
-     * halfspinor in xmm3-5 */
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);
-      
-    _sse_vector_load(r34_1);
-    _sse_24_gamma1_minus();
-    _sse_vector_store(r34_1);
-
-    /* same kind of stuff from here on out until direction 3*/  
-    _sse_vector_load(*s4);
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
-    _prefetch_single_nta(s3);
-
-    _sse_su3_multiply((*(up2)));
-
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);
-      
-    _sse_vector_load(r34_2);
-    _sse_24_gamma1_minus();
-    _sse_vector_store(r34_2);
-
-    up1=&gauge_field[ix1+1][0]; /* default is packed gauge fields, thats why the 
-				* statements are non-intuitive */
-    up2=&gauge_field[ix1+1][1];
+    mvv_recons_gamma1_plus_add(*s4, *up2, r12_2, r34_2);
 
     /******************************* direction +2 *********************************/
-    _sse_vector_load(*s3);
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
+    _prefetch_single_nta(s3);
+    up1=&gauge_field[ix1+1][0]; /* default is packed gauge fields, thats why the */
+    up2=&gauge_field[ix1+1][1];
+    mvv_recons_gamma2_plus_add(*s3, *up1, r12_1, r34_1);
+    
+
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,2);
     _prefetch_single_nta(s4);
     _prefetch_su3(up1+2); 
+    mvv_recons_gamma2_plus_add(*s4, *up2, r12_2, r34_2);
 
-    _sse_su3_multiply((*up1));
-
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);       
-
-    _sse_vector_load(r34_1);
-    _sse_24_gamma2_minus();
-    _sse_vector_store(r34_1);       
-
-    _sse_vector_load(*s4);
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
-    _prefetch_single_nta(s3);
-     
-    _sse_su3_multiply((*(up2)));
-
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);       
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma2_minus();
-    _sse_vector_store(r34_2); 
-
-    up1=&gauge_field[ix1+1][2];
-    up2=&gauge_field[ix1+1][3];
 
     /******************************* direction +3 *********************************/
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
+    _prefetch_single_nta(s3);
+    up1=&gauge_field[ix1+1][2];
+    up2=&gauge_field[ix1+1][3];
     sn1=&spinor_field[ix1];
+    mvv_recons_gamma3_plus_add_store(*s3, *up1, r12_1, r34_1, *sn1);
 
-    _sse_vector_load(*s3);
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,3);
     
     _prefetch_single_nta(s4);
-    /* prefetch the gague field for direction 0, site = ix1+2 */
     _prefetch_su3(up1+2); 
       
-    _sse_su3_multiply((*up1));
-    
-    /* ok things get tricky here again...the rows12 thing is for compatibility 
-     * with other spin basis in which the first two rows of that 4x2 
-     * reconstruction matrix may be something other than the 2x2 identity matrix */
-    _sse_vector_load(r12_1);
-    _sse_24_gamma3_minus_rows12();
-    _sse_pair_store((*sn1)[0],(*sn1)[1]);
+    mvv_recons_gamma3_plus_add_store(*s4, *up2, r12_2, r34_2, *(sn1+1));
 
-    _sse_vector_load(r34_1);
-    _sse_24_gamma3_minus();
-    _sse_pair_store((*sn1)[2],(*sn1)[3]);   
 
     iz1=ix1+2;
     if (iz1==high) {     /* iz1 is the next value of loop counter for prefetching */
       iz1=0;
     }
-    _sse_vector_load(*s4);
+
+
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,iz1,0);
     _prefetch_single_nta(s3);
-      
-    _sse_su3_multiply((*(up2)));
-
-    _sse_vector_load(r12_2);
-    _sse_24_gamma3_minus_rows12();
-    _sse_pair_store((*(sn1+1))[0],(*(sn1+1))[1]);
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma3_minus();
-    _sse_pair_store((*(sn1+1))[2],(*(sn1+1))[3]); 
-
     up1=&gauge_field[iz1][0];
     up2=&gauge_field[iz1][1];
 
@@ -590,105 +387,21 @@ void recons_plus(size_t lo,size_t hi, int id, const void *ptr )
   /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1+=2) {
 
-    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0);
-    
-    sn1=&spinor_field[ix1];   
-   
-    _prefetch_spinor_nta(sn1+PREFDIST);
-     
-    /***** psi 1&2 site 1 ******/
-    _sse_vector_load_up(*(hs0));   /* vector in xmm3-5 */
-	                             
-    /* accumulate in xmm0-2 */
-    _sse_pair_load((*sn1)[0], (*sn1)[1]); /*load in partial sum */
-    
+    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
     hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1);
-    _sse_vector_add();
-    _sse_vector_load_up(*(hs1)); /*direction +1 */ 
-	 
     hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);
-    _sse_vector_add();          /* accumulating in xmm0-2 */
-    _sse_vector_load_up(*(hs2));  /* direction +2 */
-	
     hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);
-    _sse_vector_add();
-    _sse_vector_load_up(*(hs3)); /* direction +3 */
-   
-
-    _sse_24_gamma3_plus_rows12();
-
-    _sse_pair_store((*sn1)[0],(*sn1)[1]);
-
-    /***** psi's 3 and 4 sites 1*****/
-    _sse_vector_load_up(*(hs0));       /* vector in xmm3-5 */
-   
-    /* accumulate in xmm0-2 */
-    _sse_pair_load((*sn1)[2],(*sn1)[3]); /*load in partial sum */
-
-    _sse_24_gamma0_plus_add();
-
-    _sse_vector_load_up(*(hs1));
-    
-    _sse_24_gamma1_plus();
-
-    _sse_vector_load_up(*(hs2));
-   
-    _sse_24_gamma2_plus();
-      
-    _sse_vector_load_up(*(hs3));
-    _sse_24_gamma3_plus();
-       
-    _sse_pair_store((*sn1)[2],(*sn1)[3]);
-
-    _prefetch_single(hs2);
+    sn1=&spinor_field[ix1];   
+    _prefetch_spinor_nta(sn1+PREFDIST);
+    recons_4dir_plus(*hs0, *hs1, *hs2, *hs3, *sn1);
 
 
     /****** psi 1&2 site 2 ******/
     hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,0); 
-    _sse_vector_load_up(*(hs0));   /* vector in xmm3-5 */
     hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,1);
-	  
-    /* accumulate in xmm0-2 */
-    _sse_pair_load((*(sn1+1))[0],(*(sn1+1))[1]); /*load in partial sum */
-   
-    _sse_vector_add();
-    _sse_vector_load_up(*(hs1)); /*direction +1 */
     hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,2);
-      
-    _sse_vector_add();          /* accumulating in xmm0-2 */
-	  
-    _sse_vector_load_up(*(hs2)); /* direction +2 */
     hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,3);
-
-    _sse_vector_add();
-
-    _sse_vector_load_up(*(hs3)); /* direction +3 */
-     
-    _sse_24_gamma3_plus_rows12();
-
-    _sse_pair_store((*(sn1+1))[0],(*(sn1+1))[1]);
-	 
-      
-    /***** psi's 3 and 4 site 2 *****/
-    _sse_vector_load_up(*(hs0));       /* vector in xmm3-5 */
-     
-    _sse_pair_load((*(sn1+1))[2],(*(sn1+1))[3]); /*load in partial sum */
-
-    _sse_24_gamma0_plus_add();
-
-    _sse_vector_load_up(*(hs1));
-    
-    _sse_24_gamma1_plus();
-
-    _sse_vector_load_up(*(hs2));
-    
-    _sse_24_gamma2_plus();
-
-    _sse_vector_load_up(*(hs3));
-
-    _sse_24_gamma3_plus();
-   
-    _sse_pair_store((*(sn1+1))[2],(*(sn1+1))[3]); 
+    recons_4dir_plus(*hs0, *hs1, *hs2, *hs3, *(sn1+1));
   
     /*************************end of loop ****************************/
   }
@@ -798,117 +511,67 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
     sm1=&spinor_field[ix1];
     um1=&gauge_field[ix1][0]; 
     um2=&gauge_field[ix1][1];
+
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
+    decomp_hvv_gamma0_minus(*sm1, *um1, *s3);
+
+    um3=&gauge_field[ix1][2];
+    _prefetch_su3(um3);
     
 
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    um3=&gauge_field[ix1][2];
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-    _prefetch_su3(um3);
-	  
-    _sse_42_gamma0_minus();
-    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
-    _prefetch_single(s3);
-
-    _sse_su3_inverse_multiply((*um1));
-    _sse_vector_store_up(*s3);
-
-    _sse_pair_load((*(sm1+1))[0],(*(sm1+1))[1]);
-    _sse_pair_load_up((*(sm1+1))[2],(*(sm1+1))[3]);
-	  
-    _sse_42_gamma0_minus();
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,0);
-    _prefetch_single(s4);
-    _sse_su3_inverse_multiply((*(um2)));
-    _sse_vector_store_up(*s4);
-      
-    um1=um3;
-    um2=&gauge_field[ix1][3];
+    decomp_hvv_gamma0_minus(*(sm1+1), *um2, *s4);
+
     
     /******************************* direction -1 *********************************/
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-	  
-    um3=&gauge_field[ix1+1][0];
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-    _prefetch_su3(um3);
-    _sse_42_gamma1_minus();
-	  
+
+    um1=um3;
+    um2=&gauge_field[ix1][3];
+
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
-    _prefetch_single(s3);
-    _sse_su3_inverse_multiply((*um1));
+    decomp_hvv_gamma1_minus(*sm1, *um1, *s3);
 
-    _sse_vector_store_up(*s3);
+    um3=&gauge_field[ix1+1][0];
+    _prefetch_su3(um3);
 
-    _sse_pair_load((*(sm1+1))[0],(*(sm1+1))[1]);
-    _sse_pair_load_up((*(sm1+1))[2],(*(sm1+1))[3]);
-    _sse_42_gamma1_minus();
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,1);
-    _prefetch_single(s4);
-    _sse_su3_inverse_multiply((*(um2)));
+    decomp_hvv_gamma1_minus(*(sm1+1), *um2, *s4);
 
-    _sse_vector_store_up(*s4);
-
-    
+    /******************************* direction -2 *********************************/    
     um1=um3;
     um2=&gauge_field[ix1+1][1];
 
-    /******************************* direction -2 *********************************/
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
+    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
+    decomp_hvv_gamma2_minus(*sm1, *um1, *s3);
+
     um3=&gauge_field[ix1+1][2];
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
     _prefetch_su3(um3);
 
-    _sse_42_gamma2_minus();      
-
-    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
-    _prefetch_single(s3);
-    _sse_su3_inverse_multiply((*um1));
-
-    _sse_vector_store_up(*s3);
-      
-    _sse_pair_load((*(sm1+1))[0],(*(sm1+1))[1]);
-    _sse_pair_load_up((*(sm1+1))[2],(*(sm1+1))[3]);
-    _sse_42_gamma2_minus();      
-
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,2);
-    _prefetch_single(s4);
-    _sse_su3_inverse_multiply((*(um2)));
+    decomp_hvv_gamma2_minus(*(sm1+1), *um2, *s4);     
 
-    _sse_vector_store_up(*s4);
-     
-    
+    /******************************* direction -3 *********************************/    
     um1=um3;
     um2=&gauge_field[ix1+1][3];
     sm2=sm1+1;
 
-    /******************************* direction -3 *********************************/
+
     iz1=ix1+2;
     if (iz1==high)
       iz1=0;
       
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-    sm1 = &spinor_field[iz1];
+    decomp_hvv_gamma3_minus(*sm1, *um1, *s3);
 
-    _sse_42_gamma3_minus();
-	  
-    _prefetch_single(s3);
-    _prefetch_spinor(sm1);
 
-    _sse_su3_inverse_multiply((*um1));
-    _sse_vector_store_up(*s3);
-      
     um1=&gauge_field[iz1][0];  /* gauge packed or not this is the same */
     _prefetch_su3(um1);
-      
-    _sse_pair_load((*sm2)[0],(*sm2)[1]);
-    _sse_pair_load_up((*sm2)[2],(*sm2)[3]);
-    s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,3);
-    _prefetch_single(s4);
 
-    _sse_42_gamma3_minus();
-    _sse_su3_inverse_multiply((*um2));
-    _sse_vector_store_up(*s4);
+    sm1 = &spinor_field[iz1];
+    _prefetch_spinor(sm1);
+
+    s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,3);
+    decomp_hvv_gamma3_minus(*sm2, *um2, *s4);
 
   }
 }
@@ -949,136 +612,63 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
   for (ix1=low;ix1<high;ix1+=2) {
 
     /******************************* direction +0 *********************************/
-    _sse_vector_load(*s3);
+    mvv_recons_gamma0_minus(*s3, *up1, r12_1, r34_1);
+
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
     _prefetch_single_nta(s4);
     _prefetch_su3(up1+2); 
-      
-    _sse_su3_multiply((*up1));
-    _sse_vector_store_up(r12_1);
 
-    _sse_24_gamma0_plus_set(); 
-    _sse_vector_store_up(r34_1);
-    
-    _sse_vector_load(*s4);
+    mvv_recons_gamma0_minus(*s4, *up2, r12_2, r34_2);
+
+    /******************************* direction +1 *********************************/
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     _prefetch_single_nta(s3);
-    _sse_su3_multiply((*(up2)));
-    _sse_vector_store_up(r12_2);
-
-    _sse_24_gamma0_plus_set(); 
-    _sse_vector_store_up(r34_2);
-      
-    
     up1=&gauge_field[ix1][2];
     up2=&gauge_field[ix1][3];   
       
-    /******************************* direction +1 *********************************/
-    _sse_vector_load(*s3);
+    mvv_recons_gamma1_minus_add(*s3, *up1, r12_1, r34_1);
+ 
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,1);
     _prefetch_single_nta(s4);
     _prefetch_su3(up1+2); 
 
-    _sse_su3_multiply((*up1));
-
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);
-      
-    _sse_vector_load(r34_1);
-    _sse_24_gamma1_plus();
-    _sse_vector_store(r34_1);
-
-      
-    _sse_vector_load(*s4);
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
-    _prefetch_single_nta(s3);
-
-    _sse_su3_multiply((*(up2)));
-
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);
-      
-    _sse_vector_load(r34_2);
-    _sse_24_gamma1_plus();
-    _sse_vector_store(r34_2);
-
-    
-    up1=&gauge_field[ix1+1][0]; /* default is packed gauge fields, thats 
-				* why the statements are non-intuitive */
-    up2=&gauge_field[ix1+1][1];
+    mvv_recons_gamma1_minus_add(*s4, *up2, r12_2, r34_2);
 
     /******************************* direction +2 *********************************/
-    _sse_vector_load(*s3);
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
+    _prefetch_single_nta(s3);
+    up1=&gauge_field[ix1+1][0]; 
+    up2=&gauge_field[ix1+1][1];
+
+    mvv_recons_gamma2_minus_add(*s3, *up1, r12_1, r34_1);
+
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,2);
     _prefetch_single_nta(s4);
     _prefetch_su3(up1+2); 
 
-    _sse_su3_multiply((*up1));
-
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);       
-
-    _sse_vector_load(r34_1);
-    _sse_24_gamma2_plus();
-    _sse_vector_store(r34_1);       
-
-    _sse_vector_load(*s4);
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
-    _prefetch_single_nta(s3);
-
-    _sse_su3_multiply((*(up2)));
-
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);       
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma2_plus();
-    _sse_vector_store(r34_2); 
-
-    up1=&gauge_field[ix1+1][2];
-    up2=&gauge_field[ix1+1][3];
+    mvv_recons_gamma2_minus_add(*s4, *up2, r12_2, r34_2);
 
     /******************************* direction +3 *********************************/
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
+    _prefetch_single_nta(s3);
+    up1=&gauge_field[ix1+1][2];
+    up2=&gauge_field[ix1+1][3];
     sn1=&spinor_field[ix1];
 
-    _sse_vector_load(*s3);
+    mvv_recons_gamma3_minus_add_store(*s3, *up1, r12_1, r34_1,*sn1);
+
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,3);
     _prefetch_single_nta(s4);
     _prefetch_su3(up1+2); 
       
-    _sse_su3_multiply((*up1));
-
-    _sse_vector_load(r12_1);
-    _sse_24_gamma3_plus_rows12();
-    _sse_pair_store((*sn1)[0],(*sn1)[1]);
-
-    _sse_vector_load(r34_1);
-    _sse_24_gamma3_plus();
-    _sse_pair_store((*sn1)[2],(*sn1)[3]);   
+    mvv_recons_gamma3_minus_add_store(*s4, *up2, r12_2, r34_2,*(sn1+1));
 
     iz1=ix1+2;
     if (iz1==high)
       iz1=0;
 
-    _sse_vector_load(*s4);
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,iz1,0);
     _prefetch_single_nta(s3);
-      
-    _sse_su3_multiply((*(up2)));
-
-    _sse_vector_load(r12_2);
-    _sse_24_gamma3_plus_rows12();
-    _sse_pair_store((*(sn1+1))[0],(*(sn1+1))[1]);
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma3_plus();
-    _sse_pair_store((*(sn1+1))[2],(*(sn1+1))[3]); 
-
-
     up1=&gauge_field[iz1][0];
     up2=&gauge_field[iz1][1];
 
@@ -1109,93 +699,22 @@ void recons_minus(size_t lo,size_t hi, int id, const void *ptr )
   /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1+=2) {
 
-    /******************************* direction +0 *********************************/
-    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0);
-    sn1=&spinor_field[ix1];   
-    
-    _prefetch_spinor_nta(sn1+PREFDIST);
-    
-    /* need to do psum[ix1][0] first for all +mu */
-    /* loop over our two adjacent sites slowest inside here */
-
-    /***** psi 1&2 site 1 ******/
-    _sse_vector_load_up(*(hs0));   /* vector in xmm3-5 */
-     
-    /* accumulate in xmm0-2 */
-    _sse_pair_load((*sn1)[0], (*sn1)[1]); /*load in partial sum */
-	  
+    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
     hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1);
-    _sse_vector_add();
-    _sse_vector_load_up(*(hs1)); /*direction +1 */ 
-	 
     hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);
-    _sse_vector_add();          /* accumulating in xmm0-2 */
-    _sse_vector_load_up(*(hs2));  /* direction +2 */
-	
     hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);
-    _sse_vector_add();
-    _sse_vector_load_up(*(hs3)); /* direction +3 */
-    
-    _sse_24_gamma3_minus_rows12();  /* here's that thing that doesn't 
-				     * reduce to an _add in some spin basis */
-    _sse_pair_store((*sn1)[0],(*sn1)[1]);
+    sn1=&spinor_field[ix1];   
+    _prefetch_spinor_nta(sn1+PREFDIST);
+    recons_4dir_minus(*hs0, *hs1, *hs2, *hs3, *sn1);
 
-    /***** psi's 3 and 4 sites 1*****/
-    _sse_vector_load_up(*(hs0));       /* vector in xmm3-5 */
-        
-    /* accumulate in xmm0-2 */
-    _sse_pair_load((*sn1)[2],(*sn1)[3]); /*load in partial sum */
-	   
-    _sse_24_gamma0_minus_add();
-
-    _sse_vector_load_up(*(hs1));
-    _sse_24_gamma1_minus();
-
-    _sse_vector_load_up(*(hs2));
-    _sse_24_gamma2_minus();
-    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,0); 
-      
-    _sse_vector_load_up(*(hs3));
-    _sse_24_gamma3_minus();
-       
-    _sse_pair_store((*sn1)[2],(*sn1)[3]);
 
     /****** psi 1&2 site 2 ******/
-    _sse_vector_load_up(*(hs0));   /* vector in xmm3-5 */
+    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,0); 
     hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,1);
-    _sse_pair_load((*(sn1+1))[0],(*(sn1+1))[1]); /*load in partial sum */
-    
-    _sse_vector_add();
-    _sse_vector_load_up(*(hs1)); /*direction +1 */
     hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,2);
-	  
-    _sse_vector_add();          /* accumulating in xmm0-2 */
-    _sse_vector_load_up(*(hs2)); /* direction +2 */
     hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1+1,3);
-	   
-    _sse_vector_add();
-    _sse_vector_load_up(*(hs3)); /* direction +3 */
-     
-    _sse_24_gamma3_minus_rows12();
-    _sse_pair_store((*(sn1+1))[0],(*(sn1+1))[1]);
-	 
-    /***** psi's 3 and 4 site 2 *****/
-    _sse_vector_load_up(*(hs0));       /* vector in xmm3-5 */
-  
-    /* accumulate in xmm0-2 */
-    _sse_pair_load((*(sn1+1))[2],(*(sn1+1))[3]); /*load in partial sum */
-    _sse_24_gamma0_minus_add();
+    recons_4dir_minus(*hs0, *hs1, *hs2, *hs3, *(sn1+1));
 
-    _sse_vector_load_up(*(hs1));
-  
-    _sse_24_gamma1_minus();
-    _sse_vector_load_up(*(hs2));
-   
-    _sse_24_gamma2_minus();
-    _sse_vector_load_up(*(hs3));
-    _sse_24_gamma3_minus();
-
-    _sse_pair_store((*(sn1+1))[2],(*(sn1+1))[3]); 
   }
 }
 /*****************end of isign corresponding to -1 **************************************/
