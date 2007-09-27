@@ -38,7 +38,9 @@ host_triplet = @host@
 check_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_QDP_TESTS_TRUE@am__append_1 = t_dslash
 @PARSCALAR_SINGLE_TRUE@am__append_2 = testDecomp32bit.cc \
-@PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.cc
+@PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.cc \
+@PARSCALAR_SINGLE_TRUE@	testMvvRecons32bit.cc \
+@PARSCALAR_SINGLE_TRUE@	testRecons32bit.cc
 
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -53,10 +55,13 @@ CONFIG_CLEAN_FILES =
 @BUILD_QDP_TESTS_TRUE@am__EXEEXT_1 = t_dslash$(EXEEXT)
 am__t_dslash_SOURCES_DIST = unittest.h dslashm_w.h dslashm_w.cc \
 	reunit.h reunit.cc t_dslash.cc testDslashFull.h \
-	testDslashFull.cc testDecomp.h testDecompHvv.h \
-	testDecomp32bit.cc testDecompHvv32bit.cc
+	testDslashFull.cc testDecomp.h testDecompHvv.h testMvvRecons.h \
+	testRecons.h testDecomp32bit.cc testDecompHvv32bit.cc \
+	testMvvRecons32bit.cc testRecons32bit.cc
 @PARSCALAR_SINGLE_TRUE@am__objects_1 = testDecomp32bit.$(OBJEXT) \
-@PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.$(OBJEXT)
+@PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.$(OBJEXT) \
+@PARSCALAR_SINGLE_TRUE@	testMvvRecons32bit.$(OBJEXT) \
+@PARSCALAR_SINGLE_TRUE@	testRecons32bit.$(OBJEXT)
 am_t_dslash_OBJECTS = dslashm_w.$(OBJEXT) reunit.$(OBJEXT) \
 	t_dslash.$(OBJEXT) testDslashFull.$(OBJEXT) $(am__objects_1)
 t_dslash_OBJECTS = $(am_t_dslash_OBJECTS)
@@ -192,7 +197,8 @@ LDADD = -llevel3 @SSEXX_AUX_LIBS@ @LIBS@ @QMT_LIBS@
 TESTS = $(check_PROGRAMS)
 t_dslash_SOURCES = unittest.h dslashm_w.h dslashm_w.cc reunit.h \
 	reunit.cc t_dslash.cc testDslashFull.h testDslashFull.cc \
-	testDecomp.h testDecompHvv.h $(am__append_2)
+	testDecomp.h testDecompHvv.h testMvvRecons.h testRecons.h \
+	$(am__append_2)
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
 all: all-am
 
@@ -246,6 +252,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDecomp32bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDecompHvv32bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDslashFull.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testMvvRecons32bit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testRecons32bit.Po@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

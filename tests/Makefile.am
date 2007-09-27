@@ -21,11 +21,15 @@ t_dslash_SOURCES = unittest.h \
 	testDslashFull.h \
 	testDslashFull.cc \
 	testDecomp.h \
-	testDecompHvv.h
+	testDecompHvv.h \
+	testMvvRecons.h \
+	testRecons.h
 
 if PARSCALAR_SINGLE
 t_dslash_SOURCES += testDecomp32bit.cc \
-	testDecompHvv32bit.cc
+	testDecompHvv32bit.cc \
+	testMvvRecons32bit.cc \
+	testRecons32bit.cc
 endif
 
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a

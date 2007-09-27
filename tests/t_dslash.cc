@@ -1,4 +1,4 @@
-// $Id: t_dslash.cc,v 1.4 2007-09-26 20:45:10 bjoo Exp $
+// $Id: t_dslash.cc,v 1.5 2007-09-27 20:07:22 bjoo Exp $
 
 #include <iostream>
 #include <cstdio>
@@ -9,7 +9,8 @@
 #include "testDslashFull.h"
 #include "testDecomp.h"
 #include "testDecompHvv.h"
-
+#include "testMvvRecons.h"
+#include "testRecons.h"
 
 using namespace QDP;
 
@@ -30,13 +31,24 @@ int main(int argc, char **argv)
   tests.addTest(new testDecomp2Plus(), "testDecomp2Plus" );
   tests.addTest(new testDecomp3Plus(), "testDecomp3Plus" );
   tests.addTest(new testDecompHvv0Plus(), "testDecompHvv0Plus");
-  // tests.addTest(new testDecompHvv1Plus(), "testDecompHvv1Plus");
-  // tests.addTest(new testDecompHvv2Plus(), "testDecompHvv2Plus");
-  // tests.addTest(new testDecompHvv3Plus(), "testDecompHvv3Plus");
-  // tests.addTest(new testDecompHvv0Minus(), "testDecompHvv0Minus");
-  // tests.addTest(new testDecompHvv1Minus(), "testDecompHvv1Minus");
-  // tests.addTest(new testDecompHvv2Minus(), "testDecompHvv2Minus");
-  // tests.addTest(new testDecompHvv3Minus(), "testDecompHvv3Minus");
+  tests.addTest(new testDecompHvv1Plus(), "testDecompHvv1Plus");
+  tests.addTest(new testDecompHvv2Plus(), "testDecompHvv2Plus");
+  tests.addTest(new testDecompHvv3Plus(), "testDecompHvv3Plus");
+  tests.addTest(new testDecompHvv0Minus(), "testDecompHvv0Minus");
+  tests.addTest(new testDecompHvv1Minus(), "testDecompHvv1Minus");
+  tests.addTest(new testDecompHvv2Minus(), "testDecompHvv2Minus");
+  tests.addTest(new testDecompHvv3Minus(), "testDecompHvv3Minus");
+  tests.addTest(new testMvvRecons0Plus(), "testMvvRecons0Plus");
+  tests.addTest(new testMvvRecons1PlusAdd(), "testMvvRecons1PlusAdd");
+  tests.addTest(new testMvvRecons2PlusAdd(), "testMvvRecons2PlusAdd");
+  tests.addTest(new testMvvRecons3PlusAddStore(), "testMvvRecons3PlusAddStore");
+  tests.addTest(new testMvvRecons0Minus(), "testMvvRecons0Minus");
+  tests.addTest(new testMvvRecons1MinusAdd(), "testMvvRecons1MinusAdd");
+  tests.addTest(new testMvvRecons2MinusAdd(), "testMvvRecons2MinusAdd");
+  tests.addTest(new testMvvRecons3MinusAddStore(), "testMvvRecons3MinusAddStore");
+  tests.addTest(new testRecons4DirPlus(), "testReconsDir4Plus");
+  tests.addTest(new testRecons4DirMinus(), "testReconsDir4Minus");
+
   // Run all tests
   tests.run();
 
