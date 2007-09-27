@@ -55,8 +55,8 @@ SOURCES =
 DIST_SOURCES =
 am__nobase_include_HEADERS_DIST = sse_align.h sse_config.h \
 	sse_dslash.h sse_dslash_qdp_packer.h decomp.h decomp_hvv.h \
-	sse32.h types32.h shift_tables_scalar.h dispatch_scalar.h \
-	sse64.h types64.h shift_tables_parscalar.h \
+	mvv_recons.h recons.h sse32.h types32.h shift_tables_scalar.h \
+	dispatch_scalar.h sse64.h types64.h shift_tables_parscalar.h \
 	dispatch_parscalar.h
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -179,8 +179,9 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 nobase_include_HEADERS = sse_align.h sse_config.h sse_dslash.h \
-	sse_dslash_qdp_packer.h decomp.h decomp_hvv.h $(am__append_1) \
-	$(am__append_2) $(am__append_3) $(am__append_4)
+	sse_dslash_qdp_packer.h decomp.h decomp_hvv.h mvv_recons.h \
+	recons.h $(am__append_1) $(am__append_2) $(am__append_3) \
+	$(am__append_4)
 nodist_include_HEADERS = sse_config_internal.h
 all: sse_config_internal.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
