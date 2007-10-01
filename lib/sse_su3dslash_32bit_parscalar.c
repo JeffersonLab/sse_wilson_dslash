@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.11 2007-09-27 20:05:19 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.12 2007-10-01 18:45:42 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -55,11 +55,9 @@
 #include <shift_tables_parscalar.h>
 #include <stdlib.h>
 #include <stdio.h>
-// #include <math.h>
 #include <qmp.h>        /* QMP for the comms */
-#include <sse32.h>      /* The utility macros: TO ELIMINATE */
 #include <sse_align.h>  /* Alignment stuff to ensure 16 byte alignments */
-#include <types32.h>
+#include <types32.h>    /* Types and prefetch macros */
 #include <dispatch_parscalar.h>   /* Threads dispatch definition */
 
 #ifdef __cplusplus
@@ -113,7 +111,7 @@ to a lattice temporary */
     /************************ loop over all lattice sites *************************/
     for (ix1=low;ix1<high;ix1+=2) {
       
-      _prefetch_spinor(&spinor_field[ix1+2]);
+      prefetch_spinor(&spinor_field[ix1+2]);
       
       /******************************* direction +0 *********************************/
       /* first of two sites */
@@ -195,7 +193,7 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
     decomp_hvv_gamma0_plus(*sm1,*um1,*s3);
 
     um3=&gauge_field[ix1][2];
-    _prefetch_su3(um3);
+    prefetch_su3(um3);
 
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,0);
     decomp_hvv_gamma0_plus(*(sm1+1),*um2,*s4);
@@ -207,7 +205,7 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
     decomp_hvv_gamma1_plus(*sm1,*um1,*s3);
 
     um3=&gauge_field[ix1+1][0];
-    _prefetch_su3(um3);
+    prefetch_su3(um3);
 
 
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,1);
@@ -220,7 +218,7 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
     decomp_hvv_gamma2_plus(*sm1,*um1,*s3);
 
     um3=&gauge_field[ix1+1][2];
-    _prefetch_su3(um3);
+    prefetch_su3(um3);
 
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,2);
     decomp_hvv_gamma2_plus(*(sm1+1),*um2,*s4);
@@ -236,7 +234,7 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
     decomp_hvv_gamma3_plus(*sm1,*um1,*s3);
       
     um1=&gauge_field[iz1][0];  /* gauge packed or not this is the same */
-    _prefetch_su3(um1);
+    prefetch_su3(um1);
       
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,3);
     decomp_hvv_gamma3_plus(*(sm1+1),*um2,*s4);
@@ -278,7 +276,7 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
   int high = icolor_start[cb]+(int)hi;
 
   s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
-  _prefetch_single_nta(s3);
+  prefetch_single_nta(s3);
 
   up1=&gauge_field[low][0];
   up2=&gauge_field[low][1];
@@ -294,15 +292,15 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
     
     /*prefetch the next temp into one way of lvl2 cache, and prefetch the next gague field */
-    _prefetch_single_nta(s4);
-    _prefetch_su3(up1+2); 
+    prefetch_single_nta(s4);
+    prefetch_su3(up1+2); 
 
     mvv_recons_gamma0_plus(*s4, *up2, r12_2, r34_2);
 
 
     /***************************** direction +1 ***********************************/
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
-    _prefetch_single_nta(s3);
+    prefetch_single_nta(s3);
     up1=&gauge_field[ix1][2];
     up2=&gauge_field[ix1][3];   
       
@@ -310,28 +308,28 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
 
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,1);
 
-    _prefetch_single_nta(s4);
-    _prefetch_su3(up1+2); 
+    prefetch_single_nta(s4);
+    prefetch_su3(up1+2); 
 
     mvv_recons_gamma1_plus_add(*s4, *up2, r12_2, r34_2);
 
     /******************************* direction +2 *********************************/
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
-    _prefetch_single_nta(s3);
+    prefetch_single_nta(s3);
     up1=&gauge_field[ix1+1][0]; /* default is packed gauge fields, thats why the */
     up2=&gauge_field[ix1+1][1];
     mvv_recons_gamma2_plus_add(*s3, *up1, r12_1, r34_1);
     
 
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,2);
-    _prefetch_single_nta(s4);
-    _prefetch_su3(up1+2); 
+    prefetch_single_nta(s4);
+    prefetch_su3(up1+2); 
     mvv_recons_gamma2_plus_add(*s4, *up2, r12_2, r34_2);
 
 
     /******************************* direction +3 *********************************/
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
-    _prefetch_single_nta(s3);
+    prefetch_single_nta(s3);
     up1=&gauge_field[ix1+1][2];
     up2=&gauge_field[ix1+1][3];
     sn1=&spinor_field[ix1];
@@ -339,8 +337,8 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
 
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,3);
     
-    _prefetch_single_nta(s4);
-    _prefetch_su3(up1+2); 
+    prefetch_single_nta(s4);
+    prefetch_su3(up1+2); 
       
     mvv_recons_gamma3_plus_add_store(*s4, *up2, r12_2, r34_2, *(sn1+1));
 
@@ -352,7 +350,7 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
 
 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,iz1,0);
-    _prefetch_single_nta(s3);
+    prefetch_single_nta(s3);
     up1=&gauge_field[iz1][0];
     up2=&gauge_field[iz1][1];
 
@@ -392,7 +390,7 @@ void recons_plus(size_t lo,size_t hi, int id, const void *ptr )
     hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);
     hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);
     sn1=&spinor_field[ix1];   
-    _prefetch_spinor_nta(sn1+PREFDIST);
+    prefetch_spinor_nta(sn1+PREFDIST);
     recons_4dir_plus(*hs0, *hs1, *hs2, *hs3, *sn1);
 
 
@@ -442,7 +440,7 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
   for (ix1=low;ix1<high;ix1+=2) {
 
     s1=&spinor_field[ix1+2];
-    _prefetch_spinor(s1);
+    prefetch_spinor(s1);
       
     /******************************* direction +0 *********************************/
     /* ...(1-gamma(0))... */
@@ -516,7 +514,7 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
     decomp_hvv_gamma0_minus(*sm1, *um1, *s3);
 
     um3=&gauge_field[ix1][2];
-    _prefetch_su3(um3);
+    prefetch_su3(um3);
     
 
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,0);
@@ -532,7 +530,7 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
     decomp_hvv_gamma1_minus(*sm1, *um1, *s3);
 
     um3=&gauge_field[ix1+1][0];
-    _prefetch_su3(um3);
+    prefetch_su3(um3);
 
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,1);
     decomp_hvv_gamma1_minus(*(sm1+1), *um2, *s4);
@@ -545,7 +543,7 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
     decomp_hvv_gamma2_minus(*sm1, *um1, *s3);
 
     um3=&gauge_field[ix1+1][2];
-    _prefetch_su3(um3);
+    prefetch_su3(um3);
 
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,2);
     decomp_hvv_gamma2_minus(*(sm1+1), *um2, *s4);     
@@ -565,10 +563,10 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
 
 
     um1=&gauge_field[iz1][0];  /* gauge packed or not this is the same */
-    _prefetch_su3(um1);
+    prefetch_su3(um1);
 
     sm1 = &spinor_field[iz1];
-    _prefetch_spinor(sm1);
+    prefetch_spinor(sm1);
 
     s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1+1,3);
     decomp_hvv_gamma3_minus(*sm2, *um2, *s4);
@@ -604,7 +602,7 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
   int high = icolor_start[cb]+(int)hi;
 
   s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
-  _prefetch_single_nta(s3);
+  prefetch_single_nta(s3);
   up1=&gauge_field[low][0];
   up2=&gauge_field[low][1];
 
@@ -615,42 +613,42 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
     mvv_recons_gamma0_minus(*s3, *up1, r12_1, r34_1);
 
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
-    _prefetch_single_nta(s4);
-    _prefetch_su3(up1+2); 
+    prefetch_single_nta(s4);
+    prefetch_su3(up1+2); 
 
     mvv_recons_gamma0_minus(*s4, *up2, r12_2, r34_2);
 
     /******************************* direction +1 *********************************/
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
-    _prefetch_single_nta(s3);
+    prefetch_single_nta(s3);
     up1=&gauge_field[ix1][2];
     up2=&gauge_field[ix1][3];   
       
     mvv_recons_gamma1_minus_add(*s3, *up1, r12_1, r34_1);
  
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,1);
-    _prefetch_single_nta(s4);
-    _prefetch_su3(up1+2); 
+    prefetch_single_nta(s4);
+    prefetch_su3(up1+2); 
 
     mvv_recons_gamma1_minus_add(*s4, *up2, r12_2, r34_2);
 
     /******************************* direction +2 *********************************/
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
-    _prefetch_single_nta(s3);
+    prefetch_single_nta(s3);
     up1=&gauge_field[ix1+1][0]; 
     up2=&gauge_field[ix1+1][1];
 
     mvv_recons_gamma2_minus_add(*s3, *up1, r12_1, r34_1);
 
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,2);
-    _prefetch_single_nta(s4);
-    _prefetch_su3(up1+2); 
+    prefetch_single_nta(s4);
+    prefetch_su3(up1+2); 
 
     mvv_recons_gamma2_minus_add(*s4, *up2, r12_2, r34_2);
 
     /******************************* direction +3 *********************************/
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
-    _prefetch_single_nta(s3);
+    prefetch_single_nta(s3);
     up1=&gauge_field[ix1+1][2];
     up2=&gauge_field[ix1+1][3];
     sn1=&spinor_field[ix1];
@@ -658,8 +656,8 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
     mvv_recons_gamma3_minus_add_store(*s3, *up1, r12_1, r34_1,*sn1);
 
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,3);
-    _prefetch_single_nta(s4);
-    _prefetch_su3(up1+2); 
+    prefetch_single_nta(s4);
+    prefetch_su3(up1+2); 
       
     mvv_recons_gamma3_minus_add_store(*s4, *up2, r12_2, r34_2,*(sn1+1));
 
@@ -668,7 +666,7 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
       iz1=0;
 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,iz1,0);
-    _prefetch_single_nta(s3);
+    prefetch_single_nta(s3);
     up1=&gauge_field[iz1][0];
     up2=&gauge_field[iz1][1];
 
@@ -704,7 +702,7 @@ void recons_minus(size_t lo,size_t hi, int id, const void *ptr )
     hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);
     hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);
     sn1=&spinor_field[ix1];   
-    _prefetch_spinor_nta(sn1+PREFDIST);
+    prefetch_spinor_nta(sn1+PREFDIST);
     recons_4dir_minus(*hs0, *hs1, *hs2, *hs3, *sn1);
 
 
@@ -976,8 +974,8 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		cb,
 		subgrid_vol_cb);
 
-    _prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
-    _prefetch_single(chi2);
+    prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
+    prefetch_single(chi2);
 
 
 
@@ -1007,8 +1005,8 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 	QMP_abort(1);
       }
 
-    _prefetch_su3(u+0+2*(0+3*(0+3*(0+4*(icolor_start[1-cb])))));
-    _prefetch_single(chi1);
+    prefetch_su3(u+0+2*(0+3*(0+3*(0+4*(icolor_start[1-cb])))));
+    prefetch_single(chi1);
 
     if (total_comm > 0)
       if (QMP_start(back_all_mh) != QMP_SUCCESS)
@@ -1052,8 +1050,8 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		cb,
 		subgrid_vol_cb);
 
-    _prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
-    _prefetch_single(chi2);
+    prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
+    prefetch_single(chi2);
 
     if (total_comm > 0)
       if (QMP_start(forw_all_mh) != QMP_SUCCESS)
@@ -1069,7 +1067,7 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		(my_mat_array)u,
 		cb,
 		subgrid_vol_cb);
-    _prefetch_single(chi2);
+    prefetch_single(chi2);
 
     if (total_comm > 0)
       if (QMP_wait(forw_all_mh) != QMP_SUCCESS)
@@ -1078,8 +1076,8 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 	QMP_abort(1);
       }
 
-    _prefetch_su3(u+0+2*(0+3*(0+3*(0+4*(icolor_start[1-cb])))));
-    _prefetch_single(chi1);
+    prefetch_su3(u+0+2*(0+3*(0+3*(0+4*(icolor_start[1-cb])))));
+    prefetch_single(chi1);
 
     if (total_comm > 0)
       if (QMP_start(back_all_mh) != QMP_SUCCESS)
@@ -1096,7 +1094,7 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		1-cb,
 		subgrid_vol_cb);
     
-    _prefetch_single(chi2);
+    prefetch_single(chi2);
 
     if (total_comm > 0)
       if (QMP_wait(back_all_mh) != QMP_SUCCESS)

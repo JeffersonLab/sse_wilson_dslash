@@ -23,6 +23,24 @@ extern "C" {
   typedef chi_three halfspinor_array[2]    ALIGN; /*.. Nspin2 color re/im ::note:: Nspin2 has to be slowest varying */
   typedef u_mat_array (*my_mat_array)[4] ALIGN;  
 
+#include <xmmintrin.h>
+
+#define prefetch_single(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_T0 )
+
+
+#define prefetch_spinor(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_T0 ); \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))+128), _MM_HINT_T0 )
+
+#define prefetch_nta_spinor(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_NTA ); \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))+128), _MM_HINT_NTA )
+
+#define prefetch_su3(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_T0 ); \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))+128), _MM_HINT_T0 )
+
 #ifdef __cplusplus
 }
 #endif

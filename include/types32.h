@@ -22,6 +22,27 @@ extern "C" {
 
   typedef u_mat_array (*my_mat_array)[4] ALIGN;  
 
+  #include <xmmintrin.h>
+  
+#define prefetch_spinor(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_T0 ); \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))+128), _MM_HINT_T0 )
+
+
+#define prefetch_spinor_nta(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_NTA ); \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))+128), _MM_HINT_NTA) 
+
+#define prefetch_single(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_T0 )
+
+#define prefetch_single_nta(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_NTA )
+
+#define prefetch_su3(addr) \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))), _MM_HINT_T0 ); \
+  _mm_prefetch( (((char*)(((unsigned long)(addr))&~0x7f))+128), _MM_HINT_T0) 
+
 #ifdef __cplusplus
 }
 #endif
