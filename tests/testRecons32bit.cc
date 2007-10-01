@@ -79,7 +79,8 @@ testRecons4DirPlus::run(void)
      for(int spin=0; spin < 4; spin++) { 
        for(int reim=0; reim < 2; reim++) { 
 	 float diff = spinor1[spin][col][reim] - spinor2[spin][col][reim];
-	 
+	 diff /= (float)(4*3*2);
+
 #if 0
 	 QDPIO::cout << "  col=" << col 
 		     << " sp=" << spin
@@ -87,7 +88,7 @@ testRecons4DirPlus::run(void)
 		     << " diff upper = " << diff 
 		     << endl;
 #endif
-	 assertion( diff < 1.0e-6 );
+	 assertion( diff < 1.0e-9 );
 	 
        }
      }
@@ -150,6 +151,7 @@ testRecons4DirMinus::run(void)
      for(int spin=0; spin < 4; spin++) { 
        for(int reim=0; reim < 2; reim++) { 
 	 float diff = spinor1[spin][col][reim] - spinor2[spin][col][reim];
+	 diff /= (float)(4*3*2);
 	 
 #if 0
 	 QDPIO::cout << "  col=" << col 
@@ -158,7 +160,7 @@ testRecons4DirMinus::run(void)
 		     << " diff upper = " << diff 
 		     << endl;
 #endif
-	 assertion( diff < 1.0e-6 );
+	 assertion( diff < 1.0e-9 );
 	 
        }
      }

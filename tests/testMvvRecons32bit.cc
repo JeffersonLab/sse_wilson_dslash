@@ -66,6 +66,7 @@ void testMvvRecons0Plus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = r12_1[col][spin2][reim] - r12_2[col][spin2][reim];
+	diff /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -74,10 +75,11 @@ void testMvvRecons0Plus::run(void)
 		    << " diff upper = " << diff 
 		    << endl;
 #endif
-	assertion( diff < 1.0e-6 );
+
+	assertion( fabs(diff) < 1.0e-9 );
 
 	float diff2 = r34_1[col][spin2][reim] - r34_2[col][spin2][reim];
-
+	diff2 /= (float)(3*2*2);
 #if 0
 	QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin2
@@ -85,7 +87,7 @@ void testMvvRecons0Plus::run(void)
 		    << " diff lower = " << diff2 
 		    << endl;
 #endif 
-	assertion( diff2 < 1.0e-6 );
+	assertion( fabs(diff2) < 1.0e-9 );
 
       }
     }
@@ -148,6 +150,7 @@ void testMvvRecons1PlusAdd::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = r12_1[col][spin2][reim] - r12_2[col][spin2][reim];
+	diff /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -157,9 +160,10 @@ void testMvvRecons1PlusAdd::run(void)
 		    << endl;
 #endif
 
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
 
 	float diff2 = r34_1[col][spin2][reim] - r34_2[col][spin2][reim];
+	diff2 /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -168,7 +172,7 @@ void testMvvRecons1PlusAdd::run(void)
 		    << " diff lower = " << diff2 
 		    << endl;
 #endif
-	assertion( diff2 < 1.0e-6 );
+	assertion( fabs(diff2) < 1.0e-9 );
 
       }
     }
@@ -231,6 +235,7 @@ void testMvvRecons2PlusAdd::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = r12_1[col][spin2][reim] - r12_2[col][spin2][reim];
+	diff /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -240,9 +245,10 @@ void testMvvRecons2PlusAdd::run(void)
 		    << endl;
 #endif
 
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
 
 	float diff2 = r34_1[col][spin2][reim] - r34_2[col][spin2][reim];
+	diff2 /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -251,7 +257,7 @@ void testMvvRecons2PlusAdd::run(void)
 		    << " diff lower = " << diff2 
 		    << endl;
 #endif
-	assertion( diff2 < 1.0e-6 );
+	assertion( fabs(diff2) < 1.0e-9 );
 
       }
     }
@@ -317,6 +323,7 @@ void testMvvRecons3PlusAddStore::run(void)
     for(int spin=0; spin < 4; spin++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = spinor1[spin][col][reim] - spinor2[spin][col][reim];
+	diff /= (float)(3*2*4);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -325,7 +332,7 @@ void testMvvRecons3PlusAddStore::run(void)
 		    << " diff upper = " << diff 
 		    << endl;
 #endif
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
 
       }
     }
@@ -373,6 +380,7 @@ void testMvvRecons0Minus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = r12_1[col][spin2][reim] - r12_2[col][spin2][reim];
+	diff /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -381,9 +389,10 @@ void testMvvRecons0Minus::run(void)
 		    << " diff upper = " << diff 
 		    << endl;
 #endif
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
 
 	float diff2 = r34_1[col][spin2][reim] - r34_2[col][spin2][reim];
+	diff2 /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -392,7 +401,7 @@ void testMvvRecons0Minus::run(void)
 		    << " diff lower = " << diff2 
 		    << endl;
 #endif 
-	assertion( diff2 < 1.0e-6 );
+	assertion( fabs(diff2) < 1.0e-9 );
 
       }
     }
@@ -455,6 +464,7 @@ void testMvvRecons1MinusAdd::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = r12_1[col][spin2][reim] - r12_2[col][spin2][reim];
+	diff /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -464,9 +474,10 @@ void testMvvRecons1MinusAdd::run(void)
 		    << endl;
 #endif
 
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
 
 	float diff2 = r34_1[col][spin2][reim] - r34_2[col][spin2][reim];
+	diff2 /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -475,7 +486,7 @@ void testMvvRecons1MinusAdd::run(void)
 		    << " diff lower = " << diff2 
 		    << endl;
 #endif
-	assertion( diff2 < 1.0e-6 );
+	assertion( fabs(diff2) < 1.0e-9 );
 
       }
     }
@@ -538,6 +549,7 @@ void testMvvRecons2MinusAdd::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = r12_1[col][spin2][reim] - r12_2[col][spin2][reim];
+	diff /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -547,9 +559,10 @@ void testMvvRecons2MinusAdd::run(void)
 		    << endl;
 #endif
 
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
 
 	float diff2 = r34_1[col][spin2][reim] - r34_2[col][spin2][reim];
+	diff2 /= (float)(3*2*2);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -558,7 +571,7 @@ void testMvvRecons2MinusAdd::run(void)
 		    << " diff lower = " << diff2 
 		    << endl;
 #endif
-	assertion( diff2 < 1.0e-6 );
+	assertion( fabs(diff2) < 1.0e-9 );
 
       }
     }
@@ -624,6 +637,7 @@ void testMvvRecons3MinusAddStore::run(void)
     for(int spin=0; spin < 4; spin++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = spinor1[spin][col][reim] - spinor2[spin][col][reim];
+	diff /= (float)(3*2*4);
 
 #if 0
 	QDPIO::cout << "  col=" << col 
@@ -632,7 +646,7 @@ void testMvvRecons3MinusAddStore::run(void)
 		    << " diff upper = " << diff 
 		    << endl;
 #endif
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
 
       }
     }

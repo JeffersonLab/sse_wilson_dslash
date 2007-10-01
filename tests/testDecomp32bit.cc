@@ -78,8 +78,9 @@ testDecomp0Minus::run()
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	diff /= (float)(3*2*2); // per number
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -129,8 +130,9 @@ testDecomp1Minus::run()
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	diff /= (float)(3*2*2); // per number
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -183,8 +185,9 @@ testDecomp2Minus::run()
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	diff /= (float)(3*2*2); // per number
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -237,8 +240,9 @@ testDecomp3Minus::run()
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	diff /= (float)(3*2*2); // per number
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -286,8 +290,9 @@ testDecomp0Plus::run()
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	diff /= (float)(3*2*2); // per number
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -335,8 +340,9 @@ testDecomp1Plus::run()
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	diff /= (float)(3*2*2); // per number
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -384,8 +390,9 @@ testDecomp2Plus::run()
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	diff /= (float)(3*2*2); // per number
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -433,8 +440,9 @@ testDecomp3Plus::run()
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	diff /= (float)(3*2*2); // per number
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }

@@ -362,7 +362,7 @@ void testMvvRecons0Plus::run(void)
       for(int reim=0; reim < 2; reim++) { 
 	for(int spin4=0; spin4 < 4; spin4++) { 
 	  double diff = rs[spin4][col][reim] - result2[spin4][col][reim];
-	  diff /= 4*3*2 ;
+	  diff /= (double)(4*3*2) ;
 #if 0
 	  QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin4
@@ -434,7 +434,7 @@ void testMvvRecons1PlusAdd::run(void)
       for(int reim=0; reim < 2; reim++) { 
 	for(int spin4=0; spin4 < 4; spin4++) { 
 	  double diff = rs[spin4][col][reim] - result2[spin4][col][reim];
-	  diff /= 4*3*2 ;
+	  diff /= (double)(4*3*2) ;
 #if 0
 	  QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin4
@@ -506,7 +506,7 @@ void testMvvRecons2PlusAdd::run(void)
       for(int reim=0; reim < 2; reim++) { 
 	for(int spin4=0; spin4 < 4; spin4++) { 
 	  double diff = rs[spin4][col][reim] - result2[spin4][col][reim];
-	  diff /= 4*3*2 ;
+	  diff /= (double)(4*3*2) ;
 #if 0
 	  QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin4
@@ -580,7 +580,7 @@ void testMvvRecons3PlusAddStore::run(void)
       for(int reim=0; reim < 2; reim++) { 
 	for(int spin4=0; spin4 < 4; spin4++) { 
 	  double diff = result1[spin4][col][reim] - result2[spin4][col][reim];
-	  diff /= 4*3*2 ;
+	  diff /= (double)(4*3*2) ;
 #if 0
 	  QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin4
@@ -654,7 +654,7 @@ void testMvvRecons0Minus::run(void)
       for(int reim=0; reim < 2; reim++) { 
 	for(int spin4=0; spin4 < 4; spin4++) { 
 	  double diff = rs[spin4][col][reim] - result2[spin4][col][reim];
-	  diff /= 4*3*2 ;
+	  diff /= (double)(4*3*2) ;
 #if 0
 	  QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin4
@@ -726,7 +726,7 @@ void testMvvRecons1MinusAdd::run(void)
       for(int reim=0; reim < 2; reim++) { 
 	for(int spin4=0; spin4 < 4; spin4++) { 
 	  double diff = rs[spin4][col][reim] - result2[spin4][col][reim];
-	  diff /= 4*3*2 ;
+	  diff /= (double)(4*3*2) ;
 #if 0
 	  QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin4
@@ -798,7 +798,7 @@ void testMvvRecons2MinusAdd::run(void)
       for(int reim=0; reim < 2; reim++) { 
 	for(int spin4=0; spin4 < 4; spin4++) { 
 	  double diff = rs[spin4][col][reim] - result2[spin4][col][reim];
-	  diff /= 4*3*2 ;
+	  diff /= (double)(4*3*2) ;
 #if 0
 	  QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin4
@@ -872,7 +872,7 @@ void testMvvRecons3MinusAddStore::run(void)
       for(int reim=0; reim < 2; reim++) { 
 	for(int spin4=0; spin4 < 4; spin4++) { 
 	  double diff = result1[spin4][col][reim] - result2[spin4][col][reim];
-	  diff /= 4*3*2 ;
+	  diff /= (double)(4*3*2) ;
 #if 0
 	  QDPIO::cout << "  col=" << col 
 		    << " sp=" << spin4

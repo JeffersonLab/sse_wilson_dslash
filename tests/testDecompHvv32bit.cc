@@ -78,7 +78,8 @@ void testDecompHvv0Minus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	assertion( diff < 1.0e-6 );
+	diff /= float(3*2*2); // per number
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -137,7 +138,8 @@ void testDecompHvv0Plus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	assertion( diff < 1.0e-6 );
+	diff /= float(3*2*2); // per number
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -194,7 +196,8 @@ void testDecompHvv1Minus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	assertion( diff < 1.0e-6 );
+	diff /= float(3*2*2); // per number
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -251,7 +254,8 @@ void testDecompHvv1Plus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	assertion( diff < 1.0e-6 );
+	diff /= float(3*2*2); // per number
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -308,7 +312,8 @@ void testDecompHvv2Minus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	assertion( diff < 1.0e-6 );
+	diff /= float(3*2*2); // per number
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -365,7 +370,8 @@ void testDecompHvv2Plus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	assertion( diff < 1.0e-6 );
+	diff /= float(3*2*2); // per number
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -424,7 +430,8 @@ void testDecompHvv3Minus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	assertion( diff < 1.0e-6 );
+	diff /= float(3*2*2); // per number
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
@@ -481,7 +488,8 @@ void testDecompHvv3Plus::run(void)
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
 	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	assertion( diff < 1.0e-6 );
+	diff /= float(3*2*2); // per number
+	assertion( fabs(diff) < 1.0e-9 );
       }
     }
   }
