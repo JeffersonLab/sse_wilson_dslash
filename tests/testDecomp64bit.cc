@@ -5,33 +5,117 @@
 using namespace QDP;
 using namespace std;
 using namespace Assertions;
-#include <sse32.h>
+#include <sse64.h>
 #include <sse_align.h>
-#include <types32.h>
+#include <types64.h>
 #include <cmath>
 #include <decomp.h>
 
-/* Spin Matrices */
-/* gamma 0 */
-#define _sse_42_gamma0_minus()     _sse_vector_xch_i_sub()
-#define _sse_42_gamma0_plus()      _sse_vector_xch_i_add()
 
+#define _sse_42_1_gamma0_minus(sp) \
+      _sse_load((sp)[0]); \
+      _sse_load_up((sp)[3]);\
+      _sse_vector_i_mul();\
+      _sse_vector_sub()
+	  
+#define _sse_42_2_gamma0_minus(sp) \
+      _sse_load((sp)[1]);\
+      _sse_load_up((sp)[2]);\
+      _sse_vector_i_mul();\
+      _sse_vector_sub()
+
+
+#define _sse_42_1_gamma0_plus(sm) \
+      _sse_load((sm)[0]);\
+      _sse_load_up((sm)[3]);\
+      _sse_vector_i_mul();\
+      _sse_vector_add()
+
+#define _sse_42_2_gamma0_plus(sm) \
+	  _sse_load((sm)[1]);\
+      _sse_load_up((sm)[2]);\
+      _sse_vector_i_mul();\
+      _sse_vector_add()
 
 /* gamma 1 */
-#define _sse_42_gamma1_minus()     _sse_vector_xch();\
-				   _sse_vector_addsub()
 
-#define _sse_42_gamma1_plus()      _sse_vector_xch();\
-				   _sse_vector_subadd()
+
+#define _sse_42_1_gamma1_minus(sp) \
+      _sse_load((sp)[0]);\
+      _sse_load_up((sp)[3]);\
+      _sse_vector_add()
+	  
+#define _sse_42_2_gamma1_minus(sp) \
+      _sse_load((sp)[1]);\
+      _sse_load_up((sp)[2]);\
+      _sse_vector_sub()
+
+
+#define _sse_42_1_gamma1_plus(sm) \
+      _sse_load((sm)[0]);\
+      _sse_load_up((sm)[3]);\
+      _sse_vector_sub()
+
+
+#define _sse_42_2_gamma1_plus(sm) \
+	  _sse_load((sm)[1]);\
+      _sse_load_up((sm)[2]);\
+      _sse_vector_add()
 
 
 /* gamma 2 */
-#define _sse_42_gamma2_minus()     _sse_vector_i_subadd()
-#define _sse_42_gamma2_plus()      _sse_vector_i_addsub()
+
+
+#define _sse_42_1_gamma2_minus(sp) \
+      _sse_load((sp)[0]);\
+      _sse_load_up((sp)[2]);\
+      _sse_vector_i_mul();\
+      _sse_vector_sub()
+	  
+#define _sse_42_2_gamma2_minus(sp) \
+      _sse_load((sp)[1]);\
+      _sse_load_up((sp)[3]);\
+      _sse_vector_i_mul();\
+      _sse_vector_add()
+
+#define _sse_42_1_gamma2_plus(sm) \
+      _sse_load((sm)[0]);\
+      _sse_load_up((sm)[2]);\
+      _sse_vector_i_mul();\
+      _sse_vector_add()
+ 
+#define _sse_42_2_gamma2_plus(sm) \
+	  _sse_load((sm)[1]);\
+      _sse_load_up((sm)[3]);\
+      _sse_vector_i_mul();\
+      _sse_vector_sub()
+
 
 /* gamma 3 */
-#define _sse_42_gamma3_minus()     _sse_vector_sub()
-#define _sse_42_gamma3_plus()      _sse_vector_add()
+#define _sse_42_1_gamma3_minus(sp) \
+	  _sse_load((sp)[0]); \
+	  _sse_load_up((sp)[2]); \
+      _sse_vector_sub()
+
+	  
+#define _sse_42_2_gamma3_minus(sp) \
+      _sse_load((sp)[1]);\
+      _sse_load_up((sp)[3]);\
+      _sse_vector_sub()
+
+
+#define _sse_42_1_gamma3_plus(sm) \
+      _sse_load((sm)[0]);\
+      _sse_load_up((sm)[2]);\
+      _sse_vector_add()
+
+
+#define _sse_42_2_gamma3_plus(sm) \
+	  _sse_load((sm)[1]);\
+      _sse_load_up((sm)[3]);\
+      _sse_vector_add()
+
+
 
 void
 testDecomp0Minus::run()
@@ -42,50 +126,45 @@ testDecomp0Minus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	hspinor1[col][spin2][reim] = 0;
-	hspinor2[col][spin2][reim] = 0;
+	hspinor1[spin2][col][reim] = 0;
+	hspinor2[spin2][col][reim] = 0;
       }
     }
 
     for(int spin4=0; spin4 < 4; spin4++) {
       for(int reim=0; reim < 2; reim++) { 
 
-	spinor[spin4][col][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	spinor[spin4][col][reim] = (double)(rand() - RAND_MAX/2)/(double)(RAND_MAX/2)*2.0;
 
       }
     }
   } // Color
 
-  spinor_array* sp1 = &spinor;
+  spinor_array* sp = &spinor;
   halfspinor_array *s3 = &hspinor1;
 
-  // Copy from code 
-  _sse_pair_load((*sp1)[0],(*sp1)[1]);
-      
-  //  s3 = chi+ halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
-  
-  _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-  
-  _sse_42_gamma0_minus();
-  
-  _sse_vector_store(*s3);
-
+ _sse_42_1_gamma0_minus(*sp);
+ _sse_store((*s3)[0]);
+ /*spin decomposition of first component of halfspinor */
+ _sse_42_2_gamma0_minus(*sp);
+ _sse_store((*s3)[1]);
 
   // My version
   decomp_gamma0_minus(spinor, hspinor2);
 
+
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	double diff = hspinor1[spin2][col][reim] - hspinor2[spin2][col][reim];
+	assertion( diff < 1.0e-17 );
       }
     }
   }
 
 
 }
+
 
 void
 testDecomp1Minus::run()
@@ -96,31 +175,28 @@ testDecomp1Minus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	hspinor1[col][spin2][reim] = 0;
-	hspinor2[col][spin2][reim] = 0;
+	hspinor1[spin2][col][reim] = 0;
+	hspinor2[spin2][col][reim] = 0;
       }
     }
 
     for(int spin4=0; spin4 < 4; spin4++) {
       for(int reim=0; reim < 2; reim++) { 
 
-	spinor[spin4][col][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	spinor[spin4][col][reim] = (double)(rand() - RAND_MAX/2)/(double)(RAND_MAX/2)*2.0;
 
       }
     }
   } // Color
 
-  spinor_array* sp1 = &spinor;
+  spinor_array* sp = &spinor;
   halfspinor_array *s3 = &hspinor1;
 
-  // Copy from code 
-  _sse_pair_load((*sp1)[0],(*sp1)[1]);
-  _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
+  _sse_42_1_gamma1_minus(*sp);
+  _sse_store((*s3)[0]);
   
-  _sse_42_gamma1_minus();
-  
-  _sse_vector_store(*s3);
-
+  _sse_42_2_gamma1_minus(*sp);
+  _sse_store((*s3)[1]);
 
   // My version
   decomp_gamma1_minus(spinor, hspinor2);
@@ -128,9 +204,9 @@ testDecomp1Minus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	double diff = hspinor1[spin2][col][reim] - hspinor2[spin2][col][reim];
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( diff < 1.0e-17 );
       }
     }
   }
@@ -147,34 +223,28 @@ testDecomp2Minus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	hspinor1[col][spin2][reim] = 0;
-	hspinor2[col][spin2][reim] = 0;
+	hspinor1[spin2][col][reim] = 0;
+	hspinor2[spin2][col][reim] = 0;
       }
     }
 
     for(int spin4=0; spin4 < 4; spin4++) {
       for(int reim=0; reim < 2; reim++) { 
 
-	spinor[spin4][col][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	spinor[spin4][col][reim] = (double)(rand() - RAND_MAX/2)/(double)(RAND_MAX/2)*2.0;
 
       }
     }
   } // Color
 
-  spinor_array* sp1 = &spinor;
+  spinor_array* sp = &spinor;
   halfspinor_array *s3 = &hspinor1;
 
-  // Copy from code 
-  _sse_pair_load((*sp1)[0],(*sp1)[1]);
-      
-  //  s3 = chi+ halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
+  _sse_42_1_gamma2_minus(*sp);
+  _sse_store((*s3)[0]);
   
-  _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-  
-  _sse_42_gamma2_minus();
-  
-  _sse_vector_store(*s3);
-
+  _sse_42_2_gamma2_minus(*sp);
+  _sse_store((*s3)[1]);
 
   // My version
   decomp_gamma2_minus(spinor, hspinor2);
@@ -182,9 +252,9 @@ testDecomp2Minus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
-	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	double diff = hspinor1[spin2][col][reim] - hspinor2[spin2][col][reim];
+	//QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
+	assertion( diff < 1.0e-17 );
       }
     }
   }
@@ -201,34 +271,29 @@ testDecomp3Minus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	hspinor1[col][spin2][reim] = 0;
-	hspinor2[col][spin2][reim] = 0;
+	hspinor1[spin2][col][reim] = 0;
+	hspinor2[spin2][col][reim] = 0;
       }
     }
 
     for(int spin4=0; spin4 < 4; spin4++) {
       for(int reim=0; reim < 2; reim++) { 
 
-	spinor[spin4][col][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	spinor[spin4][col][reim] = (double)(rand() - RAND_MAX/2)/(double)(RAND_MAX/2)*2.0;
 
       }
     }
   } // Color
 
-  spinor_array* sp1 = &spinor;
+  spinor_array* sp = &spinor;
   halfspinor_array *s3 = &hspinor1;
 
   // Copy from code 
-  _sse_pair_load((*sp1)[0],(*sp1)[1]);
-      
-  //  s3 = chi+ halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
-  
-  _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-  
-  _sse_42_gamma3_minus();
-  
-  _sse_vector_store(*s3);
+    _sse_42_1_gamma3_minus(*sp);
+    _sse_store((*s3)[0]);
 
+    _sse_42_2_gamma3_minus(*sp);
+    _sse_store((*s3)[1]);
 
   // My version
   decomp_gamma3_minus(spinor, hspinor2);
@@ -236,9 +301,9 @@ testDecomp3Minus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	double diff = hspinor1[spin2][col][reim] - hspinor2[spin2][col][reim];
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( diff < 1.0e-17 );
       }
     }
   }
@@ -255,28 +320,29 @@ testDecomp0Plus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	hspinor1[col][spin2][reim] = 0;
-	hspinor2[col][spin2][reim] = 0;
+	hspinor1[spin2][col][reim] = 0;
+	hspinor2[spin2][col][reim] = 0;
       }
     }
 
     for(int spin4=0; spin4 < 4; spin4++) {
       for(int reim=0; reim < 2; reim++) { 
 
-	spinor[spin4][col][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	spinor[spin4][col][reim] = (double)(rand() - RAND_MAX/2)/(double)(RAND_MAX/2)*2.0;
 
       }
     }
   } // Color
 
-  spinor_array* sp1 = &spinor;
+  spinor_array* sp = &spinor;
   halfspinor_array *s3 = &hspinor1;
 
   // Copy from code 
-  _sse_pair_load((*sp1)[0],(*sp1)[1]);
-  _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-  _sse_42_gamma0_plus();
-  _sse_vector_store(*s3);
+    _sse_42_1_gamma0_plus(*sp);
+    _sse_store((*s3)[0]);
+
+    _sse_42_2_gamma0_plus(*sp);
+    _sse_store((*s3)[1]);
 
 
   // My version
@@ -285,9 +351,9 @@ testDecomp0Plus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	double diff = hspinor1[spin2][col][reim] - hspinor2[spin2][col][reim];
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( diff < 1.0e-17 );
       }
     }
   }
@@ -304,28 +370,29 @@ testDecomp1Plus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	hspinor1[col][spin2][reim] = 0;
-	hspinor2[col][spin2][reim] = 0;
+	hspinor1[spin2][col][reim] = 0;
+	hspinor2[spin2][col][reim] = 0;
       }
     }
 
     for(int spin4=0; spin4 < 4; spin4++) {
       for(int reim=0; reim < 2; reim++) { 
 
-	spinor[spin4][col][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	spinor[spin4][col][reim] = (double)(rand() - RAND_MAX/2)/(double)(RAND_MAX/2)*2.0;
 
       }
     }
   } // Color
 
-  spinor_array* sp1 = &spinor;
+  spinor_array* sp = &spinor;
   halfspinor_array *s3 = &hspinor1;
 
   // Copy from code 
-  _sse_pair_load((*sp1)[0],(*sp1)[1]);
-  _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-  _sse_42_gamma1_plus();
-  _sse_vector_store(*s3);
+    _sse_42_1_gamma1_plus(*sp);
+    _sse_store((*s3)[0]);
+
+    _sse_42_2_gamma1_plus(*sp);
+    _sse_store((*s3)[1]);
 
 
   // My version
@@ -334,9 +401,9 @@ testDecomp1Plus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	double diff = hspinor1[spin2][col][reim] - hspinor2[spin2][col][reim];
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( diff < 1.0e-17 );
       }
     }
   }
@@ -353,28 +420,30 @@ testDecomp2Plus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	hspinor1[col][spin2][reim] = 0;
-	hspinor2[col][spin2][reim] = 0;
+	hspinor1[spin2][col][reim] = 0;
+	hspinor2[spin2][col][reim] = 0;
       }
     }
 
     for(int spin4=0; spin4 < 4; spin4++) {
       for(int reim=0; reim < 2; reim++) { 
 
-	spinor[spin4][col][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	spinor[spin4][col][reim] = (double)(rand() - RAND_MAX/2)/(double)(RAND_MAX/2)*2.0;
 
       }
     }
   } // Color
 
-  spinor_array* sp1 = &spinor;
+  spinor_array* sp = &spinor;
   halfspinor_array *s3 = &hspinor1;
 
   // Copy from code 
-  _sse_pair_load((*sp1)[0],(*sp1)[1]);
-  _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-  _sse_42_gamma2_plus();
-  _sse_vector_store(*s3);
+
+    _sse_42_1_gamma2_plus(*sp);
+    _sse_store((*s3)[0]);
+
+    _sse_42_2_gamma2_plus(*sp);
+    _sse_store((*s3)[1]);
 
 
   // My version
@@ -383,9 +452,9 @@ testDecomp2Plus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	double diff = hspinor1[spin2][col][reim] - hspinor2[spin2][col][reim];
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( diff < 1.0e-17 );
       }
     }
   }
@@ -402,29 +471,28 @@ testDecomp3Plus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	hspinor1[col][spin2][reim] = 0;
-	hspinor2[col][spin2][reim] = 0;
+	hspinor1[spin2][col][reim] = 0;
+	hspinor2[spin2][col][reim] = 0;
       }
     }
 
     for(int spin4=0; spin4 < 4; spin4++) {
       for(int reim=0; reim < 2; reim++) { 
 
-	spinor[spin4][col][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	spinor[spin4][col][reim] = (double)(rand() - RAND_MAX/2)/(double)(RAND_MAX/2)*2.0;
 
       }
     }
   } // Color
 
-  spinor_array* sp1 = &spinor;
+  spinor_array* sp = &spinor;
   halfspinor_array *s3 = &hspinor1;
 
-  // Copy from code 
-  _sse_pair_load((*sp1)[0],(*sp1)[1]);
-  _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-  _sse_42_gamma3_plus();
-  _sse_vector_store(*s3);
+    _sse_42_1_gamma3_plus(*sp);
+    _sse_store((*s3)[0]);
 
+    _sse_42_2_gamma3_plus(*sp);
+    _sse_store((*s3)[1]);
 
   // My version
   decomp_gamma3_plus(spinor, hspinor2);
@@ -432,9 +500,9 @@ testDecomp3Plus::run()
   for(int col=0; col < 3; col++) { 
     for(int spin2=0; spin2 < 2; spin2++) { 
       for(int reim=0; reim < 2; reim++) { 
-	float diff = hspinor1[col][spin2][reim] - hspinor2[col][spin2][reim];
+	double diff = hspinor1[spin2][col][reim] - hspinor2[spin2][col][reim];
 	//	QDPIO::cout << "   col="<<col<<" s="<<spin2<<" reim=" <<reim<< "  diff = " << diff << endl;
-	assertion( diff < 1.0e-6 );
+	assertion( diff < 1.0e-17 );
       }
     }
   }

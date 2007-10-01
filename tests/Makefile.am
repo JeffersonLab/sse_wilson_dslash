@@ -17,19 +17,42 @@ t_dslash_SOURCES = unittest.h \
 	dslashm_w.cc \
 	reunit.h \
 	reunit.cc \
-	t_dslash.cc \
 	testDslashFull.h \
-	testDslashFull.cc \
+	testDslashFull.cc
+
+if SCALAR_SINGLE
+t_dslash_SOURCES += t_dslash.cc
+endif
+
+if SCALAR_DOUBLE
+t_dslash_SOURCES += t_dslash.cc
+endif
+
+
+if PARSCALAR_SINGLE
+t_dslash_SOURCES += t_dslash_parscalar.cc \
 	testDecomp.h \
 	testDecompHvv.h \
 	testMvvRecons.h \
-	testRecons.h
-
-if PARSCALAR_SINGLE
-t_dslash_SOURCES += testDecomp32bit.cc \
+	testRecons.h \
+	testDecomp32bit.cc \
 	testDecompHvv32bit.cc \
 	testMvvRecons32bit.cc \
 	testRecons32bit.cc
 endif
+
+if PARSCALAR_DOUBLE
+t_dslash_SOURCES += \
+	t_dslash_parscalar.cc \
+	testDecomp.h \
+	testDecompHvv.h \
+	testMvvRecons.h \
+	testRecons.h \
+	testDecomp64bit.cc \
+	testDecompHvv64bit.cc \
+	testMvvRecons64bit.cc \
+	testRecons64bit.cc
+endif
+
 
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a

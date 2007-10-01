@@ -1,7 +1,7 @@
 #include "testMvvRecons.h"
 #include "sse32.h"
 #include "types32.h"
-#include "mvv_recons.h"
+#include "mvv_recons_32bit.h"
 #include "unittest.h"
 
 using namespace QDP;

@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# $Id: Makefile.in,v 1.6 2007-09-27 20:05:19 bjoo Exp $
+# $Id: Makefile.in,v 1.7 2007-10-01 18:17:18 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -59,7 +59,15 @@ host_triplet = @host@
 @PARSCALAR_SINGLE_TRUE@	recons_32bit_parscalar.c
 
 @BUILD_QDP_PACKERS_TRUE@@PARSCALAR_SINGLE_TRUE@am__append_6 = qdp_packer_p4_pad.cc
-@PARSCALAR_DOUBLE_TRUE@am__append_7 = shift_tables_parscalar.c packer_nopad.c sse_su3dslash_64bit_parscalar.c dispatch_parscalar.c
+@PARSCALAR_DOUBLE_TRUE@am__append_7 = shift_tables_parscalar.c \
+@PARSCALAR_DOUBLE_TRUE@	packer_nopad.c \
+@PARSCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_parscalar.c \
+@PARSCALAR_DOUBLE_TRUE@	dispatch_parscalar.c \
+@PARSCALAR_DOUBLE_TRUE@	decomp_64bit_parscalar.c \
+@PARSCALAR_DOUBLE_TRUE@	decomp_hvv_64bit_parscalar.c \
+@PARSCALAR_DOUBLE_TRUE@	mvv_recons_64bit_parscalar.c \
+@PARSCALAR_DOUBLE_TRUE@	recons_64bit_parscalar.c
+
 @BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@am__append_8 = qdp_packer_nopad.cc
 subdir = lib
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -91,7 +99,9 @@ am__liblevel3_a_SOURCES_DIST = shift_tables_scalar.c packer_nopad.c \
 	sse_su3dslash_32bit_parscalar.c dispatch_parscalar.c \
 	decomp_32bit_parscalar.c decomp_hvv_32bit_parscalar.c \
 	mvv_recons_32bit_parscalar.c recons_32bit_parscalar.c \
-	qdp_packer_p4_pad.cc sse_su3dslash_64bit_parscalar.c
+	qdp_packer_p4_pad.cc sse_su3dslash_64bit_parscalar.c \
+	decomp_64bit_parscalar.c decomp_hvv_64bit_parscalar.c \
+	mvv_recons_64bit_parscalar.c recons_64bit_parscalar.c
 @SCALAR_SINGLE_TRUE@am__objects_1 = shift_tables_scalar.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	packer_nopad.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_scalar.$(OBJEXT) \
@@ -116,7 +126,11 @@ am__liblevel3_a_SOURCES_DIST = shift_tables_scalar.c packer_nopad.c \
 @PARSCALAR_DOUBLE_TRUE@	shift_tables_parscalar.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	packer_nopad.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_parscalar.$(OBJEXT) \
-@PARSCALAR_DOUBLE_TRUE@	dispatch_parscalar.$(OBJEXT)
+@PARSCALAR_DOUBLE_TRUE@	dispatch_parscalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_TRUE@	decomp_64bit_parscalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_TRUE@	decomp_hvv_64bit_parscalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_TRUE@	mvv_recons_64bit_parscalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_TRUE@	recons_64bit_parscalar.$(OBJEXT)
 @BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@am__objects_8 = qdp_packer_nopad.$(OBJEXT)
 am_liblevel3_a_OBJECTS = $(am__objects_1) $(am__objects_2) \
 	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
@@ -336,15 +350,19 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/decomp_32bit_parscalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/decomp_64bit_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/decomp_hvv_32bit_parscalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/decomp_hvv_64bit_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dispatch_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dispatch_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mvv_recons_32bit_parscalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mvv_recons_64bit_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/packer_nopad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/packer_p4_pad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qdp_packer_nopad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qdp_packer_p4_pad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/recons_32bit_parscalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/recons_64bit_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shift_tables_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shift_tables_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_parscalar.Po@am__quote@

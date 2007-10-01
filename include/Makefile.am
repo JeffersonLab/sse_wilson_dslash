@@ -4,7 +4,6 @@ nobase_include_HEADERS=sse_align.h \
 	sse_dslash_qdp_packer.h \
 	decomp.h \
 	decomp_hvv.h \
-	mvv_recons.h \
 	recons.h
 
 if SCALAR_SINGLE
@@ -16,11 +15,11 @@ nobase_include_HEADERS += sse64.h types64.h shift_tables_scalar.h dispatch_scala
 endif
 
 if PARSCALAR_SINGLE
-nobase_include_HEADERS += sse32.h types32.h shift_tables_parscalar.h dispatch_parscalar.h
+nobase_include_HEADERS += sse32.h types32.h shift_tables_parscalar.h dispatch_parscalar.h mvv_recons_32bit.h
 endif
 
 if PARSCALAR_DOUBLE
-nobase_include_HEADERS += sse64.h types64.h shift_tables_parscalar.h  dispatch_parscalar.h
+nobase_include_HEADERS += sse64.h types64.h shift_tables_parscalar.h  dispatch_parscalar.h mvv_recons_64bit.h
 endif
 
 
