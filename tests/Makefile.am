@@ -21,16 +21,17 @@ t_dslash_SOURCES = unittest.h \
 	testDslashFull.cc
 
 if SCALAR_SINGLE
-t_dslash_SOURCES += t_dslash.cc
+t_dslash_SOURCES += t_dslash_scalar.cc testSiteDslash.h sse32.h testSiteDslash32bit.cc
 endif
 
 if SCALAR_DOUBLE
-t_dslash_SOURCES += t_dslash.cc
+t_dslash_SOURCES += t_dslash_scalar.cc testSiteDslash.h sse64.h testSiteDslash64bit.cc
 endif
 
 
 if PARSCALAR_SINGLE
 t_dslash_SOURCES += t_dslash_parscalar.cc \
+	sse32.h \
 	testDecomp.h \
 	testDecompHvv.h \
 	testMvvRecons.h \
@@ -44,6 +45,7 @@ endif
 if PARSCALAR_DOUBLE
 t_dslash_SOURCES += \
 	t_dslash_parscalar.cc \
+	sse64.h \
 	testDecomp.h \
 	testDecompHvv.h \
 	testMvvRecons.h \

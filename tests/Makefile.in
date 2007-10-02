@@ -37,8 +37,8 @@ build_triplet = @build@
 host_triplet = @host@
 check_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_QDP_TESTS_TRUE@am__append_1 = t_dslash
-@SCALAR_SINGLE_TRUE@am__append_2 = t_dslash.cc
-@SCALAR_DOUBLE_TRUE@am__append_3 = t_dslash.cc
+@SCALAR_SINGLE_TRUE@am__append_2 = t_dslash_scalar.cc testSiteDslash.h testSiteDslash32bit.cc
+@SCALAR_DOUBLE_TRUE@am__append_3 = t_dslash_scalar.cc testSiteDslash.h testSiteDslash64bit.cc
 @PARSCALAR_SINGLE_TRUE@am__append_4 = t_dslash_parscalar.cc \
 @PARSCALAR_SINGLE_TRUE@	testDecomp.h \
 @PARSCALAR_SINGLE_TRUE@	testDecompHvv.h \
@@ -73,13 +73,16 @@ CONFIG_CLEAN_FILES =
 @BUILD_QDP_TESTS_TRUE@am__EXEEXT_1 = t_dslash$(EXEEXT)
 am__t_dslash_SOURCES_DIST = unittest.h dslashm_w.h dslashm_w.cc \
 	reunit.h reunit.cc testDslashFull.h testDslashFull.cc \
-	t_dslash.cc t_dslash_parscalar.cc testDecomp.h testDecompHvv.h \
-	testMvvRecons.h testRecons.h testDecomp32bit.cc \
-	testDecompHvv32bit.cc testMvvRecons32bit.cc testRecons32bit.cc \
-	testDecomp64bit.cc testDecompHvv64bit.cc testMvvRecons64bit.cc \
-	testRecons64bit.cc
-@SCALAR_SINGLE_TRUE@am__objects_1 = t_dslash.$(OBJEXT)
-@SCALAR_DOUBLE_TRUE@am__objects_2 = t_dslash.$(OBJEXT)
+	t_dslash_scalar.cc testSiteDslash.h testSiteDslash32bit.cc \
+	testSiteDslash64bit.cc t_dslash_parscalar.cc testDecomp.h \
+	testDecompHvv.h testMvvRecons.h testRecons.h \
+	testDecomp32bit.cc testDecompHvv32bit.cc testMvvRecons32bit.cc \
+	testRecons32bit.cc testDecomp64bit.cc testDecompHvv64bit.cc \
+	testMvvRecons64bit.cc testRecons64bit.cc
+@SCALAR_SINGLE_TRUE@am__objects_1 = t_dslash_scalar.$(OBJEXT) \
+@SCALAR_SINGLE_TRUE@	testSiteDslash32bit.$(OBJEXT)
+@SCALAR_DOUBLE_TRUE@am__objects_2 = t_dslash_scalar.$(OBJEXT) \
+@SCALAR_DOUBLE_TRUE@	testSiteDslash64bit.$(OBJEXT)
 @PARSCALAR_SINGLE_TRUE@am__objects_3 = t_dslash_parscalar.$(OBJEXT) \
 @PARSCALAR_SINGLE_TRUE@	testDecomp32bit.$(OBJEXT) \
 @PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.$(OBJEXT) \
@@ -276,8 +279,8 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dslashm_w.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reunit.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_dslash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_dslash_parscalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_dslash_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDecomp32bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDecomp64bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDecompHvv32bit.Po@am__quote@
@@ -287,6 +290,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testMvvRecons64bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testRecons32bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testRecons64bit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testSiteDslash32bit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testSiteDslash64bit.Po@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

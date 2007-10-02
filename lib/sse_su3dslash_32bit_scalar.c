@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_scalar.c,v 1.4 2007-09-21 17:19:48 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_scalar.c,v 1.5 2007-10-02 20:40:21 bjoo Exp $
  * 
  * Action of the 32bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -25,7 +25,7 @@
 #include <shift_tables_scalar.h>
 #include <types32.h>
 #include <dispatch_scalar.h>
-
+#include <site_dslash_32bit_scalar.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -70,66 +70,6 @@ extern "C" {
   static int *shift_table;
   static int icolor_start[2];    /* starting site for each coloring (cb) */
   static int icolor_end[2];      /* end site for each coloring (cb) */
-
-  /* use SZIN spin basis */
-  
-  /* gamma 0 */
-
-#define _sse_42_gamma0_minus()   _sse_vector_xch_i_sub()
-
-#define _sse_42_gamma0_plus()     _sse_vector_xch_i_add()
-
-#define _sse_24_gamma0_minus_set()  _sse_vector_xch_i_mul_up()
- 
-#define _sse_24_gamma0_plus_set()   _sse_vector_xch_i_mul_neg_up()
-
-#define _sse_24_gamma0_minus_add() _sse_vector_xch_i_add()
-
-#define _sse_24_gamma0_plus_add() _sse_vector_xch_i_sub()
-
-
-/* gamma 1 */
-
-#define _sse_42_gamma1_minus()  \
-								_sse_vector_xch();\
-								_sse_vector_addsub()
-#define _sse_42_gamma1_plus()  \
-								_sse_vector_xch();\
-								_sse_vector_subadd()
-#define _sse_24_gamma1_minus()  \
-								_sse_vector_xch();\
-								_sse_vector_subadd()
-#define _sse_24_gamma1_plus()  \
-								_sse_vector_xch();\
-								_sse_vector_addsub()
-
-
-
-/* gamma 2 */
-
-#define _sse_42_gamma2_minus()   _sse_vector_i_subadd()
-
-#define _sse_42_gamma2_plus()     _sse_vector_i_addsub()
-
-#define _sse_24_gamma2_minus() _sse_vector_i_addsub()
-
-#define _sse_24_gamma2_plus() _sse_vector_i_subadd()
-
-/* gamma 3 */
-
-
-#define _sse_42_gamma3_minus()   _sse_vector_sub()
-
-#define _sse_42_gamma3_plus()     _sse_vector_add()
-
-#define _sse_24_gamma3_minus() _sse_vector_sub()
-
-#define _sse_24_gamma3_plus() _sse_vector_add()
-
-#define _sse_24_gamma3_minus_rows12() _sse_vector_add()
-
-#define _sse_24_gamma3_plus_rows12() _sse_vector_add()
-
 
 
 
@@ -233,8 +173,7 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
   }
 }
 
-  
-#include <sse32.h>
+// #include <sse32.h>
 
 
 void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
@@ -277,16 +216,7 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
   halfspinor_array r12_2 ALIGN; /* Site 2 upper */
   halfspinor_array r34_2 ALIGN; /* Site 2 lower */
 
-  /* note these guys need to be declared in each routine in which they are used*/
-  /* Is this still true? */
-  /* These are used to flip the signs of various members of a 4-wide sse register */
-  static sse_float _sse_sgn12 ALIGN ={-1.0f,-1.0f,1.0f,1.0f};      /* Negate 1st and 2nd */
-  static sse_float _sse_sgn13 ALIGN ={-1.0f,1.0f,-1.0f,1.0f};      /* Negate 1st and 3rd */
-  static sse_float _sse_sgn14 ALIGN ={-1.0f,1.0f,1.0f,-1.0f};      /* Negate 1st and 4th */
-  static sse_float _sse_sgn23 ALIGN ={1.0f,-1.0f,-1.0f,1.0f};      /* Negate 2nd and 3rd */
-  static sse_float _sse_sgn24 ALIGN ={1.0f,-1.0f,1.0f,-1.0f};      /* Negate 2nd and 4th */
-  static sse_float _sse_sgn34 ALIGN ={1.0f,1.0f,-1.0f,-1.0f};      /* Negate 3rd and 4th */
-  static sse_float _sse_sgn1234 ALIGN = {-1.0f,-1.0f,-1.0f,-1.0f}; /* Negate All */
+
   
   /* note that we want the spinors from the checkerboard opposite the one we are writing to */
   /* We are doing things in bunches of two sites */
@@ -314,59 +244,25 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
 
     /* prefetch backward neighbor spinors  */	   
     sm1 = &psi[ iy1   ];
-    _prefetch_single(sm1);
+    prefetch_single(sm1);
     sm2 = &psi[ iy2   ];
-    _prefetch_single(sm2);
+    prefetch_single(sm2);
 
     /*loads in the appropriate spinor and does the spin projection */
     /* sp denotes spinors in the x+mu^ direction, sm denotes spinors in the x - mu^ direction */
-    
-    /* Do it for the first site */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-    /* Spin Project */
-    _sse_42_gamma0_minus();
-    
-    /* do the SU(3) * 3x2 multiply ....3 colors...both spin components of the spin-projected halfspinor*/ 
-    _sse_su3_multiply((*up1));
-       
-    /* Reconstruct */
-
-    /* the output is in xmm3-5, so we store_up...this is a _set since it is the first term in the sum over mu */
-    /* top two spin components, the top two rows of the 4x2 reconstruction matrix will be the identity, so just store */
-    _sse_vector_store_up(r12_1);
-        
-    /* bottom two spin components, use the bottom two components of the 4x2 reconstruction matrix ...whatever was done to the identity
-       to get that submatrix needs to be done likewise to the halfspinor to reconstruct the bottom two components */     
-    _sse_24_gamma0_minus_set();
-    _sse_vector_store_up(r34_1);
-
-    /* Done */
+    dslash_plus_dir0_forward(*sp1, *up1, r12_1, r34_1);
 
     /* Now prefetch for the  1 + \gamma_0 U^\dagger case */
 
     um1 = &(gauge_field[iy1][0]);
-    _prefetch_single(um1);
+    prefetch_single(um1);
     um2 = &(gauge_field[iy2][0]);
-    _prefetch_single(um2);
+    prefetch_single(um2);
 
     /* Now do the spin proj, multiply, spin recon for the second site */
     /* Load spinor */
-    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
-    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
+    dslash_plus_dir0_forward(*sp2, *up2, r12_2, r34_2);
 
-    /* Project */
-    _sse_42_gamma0_minus();
-
-    /* Multiply */
-    _sse_su3_multiply((*(up2)));
-
-    /* Reconstruct */
-    _sse_vector_store_up(r12_2);
-    _sse_24_gamma0_minus_set(); 
-    _sse_vector_store_up(r34_2);
-      
     /******************************* direction -0 *********************************/
     /* Hopefully sm1 sm2 the backward neighbours are prefetched and in cache. The shifted 
        matrices should be prefetched too */
@@ -376,71 +272,19 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     
     /* Prefetch the forward spinors for the next direction */
     sp1 = &psi[ forward_neighbor(shift_table,ix1,1) ];
-    _prefetch_single(sp1);
+    prefetch_single(sp1);
     sp2 = &psi[ forward_neighbor(shift_table,ix1+1,1)];
-    _prefetch_single(sp2);
+    prefetch_single(sp2);
 
-
-    /* Now load backward neighbours into SSE vectors */
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-
-    /* Project */
-    _sse_42_gamma0_plus();
-	 
-    /* Multiply with inverse */
-    _sse_su3_inverse_multiply((*um1));
-
-
-    /* Reconstruct accumulate */
-
-    /*ok here's where things are different..now we load the partial sum over directions of the
-      output spinor, then add on to them the spin reconstructed terms (using the bottom two rows of the 4x2 reconstruction
-      matrix for the spin reconstruction), and then save the temp
-      and hopefully it better stay in cache */
-    
-    /* notation: r12_1 -- first two spin components, first of the two  adjacent sites 
-       r34_1 -- last two spin components, first site
-       r12_2 -- first two spin components, adjacent (ix1+1) site
-       r34_2 -- last two spin components, adjacent site
-       
-    */
-
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);
-
-    _sse_vector_load(r34_1);
-    _sse_24_gamma0_plus_add();
-    _sse_vector_store(r34_1);  
+    dslash_plus_dir0_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch gauge field for next direction */
     up1 = &(gauge_field[ix1][1]);
-    _prefetch_single(up1);      
+    prefetch_single(up1);      
     up2 = &(gauge_field[ix1+1][1]); 
-    _prefetch_single(up2); 
+    prefetch_single(up2); 
     
-
-    /* Now do second site */
-    /* Load */
-    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
-    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
-
-    /* Project */
-    _sse_42_gamma0_plus();
-
-    /* Multiply */
-    _sse_su3_inverse_multiply((*(um2)));
-
-    /* reconstruct accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma0_plus_add();
-    _sse_vector_store(r34_2);  
-      
+    dslash_plus_dir0_backward_add(*sm2, *um2, r12_2, r34_2);
     /******************************* direction +1 *********************************/
     /* OK, sp1, sp2 and up1, up2 should be prefetched */
 
@@ -448,106 +292,37 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     iy1 = backward_neighbor(shift_table,ix1,1);
     iy2 = backward_neighbor(shift_table,ix1+1,1);
     sm1 = &psi[iy1];
-    _prefetch_single(sm1);
+    prefetch_single(sm1);
     sm2 = &psi[iy2];
-    _prefetch_single(sm2);
+    prefetch_single(sm2);
 
-    /* First site */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-    /* Project */
-    _sse_42_gamma1_minus();
-
-    /* Multiply */
-    _sse_su3_multiply((*up1));
-
-    /* Reconstruct accumulate */
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);
-    _sse_vector_load(r34_1);
-    _sse_24_gamma1_minus();
-    _sse_vector_store(r34_1);
+    dslash_plus_dir1_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch gauge field for - direction */
     um1 = &(gauge_field[iy1][1]);
-    _prefetch_single(um1);      
+    prefetch_single(um1);      
     um2 = &(gauge_field[iy2][1]);
-    _prefetch_single(um2);
+    prefetch_single(um2);
 
-    /* Second site: */
-    /* Load */
-    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
-    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
-
-    /* Project */
-    _sse_42_gamma1_minus();
-
-    /* Multiply */
-    _sse_su3_multiply((*(up2)));
-
-    /* Reconstruct accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2); 
-      
-    _sse_vector_load(r34_2);
-    _sse_24_gamma1_minus();
-    _sse_vector_store(r34_2);
+    dslash_plus_dir1_forward_add(*sp2, *up2, r12_2, r34_2);
     
     /******************************* direction -1 *********************************/
 
     /* Prefetch forward neighbour for direction 2+ */
     sp1 = &psi[forward_neighbor(shift_table,ix1,2)];
-    _prefetch_single(sp1);
+    prefetch_single(sp1);
     sp2 = &psi[forward_neighbor(shift_table,ix1+1,2)];
-    _prefetch_single(sp2);
+    prefetch_single(sp2);
 
-    /* Site 1: */
-    /* Load */
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-
-    /* Project */
-    _sse_42_gamma1_plus();
-	  
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um1));
-
-    /* Reconstruct Accumulate */
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);      
-    _sse_vector_load(r34_1);
-    _sse_24_gamma1_plus();
-    _sse_vector_store(r34_1);      
+    dslash_plus_dir1_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch Gauge for next case: Direction 2 + */
     up1 = &(gauge_field[ix1][2]);
-    _prefetch_single(up1);      
+    prefetch_single(up1);      
     up2 = &(gauge_field[ix1+1][2]);
-    _prefetch_single(up2);
+    prefetch_single(up2);
 
-    /* Load */
-    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
-    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
-
-    /* Project */
-    _sse_42_gamma1_plus();
-
-    /* Multiply */
-    _sse_su3_inverse_multiply((*(um2)));
-
-    /* Recons Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);      
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma1_plus();
-    _sse_vector_store(r34_2); 
-
+    dslash_plus_dir1_backward_add(*sm2, *um2, r12_2, r34_2);
 
     /******************************* direction +2 *********************************/
     /* sp1, sp2, up1, up2 should be prefetched and in cache */
@@ -556,53 +331,20 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     /* Prefetch sm1 & sm2 for -ve direction */
     iy1 = backward_neighbor(shift_table,ix1,2);
     sm1 = &psi[iy1];
-    _prefetch_single(sm1);
+    prefetch_single(sm1);
     iy2 = backward_neighbor(shift_table,ix1+1,2);
     sm2 = &psi[iy2];
-    _prefetch_single(sm2);
+    prefetch_single(sm2);
 
-    /* Load */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-    /* Project */
-    _sse_42_gamma2_minus();
-
-    /* Multiply */
-    _sse_su3_multiply((*up1));
-
-    /* Recons Accumulate */
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);       
-    _sse_vector_load(r34_1);
-    _sse_24_gamma2_minus();
-    _sse_vector_store(r34_1);       
+    dslash_plus_dir2_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch gauge field for -ve case */
     um1 = &(gauge_field[iy1][2]);
-    _prefetch_single(um1);
+    prefetch_single(um1);
     um2 = &(gauge_field[iy2][2]);
-    _prefetch_single(um2);
+    prefetch_single(um2);
 
-    /* Second site: load */
-    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
-    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
-
-    /* Project */
-    _sse_42_gamma2_minus();
-
-    /* Multiply */
-    _sse_su3_multiply((*(up2)));
-
-    /* Recons/Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);       
-    _sse_vector_load(r34_2);
-    _sse_24_gamma2_minus();
-    _sse_vector_store(r34_2); 
-
+    dslash_plus_dir2_forward_add(*sp2, *up2, r12_2, r34_2);
     
     /******************************* direction -2 *********************************/
     /* sm1, sm2, um1, um2, should be prefetched and in cache                      */
@@ -610,52 +352,20 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     
     /* Prefetch spinors for direction 3+ */
     sp1 = &psi[ forward_neighbor(shift_table,ix1,3) ];
-    _prefetch_single(sp1);
+    prefetch_single(sp1);
     sp2 = &psi[ forward_neighbor(shift_table,ix1+1,3) ];
-    _prefetch_single(sp2);
+    prefetch_single(sp2);
+
+    dslash_plus_dir2_backward_add(*sm1, *um1, r12_1, r34_1);
     
       
-    /* First site: Load */
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-
-    /* Project */
-    _sse_42_gamma2_plus();      
-
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um1));
-
-    /* Recons/Accumulate */
-    _sse_vector_load(r12_1);
-    _sse_vector_add(); 
-    _sse_vector_store(r12_1);
-    _sse_vector_load(r34_1);
-    _sse_24_gamma2_plus();
-    _sse_vector_store(r34_1);
-
     /* Prefetch Gauge for the 3+ case */
     up1 = &(gauge_field[ix1][3]);
-    _prefetch_single(up1);
+    prefetch_single(up1);
     up2 = &(gauge_field[ix1+1][3]);
-    _prefetch_single(up2);
+    prefetch_single(up2);
 
-    /* Load */
-    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
-    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
-
-    /* Project */
-    _sse_42_gamma2_plus();      
-
-    /* Multiply */
-    _sse_su3_inverse_multiply((*(um2)));
-
-    /* Recons Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);
-    _sse_vector_load(r34_2);
-    _sse_24_gamma2_plus();
-    _sse_vector_store(r34_2);
+    dslash_plus_dir2_backward_add(*sm2, *um2, r12_2, r34_2);
 
 
     /******************************* direction +3 *********************************/
@@ -665,52 +375,20 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
     iy1 = backward_neighbor(shift_table,ix1,3);
     iy2 = backward_neighbor(shift_table,ix1+1,3);
     sm1 = &psi[iy1]; 
-    _prefetch_single(iy1); 
+    prefetch_single(iy1); 
     sm2 = &psi[iy2]; 
-    _prefetch_single(iy2) ;
+    prefetch_single(iy2) ;
 
-    /* Load */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-    /* Project */
-    _sse_42_gamma3_minus();
-      
-    /* Multiply */
-    _sse_su3_multiply((*up1));
-
-    /* Recons/Accumulate */
-    _sse_vector_load(r12_1);
-    _sse_24_gamma3_minus_rows12();
-    _sse_vector_store(r12_1);
-    _sse_vector_load(r34_1);
-    _sse_24_gamma3_minus();
-    _sse_vector_store(r34_1);      
+    dslash_plus_dir3_forward_add(*sp1, *up1, r12_1, r34_1);
 
      
     /* Prefetch um for - case */
     um1 = &(gauge_field[iy1][3]); 
-    _prefetch_single(um1);
+    prefetch_single(um1);
     um2 = &(gauge_field[iy2][3]);
-    _prefetch_single(um2);
+    prefetch_single(um2);
 
-    /* Site 2: Load */
-    _sse_pair_load((*sp2)[0],(*sp2)[1]);
-    _sse_pair_load_up((*sp2)[2],(*sp2)[3]);
-
-    /* Project */
-    _sse_42_gamma3_minus();
-      
-    /* Multiply */
-    _sse_su3_multiply((*(up2)));
-
-    /* Recons / Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_24_gamma3_minus_rows12();
-    _sse_vector_store(r12_2);
-    _sse_vector_load(r34_2);
-    _sse_24_gamma3_minus();
-    _sse_vector_store(r34_2); 
+    dslash_plus_dir3_forward_add(*sp2, *up2, r12_2, r34_2);
 
     /******************************* direction -3 *********************************/
     /* ok, here's where things change up a bit...we have to set the output instead of saving it back to temp */
@@ -728,73 +406,22 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
 
     /* Prefetch forward neighbour spinor */
     sp1 = &psi[ forward_neighbor(shift_table,iz1,0) ];
-    _prefetch_single(sp1);
+    prefetch_single(sp1);
     sp2 = &psi[ forward_neighbor(shift_table,iz1+1,0) ];
-    _prefetch_single(sp2);
+    prefetch_single(sp2);
 
-    /* Site1 : Load */
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-    
-    /* Project */
-    _sse_42_gamma3_plus();
-      
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um1));
-
-    /* Get address of result site */
     sn1 = &res[ix1];  /*we always walk across the result lexicographically */
-       
-    /* Recons 1st two rows */
-    _sse_vector_load(r12_1);
-    _sse_24_gamma3_plus_rows12();
-     
-    /* Store */
-    _sse_pair_store((*sn1)[0],(*sn1)[1]);
-
-    _sse_vector_load(r34_1);
-    
-    /* Recons 2nd two rows */
-    _sse_24_gamma3_plus();
-      
-    /* Store */
-    _sse_pair_store((*sn1)[2],(*sn1)[3]);      
+    dslash_plus_dir3_backward_add_store(*sm1, *um1, r12_1, r34_1, *sn1);
 
 
     /* Prefetch gauge field for next loop iteration (0 direction) */
     up1 = &(gauge_field[iz1][0]);
-    _prefetch_single(up1);
+    prefetch_single(up1);
     up2 = &(gauge_field[iz1+1][0]);
-    _prefetch_single(up2);
+    prefetch_single(up2);
 
-
-    /* Second site */
-
-    /* Load */
-    _sse_pair_load((*sm2)[0],(*sm2)[1]);
-    _sse_pair_load_up((*sm2)[2],(*sm2)[3]);
-
-    /* Recons */
-    _sse_42_gamma3_plus();
-      
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um2));
-
-    /* Recons row 12 */
-    _sse_vector_load(r12_2);
-    _sse_24_gamma3_plus_rows12();
-      
-    /* Store */
-    _sse_pair_store((*(sn1+1))[0],(*(sn1+1))[1]);
-
-    /* Recons row 34 */
-    _sse_vector_load(r34_2);
-    _sse_42_gamma3_plus();
-     
-    /* Store */
-    _sse_pair_store((*(sn1+1))[2],(*(sn1+1))[3]); 
+    dslash_plus_dir3_backward_add_store(*sm2, *um2, r12_2, r34_2, *(sn1+1));
 	  
-
     /******************************** end of loop *********************************/
       
   }
@@ -835,13 +462,6 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
   halfspinor_array r12_2;                         /* site 2 halfspinor top half */
   halfspinor_array r34_2;                         /* site 2 halfspinor bottom half */
   
-  static sse_float _sse_sgn12 ALIGN ={-1.0f,-1.0f,1.0f,1.0f}; 
-  static sse_float _sse_sgn13 ALIGN ={-1.0f,1.0f,-1.0f,1.0f}; 
-  static sse_float _sse_sgn14 ALIGN ={-1.0f,1.0f,1.0f,-1.0f}; 
-  static sse_float _sse_sgn23 ALIGN ={1.0f,-1.0f,-1.0f,1.0f}; 
-  static sse_float _sse_sgn24 ALIGN ={1.0f,-1.0f,1.0f,-1.0f}; 
-  static sse_float _sse_sgn34 ALIGN ={1.0f,1.0f,-1.0f,-1.0f}; 
-  static sse_float _sse_sgn1234 ALIGN = {-1.0f,-1.0f,-1.0f,-1.0f};
 
 
   /* Pull these out of the loop kind a like a prefetch */
@@ -864,45 +484,20 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     iy2 = backward_neighbor(shift_table,ix1+1,0);
 
     sm1 = &psi[iy1];
-    _prefetch_single(sm1);
+    prefetch_single(sm1);
     sm2 = &psi[iy2];
-    _prefetch_single(sm2);
+    prefetch_single(sm2);
 
-    /* Site1: Load */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-    /* Project */
-    _sse_42_gamma0_plus();
-    
-    /* Multiply */
-    _sse_su3_multiply((*up1));
-
-    /* Recons */
-    _sse_vector_store_up(r12_1);
-    _sse_24_gamma0_plus_set();
-    _sse_vector_store_up(r34_1);
+    dslash_minus_dir0_forward(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch gauge field for next part */
     um1 = &(gauge_field[iy1][0]);
-    _prefetch_single(um1);
+    prefetch_single(um1);
     um2 = &(gauge_field[iy2][0]);
-    _prefetch_single(um2);
+    prefetch_single(um2);
 
-    /* Site 2: Load */
-    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
-    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
+    dslash_minus_dir0_forward(*sp2, *up2, r12_2, r34_2);
 
-    /* Project */
-    _sse_42_gamma0_plus();
-
-    /* Multiply */
-    _sse_su3_multiply((*(up2)));
-
-    /* Recons */
-    _sse_vector_store_up(r12_2);
-    _sse_24_gamma0_plus_set(); 
-    _sse_vector_store_up(r34_2);
       
     /******************************* direction -0 *********************************/
     /* sm1, sm2, um1, um2 should be prefetched */
@@ -912,54 +507,20 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     /* Prefetch for next part (1+) */
     iy1 = forward_neighbor(shift_table,ix1,1);
     iy2 = forward_neighbor(shift_table,ix1+1,1);
-      sp1 = &psi[iy1];
-    _prefetch_single(sp1);
+    sp1 = &psi[iy1];
+    prefetch_single(sp1);
     sp2 = &psi[iy2];
-    _prefetch_single(sp2);
+    prefetch_single(sp2);
 
-    /* Site 1: Load */
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-
-    /* Project */
-    _sse_42_gamma0_minus();
-	 
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um1));
-
-    /* Recons/Accumulate */
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);
-    _sse_vector_load(r34_1);
-    _sse_24_gamma0_minus_add();
-    _sse_vector_store(r34_1);  
-
+    dslash_minus_dir0_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch gauge field for next part: (1+) */
     up1 = &(gauge_field[ix1][1]);
-    _prefetch_single(up1);      
+    prefetch_single(up1);      
     up2 = &(gauge_field[ix1+1][1]);
-    _prefetch_single(up2);
+    prefetch_single(up2);
 
-    /* Site 2: Load */
-    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
-    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
-    
-    /* Project */
-    _sse_42_gamma0_minus();
-
-    /* Multiply */
-    _sse_su3_inverse_multiply((*(um2)));
-
-    /* Recons / Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma0_minus_add();
-    _sse_vector_store(r34_2);  
+    dslash_minus_dir0_backward_add(*sm2, *um2, r12_2, r34_2);
       
 
     /******************************* direction +1 *********************************/
@@ -969,54 +530,20 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     iy1 = backward_neighbor(shift_table,ix1,1);
     iy2 = backward_neighbor(shift_table,ix1+1,1);
     sm1 = &psi[iy1];
-    _prefetch_single(sm1);
+    prefetch_single(sm1);
     sm2 = &psi[iy2];
-    _prefetch_single(sm2);
+    prefetch_single(sm2);
 
-    /* Site 1: Load */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-    /* Project */
-    _sse_42_gamma1_plus();
-
-    /* Multiply */
-    _sse_su3_multiply((*up1));
-
-    /* Recons / Accumulate */
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);
-
-    _sse_vector_load(r34_1);
-    _sse_24_gamma1_plus();
-    _sse_vector_store(r34_1);
+    dslash_minus_dir1_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch gauge links for next part (1-) */
     um1 = &(gauge_field[iy1][1]);
-    _prefetch_single(um1);      
+    prefetch_single(um1);      
     um2 = &(gauge_field[iy2][1]);
-    _prefetch_single(um2); 
+    prefetch_single(um2); 
 
+    dslash_minus_dir1_forward_add(*sp2, *up2, r12_2, r34_2);
       
-    /* Site2: Load */
-    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
-    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
-
-    /* Project */
-    _sse_42_gamma1_plus();
-
-    /* Multiply */
-    _sse_su3_multiply((*(up2)));
-
-    /* Recons Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add(); 
-    _sse_vector_store(r12_2);  
-
-    _sse_vector_load(r34_2); 
-    _sse_24_gamma1_plus(); 
-    _sse_vector_store(r34_2); 
 
 
     /******************************* direction -1 *********************************/
@@ -1025,53 +552,19 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     iy1 = forward_neighbor(shift_table,ix1,2);
     iy2 = forward_neighbor(shift_table,ix1+1,2);
     sp1 = &psi[iy1];
-    _prefetch_single(sp1);
+    prefetch_single(sp1);
     sp2 = &psi[iy2];
-    _prefetch_single(sp2);
+    prefetch_single(sp2);
 
-    /* Site 1:  Load */
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-
-    /* Project */
-    _sse_42_gamma1_minus();
-	  
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um1));
-
-    /* Recons / Accumulate */
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);      
-
-    _sse_vector_load(r34_1);
-    _sse_24_gamma1_minus();
-    _sse_vector_store(r34_1);      
+    dslash_minus_dir1_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch gauge field for next part (2+) */
     up1 = &(gauge_field[ix1][2]);
-    _prefetch_single(up1);       
+    prefetch_single(up1);       
     up2 = &(gauge_field[ix1+1][2]); 
-    _prefetch_single(up2); 
+    prefetch_single(up2); 
 
-    /* Site 2: Load */
-    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
-    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
-
-    /* Project */
-    _sse_42_gamma1_minus();
-
-    /* Multiply */
-    _sse_su3_inverse_multiply((*(um2)));
-
-    /* Recons Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);      
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma1_minus();
-    _sse_vector_store(r34_2); 
+    dslash_minus_dir1_backward_add(*sm2, *um2, r12_2, r34_2);
 
     /******************************* direction +2 *********************************/
     /* sp1, sp2, up1, up2 should  be in cache                                     */
@@ -1079,54 +572,20 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     /* Prefetch spinors for next part: 2- */
     iy1 = backward_neighbor(shift_table,ix1,2);
     sm1 = &psi[iy1];
-    _prefetch_single(sm1);
+    prefetch_single(sm1);
      iy2 = backward_neighbor(shift_table,ix1+1,2);
     sm2 = &psi[iy2];
-    _prefetch_single(sm2);
+    prefetch_single(sm2);
 
-    /* Site 1: Load */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-    /* Project */
-    _sse_42_gamma2_plus();
-
-    /* Multiply */
-    _sse_su3_multiply((*up1));
-
-    /* Accumulate / recons */
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);       
-
-    _sse_vector_load(r34_1);
-    _sse_24_gamma2_plus();
-    _sse_vector_store(r34_1);       
+    dslash_minus_dir2_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch Gauge field for next part: 2- */
     um1 = &(gauge_field[iy1][2]);
-    _prefetch_single(um1);
+    prefetch_single(um1);
     um2 = &(gauge_field[iy2][2]);
-    _prefetch_single(um2);
+    prefetch_single(um2);
 
-    /* Site 2: Load */
-    _sse_pair_load((*(sp2))[0],(*(sp2))[1]);
-    _sse_pair_load_up((*(sp2))[2],(*(sp2))[3]);
-
-    /* Project */
-    _sse_42_gamma2_plus();
-
-    /* Multiply */
-    _sse_su3_multiply((*(up2)));
-
-    /* Recons / Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add(); 
-    _sse_vector_store(r12_2);        
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma2_plus();
-    _sse_vector_store(r34_2); 
+    dslash_minus_dir2_forward_add(*sp2, *up2, r12_2, r34_2);
  
     /******************************* direction -2 *********************************/
 
@@ -1135,56 +594,19 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     /* Prefetch spinor for next case: 3+ */
     iy1 = forward_neighbor(shift_table,ix1,3);
     sp1 = &psi[iy1];
-    _prefetch_single(sp1);
+    prefetch_single(sp1);
     iy2 = forward_neighbor(shift_table,ix1+1,3); 
     sp2 = &psi[iy2];
-    _prefetch_single(sp2);
-
-
-    /* Site 1: Load */
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-
-    /* Project */
-    _sse_42_gamma2_minus();      
-
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um1));
-
-    /* Recons/Accumulate*/
-    _sse_vector_load(r12_1);
-    _sse_vector_add();
-    _sse_vector_store(r12_1);
-      
-    _sse_vector_load(r34_1);
-    _sse_24_gamma2_minus();
-    _sse_vector_store(r34_1);
+    prefetch_single(sp2);
+    dslash_minus_dir2_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch gauge for next case: 3+ */
     up1 = &(gauge_field[ix1][3]);
-    _prefetch_single(up1);
+    prefetch_single(up1);
     up2 = &(gauge_field[ix1+1][3]);
-    _prefetch_single(up2);
+    prefetch_single(up2);
      
-    /* Site 2: Load */
-    _sse_pair_load((*(sm2))[0],(*(sm2))[1]);
-    _sse_pair_load_up((*(sm2))[2],(*(sm2))[3]);
-    
-    /* Project */
-    _sse_42_gamma2_minus();      
-
-    /* Multiply */
-    _sse_su3_inverse_multiply((*(um2)));
-
-    /* Recons/ Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_vector_add();
-    _sse_vector_store(r12_2);
-      
-    _sse_vector_load(r34_2);
-    _sse_24_gamma2_minus();
-    _sse_vector_store(r34_2); 
-
+    dslash_minus_dir2_backward_add(*sm2, *um2, r12_2, r34_2);
     
     /******************************* direction +3 *********************************/
     /* sp1, sp2, up1, up2 should be in cache */
@@ -1193,54 +615,19 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     iy1 = backward_neighbor(shift_table,ix1,3);
     iy2 = backward_neighbor(shift_table,ix1+1,3);
     sm1 = &psi[iy1];
-    _prefetch_single(iy1);
+    prefetch_single(iy1);
     sm2 = &psi[iy2];
-    _prefetch_single(iy2);
+    prefetch_single(iy2);
 
-
-    /* Site 1: Load */
-    _sse_pair_load((*sp1)[0],(*sp1)[1]);
-    _sse_pair_load_up((*sp1)[2],(*sp1)[3]);
-
-    /* project */
-    _sse_42_gamma3_plus();
-      
-    /* Multiply */
-    _sse_su3_multiply((*up1));
-
-    /* Recons Accumulate */
-    _sse_vector_load(r12_1);
-    _sse_24_gamma3_plus_rows12();
-    _sse_vector_store(r12_1);
-
-    _sse_vector_load(r34_1);
-    _sse_24_gamma3_plus();
-    _sse_vector_store(r34_1);      
+    dslash_minus_dir3_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch gauge field for next part: 3- */
     um1 = &(gauge_field[iy1][3]); 
-    _prefetch_single(um1);
+    prefetch_single(um1);
     um2 = &(gauge_field[iy2][3]);
-    _prefetch_single(um2);
+    prefetch_single(um2);
 
-    /* Site 2: Load */
-    _sse_pair_load((*sp2)[0],(*sp2)[1]);
-    _sse_pair_load_up((*sp2)[2],(*sp2)[3]);
-
-    /* Project */
-    _sse_42_gamma3_plus();
-      
-    /* Multiply */
-    _sse_su3_multiply((*(up2)));
-
-    /* Recons Accumulate */
-    _sse_vector_load(r12_2);
-    _sse_24_gamma3_plus_rows12();
-    _sse_vector_store(r12_2);
-
-    _sse_vector_load(r34_2);
-    _sse_24_gamma3_plus();
-    _sse_vector_store(r34_2); 
+    dslash_minus_dir3_forward_add(*sp2, *up2, r12_2, r34_2);
 
     /******************************* direction -3 *********************************/
     
@@ -1257,60 +644,22 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     /* Prefetch spinor for firt case: 0+ */
     iy1 = forward_neighbor(shift_table,iz1,0);
     sp1 = &psi[iy1];
-    _prefetch_single(sp1);
+    prefetch_single(sp1);
     iy2 = forward_neighbor(shift_table,iz1+1,0);
     sp2 = &psi[iy2];
-    _prefetch_single(sp2);
+    prefetch_single(sp2);
 
-    /* Site 1: Load */
-    _sse_pair_load((*sm1)[0],(*sm1)[1]);
-    _sse_pair_load_up((*sm1)[2],(*sm1)[3]);
-
-    /* Project */
-    _sse_42_gamma3_minus();
-      
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um1));
-
-    /* Recons/Accumulate and set in res */
     sn1 = &res[ix1];     
-   
-    /* Top half spinor */
-    _sse_vector_load(r12_1);
-    _sse_24_gamma3_minus_rows12();
-    _sse_pair_store((*sn1)[0],(*sn1)[1]);
+    dslash_minus_dir3_backward_add_store(*sm1, *um1, r12_1, r34_1, *sn1);
 
-    /* Bottom half spinor */
-    _sse_vector_load(r34_1);
-    _sse_24_gamma3_minus();
-    _sse_pair_store((*sn1)[2],(*sn1)[3]);      
 
     /* Prefetch Gauge field for next case: 0+ */
     up1 = &(gauge_field[iz1][0]);
-    _prefetch_single(up1);
+    prefetch_single(up1);
     up2 = &(gauge_field[iz1+1][0]);
-    _prefetch_single(up2);
+    prefetch_single(up2);
 
-    /* Site 2: Load */
-    _sse_pair_load((*sm2)[0],(*sm2)[1]);
-    _sse_pair_load_up((*sm2)[2],(*sm2)[3]);
-
-    /* Project */
-    _sse_42_gamma3_minus();
-      
-    /* Multiply */
-    _sse_su3_inverse_multiply((*um2));
-
-    /* Recons/Accumulate and set in res */
-    /* Top Half */
-    _sse_vector_load(r12_2);
-    _sse_24_gamma3_minus_rows12();
-    _sse_pair_store((*(sn1+1))[0],(*(sn1+1))[1]);
-
-    /* Bottom Half */
-    _sse_vector_load(r34_2);
-    _sse_42_gamma3_minus();
-    _sse_pair_store((*(sn1+1))[2],(*(sn1+1))[3]); 
+    dslash_minus_dir3_backward_add_store(*sm2, *um2, r12_2, r34_2, *(sn1+1));
     /******************************** end of loop *********************************/
   }
 

@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# $Id: Makefile.in,v 1.8 2007-10-01 18:45:42 bjoo Exp $
+# $Id: Makefile.in,v 1.9 2007-10-02 20:40:21 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -45,9 +45,9 @@ host_triplet = @host@
 #
 # An AM_CONDITIONAL if statement to decide which fermion type
 #
-@SCALAR_SINGLE_TRUE@am__append_1 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c
+@SCALAR_SINGLE_TRUE@am__append_1 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c site_dslash_32bit_scalar.c
 @BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@am__append_2 = qdp_packer_nopad.cc
-@SCALAR_DOUBLE_TRUE@am__append_3 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c
+@SCALAR_DOUBLE_TRUE@am__append_3 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c site_dslash_64bit_scalar.c
 @BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@am__append_4 = qdp_packer_nopad.cc
 @PARSCALAR_SINGLE_TRUE@am__append_5 = shift_tables_parscalar.c \
 @PARSCALAR_SINGLE_TRUE@	packer_p4_pad.c \
@@ -94,7 +94,8 @@ liblevel3_a_AR = $(AR) $(ARFLAGS)
 liblevel3_a_LIBADD =
 am__liblevel3_a_SOURCES_DIST = shift_tables_scalar.c packer_nopad.c \
 	sse_su3dslash_32bit_scalar.c dispatch_scalar.c \
-	qdp_packer_nopad.cc sse_su3dslash_64bit_scalar.c \
+	site_dslash_32bit_scalar.c qdp_packer_nopad.cc \
+	sse_su3dslash_64bit_scalar.c site_dslash_64bit_scalar.c \
 	shift_tables_parscalar.c packer_p4_pad.c \
 	sse_su3dslash_32bit_parscalar.c dispatch_parscalar.c \
 	decomp_32bit_parscalar.c decomp_hvv_32bit_parscalar.c \
@@ -105,12 +106,14 @@ am__liblevel3_a_SOURCES_DIST = shift_tables_scalar.c packer_nopad.c \
 @SCALAR_SINGLE_TRUE@am__objects_1 = shift_tables_scalar.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	packer_nopad.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_scalar.$(OBJEXT) \
-@SCALAR_SINGLE_TRUE@	dispatch_scalar.$(OBJEXT)
+@SCALAR_SINGLE_TRUE@	dispatch_scalar.$(OBJEXT) \
+@SCALAR_SINGLE_TRUE@	site_dslash_32bit_scalar.$(OBJEXT)
 @BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@am__objects_2 = qdp_packer_nopad.$(OBJEXT)
 @SCALAR_DOUBLE_TRUE@am__objects_3 = shift_tables_scalar.$(OBJEXT) \
 @SCALAR_DOUBLE_TRUE@	packer_nopad.$(OBJEXT) \
 @SCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_scalar.$(OBJEXT) \
-@SCALAR_DOUBLE_TRUE@	dispatch_scalar.$(OBJEXT)
+@SCALAR_DOUBLE_TRUE@	dispatch_scalar.$(OBJEXT) \
+@SCALAR_DOUBLE_TRUE@	site_dslash_64bit_scalar.$(OBJEXT)
 @BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@am__objects_4 = qdp_packer_nopad.$(OBJEXT)
 @PARSCALAR_SINGLE_TRUE@am__objects_5 =  \
 @PARSCALAR_SINGLE_TRUE@	shift_tables_parscalar.$(OBJEXT) \
@@ -365,6 +368,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/recons_64bit_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shift_tables_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shift_tables_scalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/site_dslash_32bit_scalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/site_dslash_64bit_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_64bit_parscalar.Po@am__quote@

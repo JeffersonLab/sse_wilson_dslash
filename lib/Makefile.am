@@ -1,4 +1,4 @@
-# $Id: Makefile.am,v 1.5 2007-10-01 18:17:18 bjoo Exp $
+# $Id: Makefile.am,v 1.6 2007-10-02 20:40:21 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -26,14 +26,14 @@ liblevel3_a_SOURCES =
 #
 
 if SCALAR_SINGLE
-liblevel3_a_SOURCES += shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c
+liblevel3_a_SOURCES += shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c site_dslash_32bit_scalar.c
 if BUILD_QDP_PACKERS
 liblevel3_a_SOURCES += qdp_packer_nopad.cc
 endif
 endif
 
 if SCALAR_DOUBLE
-liblevel3_a_SOURCES += shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c
+liblevel3_a_SOURCES += shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c site_dslash_64bit_scalar.c
 if BUILD_QDP_PACKERS
 liblevel3_a_SOURCES += qdp_packer_nopad.cc
 endif
