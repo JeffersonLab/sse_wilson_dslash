@@ -13,16 +13,16 @@
 extern "C" { 
 #endif
 
-void recons_4dir_plus(const halfspinor_array hs0,
-		      const halfspinor_array hs1,
-		      const halfspinor_array hs2,
-		      const halfspinor_array hs3,
+void recons_4dir_plus( halfspinor_array hs0,
+		       halfspinor_array hs1,
+		       halfspinor_array hs2,
+		       halfspinor_array hs3,
 		      spinor_array spinor);
 
-void recons_4dir_minus(const halfspinor_array hs0,
-		       const halfspinor_array hs1,
-		       const halfspinor_array hs2,
-		       const halfspinor_array hs3,
+void recons_4dir_minus( halfspinor_array hs0,
+		        halfspinor_array hs1,
+		        halfspinor_array hs2,
+		        halfspinor_array hs3,
 		       spinor_array spinor);
 
 

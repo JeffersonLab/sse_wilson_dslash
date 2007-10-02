@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.7 2007-10-01 18:45:42 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.8 2007-10-02 20:54:34 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -65,7 +65,10 @@ extern "C" {
 #include <sse_align.h>
 #include <dispatch_parscalar.h>
 #include <shift_tables_parscalar.h>
-
+#include <decomp.h>
+#include <decomp_hvv.h>
+#include <recons.h>
+#include <mvv_recons_64bit.h>
 
 static int initP=0;
 
@@ -210,28 +213,28 @@ void mvv_recons_plus(size_t lo, size_t hi, int id, const void *ptr)
     /******************************* direction +0 *********************************/	
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     prefetch_spinor(s4);
-    mvv_recons_gamma0_plus(*s3, up, part_sum);
+    mvv_recons_gamma0_plus(*s3, *up, part_sum);
 
 	   
     /******************************* direction +1 *********************************/
     up=&gauge_field[ix1][1];
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     prefetch_spinor(s3);
-    mvv_recons_gamma1_plus_add(*s4, up, part_sum);
+    mvv_recons_gamma1_plus_add(*s4, *up, part_sum);
 
 
     /******************************* direction +2 *********************************/
     up=&gauge_field[ix1][2];
     s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     prefetch_spinor(s4);
-    mvv_recons_gamma2_plus_add(*s3, up, part_sum);
+    mvv_recons_gamma2_plus_add(*s3, *up, part_sum);
 
 
     /******************************* direction +3 *********************************/     
     up=&gauge_field[ix1][3];	 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
     prefetch_spinor(s3);
-    mvv_recons_gamma3_plus_add_store(*s4, up, part_sum, result);
+    mvv_recons_gamma3_plus_add_store(*s4, *up, part_sum, *result);
     up=&gauge_field[ix1+1][0];
   }
 }
@@ -253,7 +256,7 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
 
-  halfspinor_array *s2 ALIGN, *hs0 ALIGN , *hs1 ALIGN, *hs2 ALIGN, *hs3 ALIGN;
+  halfspinor_array *hs0 ALIGN , *hs1 ALIGN, *hs2 ALIGN, *hs3 ALIGN;
   spinor_array *s1 ALIGN, *rn ALIGN;
 
   const int PREFDIST=3;
@@ -460,7 +463,7 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
 
-  halfspinor_array *s2 ALIGN,  *hs0,*hs1,*hs2,*hs3;   
+  halfspinor_array *hs0,*hs1,*hs2,*hs3;   
   spinor_array  *s1 ALIGN,  *rn ALIGN;
 
   const int PREFDIST=3;

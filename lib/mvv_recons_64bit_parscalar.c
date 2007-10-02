@@ -16,8 +16,8 @@ extern "C" {
     __m128d vector;
   } SSEMask2;
 
-void mvv_recons_gamma0_plus(const halfspinor_array src, 
-			    const u_mat_array u,
+void mvv_recons_gamma0_plus( halfspinor_array src, 
+			     u_mat_array u,
 			    spinor_array dst)
 {
   __m128d xmm0 ALIGN;
@@ -270,8 +270,8 @@ void mvv_recons_gamma0_plus(const halfspinor_array src,
 
 }
 
-void mvv_recons_gamma1_plus_add(const halfspinor_array src, 
-				const u_mat_array u,
+void mvv_recons_gamma1_plus_add( halfspinor_array src, 
+				 u_mat_array u,
 				spinor_array dst)
 {
   __m128d xmm0 ALIGN;
@@ -543,8 +543,8 @@ void mvv_recons_gamma1_plus_add(const halfspinor_array src,
 
 }
 
-void mvv_recons_gamma2_plus_add(const halfspinor_array src, 
-				const u_mat_array u,
+void mvv_recons_gamma2_plus_add( halfspinor_array src, 
+				 u_mat_array u,
 				spinor_array dst)
 {
   __m128d xmm0 ALIGN;
@@ -836,9 +836,9 @@ void mvv_recons_gamma2_plus_add(const halfspinor_array src,
 
 
 
-void mvv_recons_gamma3_plus_add_store(const halfspinor_array src, 
-			    const u_mat_array u,
-			    const spinor_array sum,
+void mvv_recons_gamma3_plus_add_store( halfspinor_array src, 
+			     u_mat_array u,
+			     spinor_array sum,
 			    spinor_array dst)
 {
   __m128d xmm0 ALIGN;
@@ -1102,8 +1102,8 @@ void mvv_recons_gamma3_plus_add_store(const halfspinor_array src,
 
 
 
-void mvv_recons_gamma0_minus(const halfspinor_array src, 
-			    const u_mat_array u,
+void mvv_recons_gamma0_minus( halfspinor_array src, 
+			     u_mat_array u,
 			    spinor_array dst)
 {
   __m128d xmm0 ALIGN;
@@ -1357,8 +1357,8 @@ void mvv_recons_gamma0_minus(const halfspinor_array src,
 
 }
 
-void mvv_recons_gamma1_minus_add(const halfspinor_array src, 
-				const u_mat_array u,
+void mvv_recons_gamma1_minus_add( halfspinor_array src, 
+				 u_mat_array u,
 				spinor_array dst)
 {
   __m128d xmm0 ALIGN;
@@ -1630,8 +1630,8 @@ void mvv_recons_gamma1_minus_add(const halfspinor_array src,
 
 }
 
-void mvv_recons_gamma2_minus_add(const halfspinor_array src, 
-				const u_mat_array u,
+void mvv_recons_gamma2_minus_add( halfspinor_array src, 
+				 u_mat_array u,
 				spinor_array dst)
 {
   __m128d xmm0 ALIGN;
@@ -1923,9 +1923,9 @@ void mvv_recons_gamma2_minus_add(const halfspinor_array src,
 
 
 
-void mvv_recons_gamma3_minus_add_store(const halfspinor_array src, 
-			    const u_mat_array u,
-			    const spinor_array sum,
+void mvv_recons_gamma3_minus_add_store( halfspinor_array src, 
+			     u_mat_array u,
+			     spinor_array sum,
 			    spinor_array dst)
 {
   __m128d xmm0 ALIGN;

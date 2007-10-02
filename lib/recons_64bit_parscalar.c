@@ -12,10 +12,10 @@ extern "C" {
     __m128d vector;
   } SSEMask;
 
-void recons_4dir_plus(const halfspinor_array hs0,
-		      const halfspinor_array hs1,
-		      const halfspinor_array hs2,
-		      const halfspinor_array hs3,
+void recons_4dir_plus( halfspinor_array hs0,
+		       halfspinor_array hs1,
+		       halfspinor_array hs2,
+		       halfspinor_array hs3,
 		      spinor_array spinor)
 {
   __m128d xmm0 ALIGN;
@@ -24,8 +24,6 @@ void recons_4dir_plus(const halfspinor_array hs0,
   __m128d xmm3 ALIGN;
   __m128d xmm4 ALIGN;
   __m128d xmm5 ALIGN;
-  __m128d xmm6 ALIGN;
-  __m128d xmm7 ALIGN;
 
   SSEMask sse_sgn ALIGN = {{0x0, 0x80000000, 0x0,0x0 }};
 
@@ -236,10 +234,10 @@ void recons_4dir_plus(const halfspinor_array hs0,
 
 }
 
-void recons_4dir_minus(const halfspinor_array hs0,
-		       const halfspinor_array hs1,
-		       const halfspinor_array hs2,
-		       const halfspinor_array hs3,
+void recons_4dir_minus( halfspinor_array hs0,
+		        halfspinor_array hs1,
+		        halfspinor_array hs2,
+		        halfspinor_array hs3,
 		       spinor_array spinor)
 {
   __m128d xmm0 ALIGN;
@@ -248,8 +246,7 @@ void recons_4dir_minus(const halfspinor_array hs0,
   __m128d xmm3 ALIGN;
   __m128d xmm4 ALIGN;
   __m128d xmm5 ALIGN;
-  __m128d xmm6 ALIGN;
-  __m128d xmm7 ALIGN;
+
 
   SSEMask sse_sgn ALIGN = {{0x0, 0x80000000, 0x0,0x0 }};
 

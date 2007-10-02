@@ -37,9 +37,10 @@ build_triplet = @build@
 host_triplet = @host@
 check_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_QDP_TESTS_TRUE@am__append_1 = t_dslash
-@SCALAR_SINGLE_TRUE@am__append_2 = t_dslash_scalar.cc testSiteDslash.h testSiteDslash32bit.cc
-@SCALAR_DOUBLE_TRUE@am__append_3 = t_dslash_scalar.cc testSiteDslash.h testSiteDslash64bit.cc
+@SCALAR_SINGLE_TRUE@am__append_2 = t_dslash_scalar.cc testSiteDslash.h sse32.h testSiteDslash32bit.cc
+@SCALAR_DOUBLE_TRUE@am__append_3 = t_dslash_scalar.cc testSiteDslash.h sse64.h testSiteDslash64bit.cc
 @PARSCALAR_SINGLE_TRUE@am__append_4 = t_dslash_parscalar.cc \
+@PARSCALAR_SINGLE_TRUE@	sse32.h \
 @PARSCALAR_SINGLE_TRUE@	testDecomp.h \
 @PARSCALAR_SINGLE_TRUE@	testDecompHvv.h \
 @PARSCALAR_SINGLE_TRUE@	testMvvRecons.h \
@@ -51,6 +52,7 @@ check_PROGRAMS = $(am__EXEEXT_1)
 
 @PARSCALAR_DOUBLE_TRUE@am__append_5 = \
 @PARSCALAR_DOUBLE_TRUE@	t_dslash_parscalar.cc \
+@PARSCALAR_DOUBLE_TRUE@	sse64.h \
 @PARSCALAR_DOUBLE_TRUE@	testDecomp.h \
 @PARSCALAR_DOUBLE_TRUE@	testDecompHvv.h \
 @PARSCALAR_DOUBLE_TRUE@	testMvvRecons.h \
@@ -73,12 +75,13 @@ CONFIG_CLEAN_FILES =
 @BUILD_QDP_TESTS_TRUE@am__EXEEXT_1 = t_dslash$(EXEEXT)
 am__t_dslash_SOURCES_DIST = unittest.h dslashm_w.h dslashm_w.cc \
 	reunit.h reunit.cc testDslashFull.h testDslashFull.cc \
-	t_dslash_scalar.cc testSiteDslash.h testSiteDslash32bit.cc \
-	testSiteDslash64bit.cc t_dslash_parscalar.cc testDecomp.h \
-	testDecompHvv.h testMvvRecons.h testRecons.h \
-	testDecomp32bit.cc testDecompHvv32bit.cc testMvvRecons32bit.cc \
-	testRecons32bit.cc testDecomp64bit.cc testDecompHvv64bit.cc \
-	testMvvRecons64bit.cc testRecons64bit.cc
+	t_dslash_scalar.cc testSiteDslash.h sse32.h \
+	testSiteDslash32bit.cc sse64.h testSiteDslash64bit.cc \
+	t_dslash_parscalar.cc testDecomp.h testDecompHvv.h \
+	testMvvRecons.h testRecons.h testDecomp32bit.cc \
+	testDecompHvv32bit.cc testMvvRecons32bit.cc testRecons32bit.cc \
+	testDecomp64bit.cc testDecompHvv64bit.cc testMvvRecons64bit.cc \
+	testRecons64bit.cc
 @SCALAR_SINGLE_TRUE@am__objects_1 = t_dslash_scalar.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	testSiteDslash32bit.$(OBJEXT)
 @SCALAR_DOUBLE_TRUE@am__objects_2 = t_dslash_scalar.$(OBJEXT) \

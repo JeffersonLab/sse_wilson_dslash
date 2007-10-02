@@ -13,37 +13,37 @@
 extern "C" { 
 #endif
 
-void decomp_hvv_gamma0_plus(const spinor_array src, 
-			    const u_mat_array u,
+void decomp_hvv_gamma0_plus( spinor_array src, 
+			     u_mat_array u,
 			    halfspinor_array dst);
 
-void decomp_hvv_gamma1_plus(const spinor_array src, 
-			    const u_mat_array u,
+void decomp_hvv_gamma1_plus( spinor_array src, 
+			     u_mat_array u,
 			    halfspinor_array dst);
 
-void decomp_hvv_gamma2_plus(const spinor_array src, 
-			    const u_mat_array u,
+void decomp_hvv_gamma2_plus( spinor_array src, 
+			     u_mat_array u,
 			    halfspinor_array dst);
 
-void decomp_hvv_gamma3_plus(const spinor_array src, 
-			    const u_mat_array u,
+void decomp_hvv_gamma3_plus( spinor_array src, 
+			     u_mat_array u,
 			    halfspinor_array dst);
 
-void decomp_hvv_gamma0_minus(const spinor_array src, 
-			    const u_mat_array u,
+void decomp_hvv_gamma0_minus( spinor_array src, 
+			     u_mat_array u,
 			    halfspinor_array dst);
 
-void decomp_hvv_gamma1_minus(const spinor_array src, 
-			    const u_mat_array u,
+void decomp_hvv_gamma1_minus( spinor_array src, 
+			     u_mat_array u,
 			    halfspinor_array dst);
 
-void decomp_hvv_gamma2_minus(const spinor_array src, 
-			    const u_mat_array u,
+void decomp_hvv_gamma2_minus( spinor_array src, 
+			     u_mat_array u,
 			    halfspinor_array dst);
 
 
-void decomp_hvv_gamma3_minus(const spinor_array src, 
-			    const u_mat_array u,
+void decomp_hvv_gamma3_minus( spinor_array src, 
+			     u_mat_array u,
 			    halfspinor_array dst);
 
 #ifdef __cplusplus
