@@ -24,6 +24,16 @@ AC_ARG_ENABLE(parallel-arch,
   [ PARALLEL_ARCH="${enableval}"]
 )
 
+AC_ARG_ENABLE(testing,
+   AC_HELP_STRING([--enable-testing],
+   [Enable make check to automatically run tests, rather than just build them]),   [ do_tests="${enableval}" ]
+)
+
+AC_ARG_ENABLE(site-tests,
+  AC_HELP_STRING([--enable-site-tests],
+   [Enable building of site-ops tests. These still use inline assembler so may not be suitable for all compilers ]),
+   [ site_tests="${enableval}"]
+)
 
 dnl learn the precision
 AC_ARG_ENABLE(precision, 
@@ -74,9 +84,27 @@ AC_ARG_WITH(qdp,
   [ QDPXX_GIVEN="no" ]
 )
 
+
+
 dnl dnl ******************** DONE WITH USER INPUT *********************
 dnl dnl ***        Now Configuration                               ****
 dnl dnl ***************************************************************
+if test "X${site_tests}X" = "XyesX" ; 
+then 
+ AC_MSG_NOTICE([ Building Site Tests ] )
+else 
+ AC_MSG_NOTICE([ Not building site tests ] )
+fi
+AM_CONDITIONAL(BUILD_SITE_TESTS, [ test "X${site_tests}X" == "XyesX" ] )
+
+if test "X${do_tests}X" == "XyesX" ;
+then
+ AC_MSG_NOTICE([ Enabling automatic running of tests for make check ])
+else
+ AC_MSG_NOTICE([ make check will make but not run the tests ])
+fi
+
+AM_CONDITIONAL(RUN_TESTS, [ test "X${do_tests}X" == "XyesX" ] )
 dnl 
 dnl     ***************************************************************
 dnl     ***       There are two distinct branches depending         ***
@@ -85,6 +113,10 @@ dnl     ***************************************************************
 
 dnl 
 AM_CONDITIONAL(BUILD_QDP_TESTS, [ test "X${QDPXX_GIVEN}X" == "XyesX" ] )
+
+
+
+
 
 if test "X${QDPXX_GIVEN}X" = "XyesX"; then 
      dnl Find the QDP++ config program 

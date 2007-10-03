@@ -35,33 +35,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-check_PROGRAMS = $(am__EXEEXT_1)
-@BUILD_QDP_TESTS_TRUE@am__append_1 = t_dslash
-@SCALAR_SINGLE_TRUE@am__append_2 = t_dslash_scalar.cc testSiteDslash.h sse32.h testSiteDslash32bit.cc
-@SCALAR_DOUBLE_TRUE@am__append_3 = t_dslash_scalar.cc testSiteDslash.h sse64.h testSiteDslash64bit.cc
-@PARSCALAR_SINGLE_TRUE@am__append_4 = t_dslash_parscalar.cc \
-@PARSCALAR_SINGLE_TRUE@	sse32.h \
-@PARSCALAR_SINGLE_TRUE@	testDecomp.h \
-@PARSCALAR_SINGLE_TRUE@	testDecompHvv.h \
-@PARSCALAR_SINGLE_TRUE@	testMvvRecons.h \
-@PARSCALAR_SINGLE_TRUE@	testRecons.h \
-@PARSCALAR_SINGLE_TRUE@	testDecomp32bit.cc \
-@PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.cc \
-@PARSCALAR_SINGLE_TRUE@	testMvvRecons32bit.cc \
-@PARSCALAR_SINGLE_TRUE@	testRecons32bit.cc
-
-@PARSCALAR_DOUBLE_TRUE@am__append_5 = \
-@PARSCALAR_DOUBLE_TRUE@	t_dslash_parscalar.cc \
-@PARSCALAR_DOUBLE_TRUE@	sse64.h \
-@PARSCALAR_DOUBLE_TRUE@	testDecomp.h \
-@PARSCALAR_DOUBLE_TRUE@	testDecompHvv.h \
-@PARSCALAR_DOUBLE_TRUE@	testMvvRecons.h \
-@PARSCALAR_DOUBLE_TRUE@	testRecons.h \
-@PARSCALAR_DOUBLE_TRUE@	testDecomp64bit.cc \
-@PARSCALAR_DOUBLE_TRUE@	testDecompHvv64bit.cc \
-@PARSCALAR_DOUBLE_TRUE@	testMvvRecons64bit.cc \
-@PARSCALAR_DOUBLE_TRUE@	testRecons64bit.cc
-
+check_PROGRAMS = t_dslash$(EXEEXT) $(am__EXEEXT_1)
+@BUILD_SITE_TESTS_TRUE@am__append_1 = t_site_ops
+@RUN_TESTS_TRUE@am__append_2 = $(check_PROGRAMS)
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -72,35 +48,40 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/include/sse_config_internal.h
 CONFIG_CLEAN_FILES =
-@BUILD_QDP_TESTS_TRUE@am__EXEEXT_1 = t_dslash$(EXEEXT)
-am__t_dslash_SOURCES_DIST = unittest.h dslashm_w.h dslashm_w.cc \
-	reunit.h reunit.cc testDslashFull.h testDslashFull.cc \
-	t_dslash_scalar.cc testSiteDslash.h sse32.h \
-	testSiteDslash32bit.cc sse64.h testSiteDslash64bit.cc \
-	t_dslash_parscalar.cc testDecomp.h testDecompHvv.h \
-	testMvvRecons.h testRecons.h testDecomp32bit.cc \
-	testDecompHvv32bit.cc testMvvRecons32bit.cc testRecons32bit.cc \
+@BUILD_SITE_TESTS_TRUE@am__EXEEXT_1 = t_site_ops$(EXEEXT)
+am__objects_1 = dslashm_w.$(OBJEXT) reunit.$(OBJEXT)
+am_t_dslash_OBJECTS = $(am__objects_1) testDslashFull.$(OBJEXT) \
+	t_dslash.$(OBJEXT)
+t_dslash_OBJECTS = $(am_t_dslash_OBJECTS)
+t_dslash_LDADD = $(LDADD)
+am__t_site_ops_SOURCES_DIST = unittest.h dslashm_w.h dslashm_w.cc \
+	reunit.h reunit.cc t_site_ops_parscalar.cc sse64.h \
+	testDecomp.h testDecompHvv.h testMvvRecons.h testRecons.h \
 	testDecomp64bit.cc testDecompHvv64bit.cc testMvvRecons64bit.cc \
-	testRecons64bit.cc
-@SCALAR_SINGLE_TRUE@am__objects_1 = t_dslash_scalar.$(OBJEXT) \
-@SCALAR_SINGLE_TRUE@	testSiteDslash32bit.$(OBJEXT)
-@SCALAR_DOUBLE_TRUE@am__objects_2 = t_dslash_scalar.$(OBJEXT) \
-@SCALAR_DOUBLE_TRUE@	testSiteDslash64bit.$(OBJEXT)
-@PARSCALAR_SINGLE_TRUE@am__objects_3 = t_dslash_parscalar.$(OBJEXT) \
-@PARSCALAR_SINGLE_TRUE@	testDecomp32bit.$(OBJEXT) \
-@PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.$(OBJEXT) \
-@PARSCALAR_SINGLE_TRUE@	testMvvRecons32bit.$(OBJEXT) \
-@PARSCALAR_SINGLE_TRUE@	testRecons32bit.$(OBJEXT)
-@PARSCALAR_DOUBLE_TRUE@am__objects_4 = t_dslash_parscalar.$(OBJEXT) \
+	testRecons64bit.cc sse32.h testDecomp32bit.cc \
+	testDecompHvv32bit.cc testMvvRecons32bit.cc testRecons32bit.cc \
+	t_site_ops_scalar.cc testSiteDslash.h testSiteDslash64bit.cc \
+	testSiteDslash32bit.cc
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_FALSE@@SCALAR_DOUBLE_FALSE@@SCALAR_SINGLE_TRUE@am_t_site_ops_OBJECTS = $(am__objects_1) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_FALSE@@SCALAR_DOUBLE_FALSE@@SCALAR_SINGLE_TRUE@	t_site_ops_scalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_FALSE@@SCALAR_DOUBLE_FALSE@@SCALAR_SINGLE_TRUE@	testSiteDslash32bit.$(OBJEXT)
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_FALSE@@SCALAR_DOUBLE_TRUE@am_t_site_ops_OBJECTS = $(am__objects_1) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_FALSE@@SCALAR_DOUBLE_TRUE@	t_site_ops_scalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_FALSE@@SCALAR_DOUBLE_TRUE@	testSiteDslash64bit.$(OBJEXT)
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_TRUE@am_t_site_ops_OBJECTS = $(am__objects_1) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_TRUE@	t_site_ops_parscalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_TRUE@	testDecomp32bit.$(OBJEXT) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.$(OBJEXT) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_TRUE@	testMvvRecons32bit.$(OBJEXT) \
+@PARSCALAR_DOUBLE_FALSE@@PARSCALAR_SINGLE_TRUE@	testRecons32bit.$(OBJEXT)
+@PARSCALAR_DOUBLE_TRUE@am_t_site_ops_OBJECTS = $(am__objects_1) \
+@PARSCALAR_DOUBLE_TRUE@	t_site_ops_parscalar.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	testDecomp64bit.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	testDecompHvv64bit.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	testMvvRecons64bit.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	testRecons64bit.$(OBJEXT)
-am_t_dslash_OBJECTS = dslashm_w.$(OBJEXT) reunit.$(OBJEXT) \
-	testDslashFull.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4)
-t_dslash_OBJECTS = $(am_t_dslash_OBJECTS)
-t_dslash_LDADD = $(LDADD)
+t_site_ops_OBJECTS = $(am_t_site_ops_OBJECTS)
+t_site_ops_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
@@ -113,8 +94,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(t_dslash_SOURCES)
-DIST_SOURCES = $(am__t_dslash_SOURCES_DIST)
+SOURCES = $(t_dslash_SOURCES) $(t_site_ops_SOURCES)
+DIST_SOURCES = $(t_dslash_SOURCES) $(am__t_site_ops_SOURCES_DIST)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -132,6 +113,8 @@ BUILD_QDP_TESTS_FALSE = @BUILD_QDP_TESTS_FALSE@
 BUILD_QDP_TESTS_TRUE = @BUILD_QDP_TESTS_TRUE@
 BUILD_QMT_FALSE = @BUILD_QMT_FALSE@
 BUILD_QMT_TRUE = @BUILD_QMT_TRUE@
+BUILD_SITE_TESTS_FALSE = @BUILD_SITE_TESTS_FALSE@
+BUILD_SITE_TESTS_TRUE = @BUILD_SITE_TESTS_TRUE@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -173,6 +156,8 @@ QMT_CFLAGS = @QMT_CFLAGS@
 QMT_LDFLAGS = @QMT_LDFLAGS@
 QMT_LIBS = @QMT_LIBS@
 RANLIB = @RANLIB@
+RUN_TESTS_FALSE = @RUN_TESTS_FALSE@
+RUN_TESTS_TRUE = @RUN_TESTS_TRUE@
 SCALAR_DOUBLE_FALSE = @SCALAR_DOUBLE_FALSE@
 SCALAR_DOUBLE_TRUE = @SCALAR_DOUBLE_TRUE@
 SCALAR_SINGLE_FALSE = @SCALAR_SINGLE_FALSE@
@@ -229,11 +214,56 @@ INCFLAGS = -I@top_srcdir@/include -I@top_builddir@/include
 AM_CXXFLAGS = $(INCFLAGS) @SSEXX_AUX_CFLAGS@ @QMT_CFLAGS@
 AM_LDFLAGS = -L@top_builddir@/lib @LDFLAGS@ @SSEXX_AUX_LDFLAGS@ @QMT_LDFLAGS@
 LDADD = -llevel3 @SSEXX_AUX_LIBS@ @LIBS@ @QMT_LIBS@
-TESTS = $(check_PROGRAMS)
-t_dslash_SOURCES = unittest.h dslashm_w.h dslashm_w.cc reunit.h \
-	reunit.cc testDslashFull.h testDslashFull.cc $(am__append_2) \
-	$(am__append_3) $(am__append_4) $(am__append_5)
+TESTS = $(am__append_2)
+FRAMEWORK_SRCS = unittest.h \
+	dslashm_w.h \
+	dslashm_w.cc \
+	reunit.h \
+	reunit.cc
+
+t_dslash_SOURCES = $(FRAMEWORK_SRCS) \
+	testDslashFull.h \
+	testDslashFull.cc \
+	t_dslash.cc
+
+@PARSCALAR_DOUBLE_TRUE@t_site_ops_SOURCES = $(FRAMEWORK_SRCS) \
+@PARSCALAR_DOUBLE_TRUE@	t_site_ops_parscalar.cc \
+@PARSCALAR_DOUBLE_TRUE@	sse64.h \
+@PARSCALAR_DOUBLE_TRUE@	testDecomp.h \
+@PARSCALAR_DOUBLE_TRUE@	testDecompHvv.h \
+@PARSCALAR_DOUBLE_TRUE@	testMvvRecons.h \
+@PARSCALAR_DOUBLE_TRUE@	testRecons.h \
+@PARSCALAR_DOUBLE_TRUE@	testDecomp64bit.cc \
+@PARSCALAR_DOUBLE_TRUE@	testDecompHvv64bit.cc \
+@PARSCALAR_DOUBLE_TRUE@	testMvvRecons64bit.cc \
+@PARSCALAR_DOUBLE_TRUE@	testRecons64bit.cc
+
+@PARSCALAR_SINGLE_TRUE@t_site_ops_SOURCES = $(FRAMEWORK_SRCS) \
+@PARSCALAR_SINGLE_TRUE@	t_site_ops_parscalar.cc \
+@PARSCALAR_SINGLE_TRUE@	sse32.h \
+@PARSCALAR_SINGLE_TRUE@	testDecomp.h \
+@PARSCALAR_SINGLE_TRUE@	testDecompHvv.h \
+@PARSCALAR_SINGLE_TRUE@	testMvvRecons.h \
+@PARSCALAR_SINGLE_TRUE@	testRecons.h \
+@PARSCALAR_SINGLE_TRUE@	testDecomp32bit.cc \
+@PARSCALAR_SINGLE_TRUE@	testDecompHvv32bit.cc \
+@PARSCALAR_SINGLE_TRUE@	testMvvRecons32bit.cc \
+@PARSCALAR_SINGLE_TRUE@	testRecons32bit.cc
+
+@SCALAR_DOUBLE_TRUE@t_site_ops_SOURCES = $(FRAMEWORK_SRCS) \
+@SCALAR_DOUBLE_TRUE@	t_site_ops_scalar.cc \
+@SCALAR_DOUBLE_TRUE@	testSiteDslash.h \
+@SCALAR_DOUBLE_TRUE@	sse64.h \
+@SCALAR_DOUBLE_TRUE@	testSiteDslash64bit.cc
+
+@SCALAR_SINGLE_TRUE@t_site_ops_SOURCES = $(FRAMEWORK_SRCS) \
+@SCALAR_SINGLE_TRUE@	t_site_ops_scalar.cc \
+@SCALAR_SINGLE_TRUE@	testSiteDslash.h \
+@SCALAR_SINGLE_TRUE@	sse32.h \
+@SCALAR_SINGLE_TRUE@	testSiteDslash32bit.cc
+
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
+t_site_ops_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
 all: all-am
 
 .SUFFIXES:
@@ -273,6 +303,9 @@ clean-checkPROGRAMS:
 t_dslash$(EXEEXT): $(t_dslash_OBJECTS) $(t_dslash_DEPENDENCIES) 
 	@rm -f t_dslash$(EXEEXT)
 	$(CXXLINK) $(t_dslash_LDFLAGS) $(t_dslash_OBJECTS) $(t_dslash_LDADD) $(LIBS)
+t_site_ops$(EXEEXT): $(t_site_ops_OBJECTS) $(t_site_ops_DEPENDENCIES) 
+	@rm -f t_site_ops$(EXEEXT)
+	$(CXXLINK) $(t_site_ops_LDFLAGS) $(t_site_ops_OBJECTS) $(t_site_ops_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -282,8 +315,9 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dslashm_w.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reunit.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_dslash_parscalar.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_dslash_scalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_dslash.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_site_ops_parscalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_site_ops_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDecomp32bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDecomp64bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testDecompHvv32bit.Po@am__quote@
@@ -549,6 +583,8 @@ uninstall-am: uninstall-info-am
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
 	uninstall-am uninstall-info-am
 
+	testDslashFull.h \
+	testDslashFull.cc
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

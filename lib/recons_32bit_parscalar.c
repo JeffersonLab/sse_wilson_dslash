@@ -5,10 +5,10 @@
 extern "C" {
 #endif
 
-void recons_4dir_plus(const halfspinor_array hs0,
-		      const halfspinor_array hs1,
-		      const halfspinor_array hs2,
-		      const halfspinor_array hs3,
+void recons_4dir_plus( halfspinor_array hs0,
+		       halfspinor_array hs1,
+		       halfspinor_array hs2,
+		       halfspinor_array hs3,
 		      spinor_array spinor)
 {
   __m128 xmm0;
@@ -47,7 +47,7 @@ void recons_4dir_plus(const halfspinor_array hs0,
   xmm1 = _mm_loadh_pi(xmm1,(__m64*)&spinor[1][1][0]);
   xmm2 = _mm_loadh_pi(xmm2,(__m64*)&spinor[1][2][0]);
 
-  /* Top components. Don't need to reconstruct just
+  /* Top components. Don't need to reruct just
      accumulate */
 
   /* half spinor from dir 0 */
@@ -185,10 +185,10 @@ void recons_4dir_plus(const halfspinor_array hs0,
   
 }
 
-void recons_4dir_minus(const halfspinor_array hs0,
-		       const halfspinor_array hs1,
-		       const halfspinor_array hs2,
-		       const halfspinor_array hs3,
+void recons_4dir_minus( halfspinor_array hs0,
+		        halfspinor_array hs1,
+		        halfspinor_array hs2,
+		        halfspinor_array hs3,
 		       spinor_array spinor)
 {
   __m128 xmm0;
