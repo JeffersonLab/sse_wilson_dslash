@@ -1,4 +1,4 @@
-// $Id: t_dslash_parscalar.cc,v 1.1 2007-10-01 18:17:19 bjoo Exp $
+// $Id: t_site_ops_parscalar.cc,v 1.1 2007-10-03 17:18:52 bjoo Exp $
 
 #include <iostream>
 #include <cstdio>
@@ -21,7 +21,6 @@ int main(int argc, char **argv)
 
   // Initialize UnitTest jig
   TestRunner  tests(&argc, &argv, latdims);
-  tests.addTest(new testDslashFull(), "testDslashFull" );
   tests.addTest(new testDecomp0Minus(), "testDecomp0Minus" );
   tests.addTest(new testDecomp1Minus(), "testDecomp1Minus" );
   tests.addTest(new testDecomp2Minus(), "testDecomp2Minus" );

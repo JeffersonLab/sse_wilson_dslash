@@ -1,4 +1,4 @@
-// $Id: t_dslash_scalar.cc,v 1.1 2007-10-02 20:40:22 bjoo Exp $
+// $Id: t_site_ops_scalar.cc,v 1.1 2007-10-03 17:18:52 bjoo Exp $
 
 #include <iostream>
 #include <cstdio>
@@ -18,7 +18,6 @@ int main(int argc, char **argv)
 
   // Initialize UnitTest jig
   TestRunner  tests(&argc, &argv, latdims);
-  tests.addTest(new testDslashFull(), "testDslashFull" );
 
   tests.addTest(new testSiteDslash0PlusForward(), "testSiteDslash0PlusForward" );
   tests.addTest(new testSiteDslash0PlusBackwardAdd(), "testSiteDslash0PlusBackward" );
