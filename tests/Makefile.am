@@ -4,7 +4,7 @@ AM_CXXFLAGS=$(INCFLAGS) @SSEXX_AUX_CFLAGS@ @QMT_CFLAGS@
 AM_LDFLAGS=-L@top_builddir@/lib @LDFLAGS@ @SSEXX_AUX_LDFLAGS@ @QMT_LDFLAGS@
 LDADD = -llevel3 @SSEXX_AUX_LIBS@ @LIBS@ @QMT_LIBS@
 
-check_PROGRAMS = t_dslash 
+check_PROGRAMS = t_dslash time_dslash
 
 if BUILD_SITE_TESTS
 check_PROGRAMS += t_site_ops
@@ -28,6 +28,11 @@ t_dslash_SOURCES = $(FRAMEWORK_SRCS) \
 	testDslashFull.h \
 	testDslashFull.cc \
 	t_dslash.cc
+
+time_dslash_SOURCES = $(FRAMEWORK_SRCS) \
+	timeDslash.h \
+	timeDslash.cc \
+	time_dslash.cc
 
 
 if SCALAR_SINGLE
