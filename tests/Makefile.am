@@ -83,3 +83,4 @@ endif
 
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
 t_site_ops_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
+time_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a

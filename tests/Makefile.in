@@ -87,7 +87,6 @@ am_time_dslash_OBJECTS = $(am__objects_1) timeDslash.$(OBJEXT) \
 	time_dslash.$(OBJEXT)
 time_dslash_OBJECTS = $(am_time_dslash_OBJECTS)
 time_dslash_LDADD = $(LDADD)
-time_dslash_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
@@ -277,6 +276,7 @@ time_dslash_SOURCES = $(FRAMEWORK_SRCS) \
 
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
 t_site_ops_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
+time_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
 all: all-am
 
 .SUFFIXES:

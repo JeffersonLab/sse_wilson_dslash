@@ -46,14 +46,16 @@ class TestCase {
 private:
 public:
   virtual void run(void) = 0;
+  virtual ~TestCase() {}
 };
 
 // A test fixture - that does extra set up before and after the test
 class TestFixture : public TestCase {
 public:
-  virtual void setUp() {} ;
-  virtual void tearDown() {};
-  virtual void runTest() {};
+  virtual ~TestFixture() {}
+  virtual void setUp() {} 
+  virtual void tearDown() {}
+  virtual void runTest() {}
   
   void run(void) { 
       setUp();

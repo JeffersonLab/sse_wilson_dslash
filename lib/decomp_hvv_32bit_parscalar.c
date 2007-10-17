@@ -6,6 +6,11 @@
 extern "C" {
 #endif
 				
+  typedef union { 
+    unsigned int a[4];
+    __m128 vector;
+  } SSESign;
+
 
 void decomp_hvv_gamma0_plus( spinor_array src, 
 			     u_mat_array u,
@@ -26,7 +31,9 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-
+  SSESign signs24 = {{0x00000000,0x80000000,0x00000000, 0x80000000}};
+  SSESign signs13 = {{0x80000000,0x00000000,0x80000000, 0x00000000}};
+  /*
   union { 
     float a[4];
     __m128 vector;
@@ -36,6 +43,7 @@ void decomp_hvv_gamma0_plus( spinor_array src,
     float a[4];
     __m128 vector;
   } signs13 ALIGN = {{-1,1,-1,1}};
+  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -60,9 +68,9 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
 
-  xmm3 = _mm_mul_ps(xmm3, signs13.vector);
-  xmm4 = _mm_mul_ps(xmm4, signs13.vector);
-  xmm5 = _mm_mul_ps(xmm5, signs13.vector);
+  xmm3 = _mm_xor_ps(xmm3, signs13.vector);
+  xmm4 = _mm_xor_ps(xmm4, signs13.vector);
+  xmm5 = _mm_xor_ps(xmm5, signs13.vector);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -112,9 +120,9 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -178,7 +186,9 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-
+  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
+  SSESign signs12 = {{ 0x80000000, 0x80000000,0x00000000, 0x00000000 }};
+  /*
   union { 
     float a[4];
     __m128 vector;
@@ -188,6 +198,7 @@ void decomp_hvv_gamma1_plus( spinor_array src,
     float a[4];
     __m128 vector;
   } signs12 ALIGN = {{-1,-1,1,1}};
+  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -212,9 +223,9 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
 
-  xmm3 = _mm_mul_ps(xmm3, signs12.vector);
-  xmm4 = _mm_mul_ps(xmm4, signs12.vector);
-  xmm5 = _mm_mul_ps(xmm5, signs12.vector);
+  xmm3 = _mm_xor_ps(xmm3, signs12.vector);
+  xmm4 = _mm_xor_ps(xmm4, signs12.vector);
+  xmm5 = _mm_xor_ps(xmm5, signs12.vector);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -264,9 +275,9 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -330,7 +341,9 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-
+  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
+  SSESign signs14 = {{ 0x80000000, 0x00000000,0x00000000, 0x80000000 }};
+  /*
   union { 
     float a[4];
     __m128 vector;
@@ -340,7 +353,7 @@ void decomp_hvv_gamma2_plus( spinor_array src,
     float a[4];
     __m128 vector;
   } signs14 ALIGN = {{-1,1,1,-1}};
-
+  */
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -364,9 +377,9 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
 
-  xmm3 = _mm_mul_ps(xmm3, signs14.vector);
-  xmm4 = _mm_mul_ps(xmm4, signs14.vector);
-  xmm5 = _mm_mul_ps(xmm5, signs14.vector);
+  xmm3 = _mm_xor_ps(xmm3, signs14.vector);
+  xmm4 = _mm_xor_ps(xmm4, signs14.vector);
+  xmm5 = _mm_xor_ps(xmm5, signs14.vector);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -416,9 +429,9 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -483,12 +496,14 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
+  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
 
+  /*
   union { 
     float a[4];
     __m128 vector;
   } signs24 ALIGN = {{1,-1,1,-1}};
-
+  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -556,9 +571,9 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -623,12 +638,13 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-
+  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
+  /*
   union { 
     float a[4];
     __m128 vector;
   } signs24 ALIGN = {{1,-1,1,-1}};
-
+  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -653,9 +669,9 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
 
-  xmm3 = _mm_mul_ps(xmm3, signs24.vector);
-  xmm4 = _mm_mul_ps(xmm4, signs24.vector);
-  xmm5 = _mm_mul_ps(xmm5, signs24.vector);
+  xmm3 = _mm_xor_ps(xmm3, signs24.vector);
+  xmm4 = _mm_xor_ps(xmm4, signs24.vector);
+  xmm5 = _mm_xor_ps(xmm5, signs24.vector);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -705,9 +721,9 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -771,7 +787,10 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
+  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
+  SSESign signs34 = {{ 0x00000000, 0x00000000,0x80000000, 0x80000000 }};
 
+  /*
   union { 
     float a[4];
     __m128 vector;
@@ -781,6 +800,7 @@ void decomp_hvv_gamma1_minus( spinor_array src,
     float a[4];
     __m128 vector;
   } signs34 ALIGN = {{1,1,-1,-1}};
+  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -805,9 +825,9 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
 
-  xmm3 = _mm_mul_ps(xmm3, signs34.vector);
-  xmm4 = _mm_mul_ps(xmm4, signs34.vector);
-  xmm5 = _mm_mul_ps(xmm5, signs34.vector);
+  xmm3 = _mm_xor_ps(xmm3, signs34.vector);
+  xmm4 = _mm_xor_ps(xmm4, signs34.vector);
+  xmm5 = _mm_xor_ps(xmm5, signs34.vector);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -857,9 +877,9 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -923,7 +943,9 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-
+  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
+  SSESign signs23 = {{ 0x00000000, 0x80000000,0x80000000, 0x00000000 }};
+  /*
   union { 
     float a[4];
     __m128 vector;
@@ -933,6 +955,7 @@ void decomp_hvv_gamma2_minus( spinor_array src,
     float a[4];
     __m128 vector;
   } signs23 ALIGN = {{1,-1,-1,1}};
+  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -957,9 +980,9 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
 
-  xmm3 = _mm_mul_ps(xmm3, signs23.vector);
-  xmm4 = _mm_mul_ps(xmm4, signs23.vector);
-  xmm5 = _mm_mul_ps(xmm5, signs23.vector);
+  xmm3 = _mm_xor_ps(xmm3, signs23.vector);
+  xmm4 = _mm_xor_ps(xmm4, signs23.vector);
+  xmm5 = _mm_xor_ps(xmm5, signs23.vector);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -1009,9 +1032,9 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -1076,12 +1099,13 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-
+  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
+  /*
   union { 
     float a[4];
     __m128 vector;
   } signs24 ALIGN = {{1,-1,1,-1}};
-
+  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -1149,9 +1173,9 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);

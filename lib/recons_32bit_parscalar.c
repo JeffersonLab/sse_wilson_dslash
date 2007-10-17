@@ -5,6 +5,11 @@
 extern "C" {
 #endif
 
+ typedef union { 
+    unsigned int a[4];
+    __m128 vector;
+  } SSESign;
+
 void recons_4dir_plus( halfspinor_array hs0,
 		       halfspinor_array hs1,
 		       halfspinor_array hs2,
@@ -20,7 +25,11 @@ void recons_4dir_plus( halfspinor_array hs0,
   __m128 xmm6;
   __m128 xmm7;
 
-  
+  SSESign signs24 ALIGN= {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 }};
+  SSESign signs34 ALIGN= {{ 0x00000000, 0x00000000, 0x80000000, 0x80000000 }};
+  SSESign signs23 ALIGN= {{ 0x00000000, 0x80000000, 0x80000000, 0x00000000 }};
+
+  /*
   union { 
   float a[4];
     __m128 vector;
@@ -35,7 +44,7 @@ void recons_4dir_plus( halfspinor_array hs0,
   float a[4];
     __m128 vector;
   } signs23 ALIGN = {{1,-1,-1,1}};
-
+  */
 
   
   /* Load 1st 2 spin components of spinor (swizzle:
@@ -119,9 +128,9 @@ void recons_4dir_plus( halfspinor_array hs0,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
 
-  xmm3 = _mm_mul_ps(signs24.vector, xmm3);
-  xmm4 = _mm_mul_ps(signs24.vector, xmm4);
-  xmm5 = _mm_mul_ps(signs24.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs24.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs24.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs24.vector, xmm5);
   
   xmm0 = _mm_add_ps( xmm3, xmm0 );
   xmm1 = _mm_add_ps( xmm4, xmm1 );
@@ -137,9 +146,9 @@ void recons_4dir_plus( halfspinor_array hs0,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
 
-  xmm3 = _mm_mul_ps(signs34.vector, xmm3);
-  xmm4 = _mm_mul_ps(signs34.vector, xmm4);
-  xmm5 = _mm_mul_ps(signs34.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs34.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs34.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs34.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm3, xmm0);
   xmm1 = _mm_add_ps(xmm4, xmm1);
@@ -155,9 +164,9 @@ void recons_4dir_plus( halfspinor_array hs0,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
 
-  xmm3 = _mm_mul_ps(signs23.vector, xmm3);
-  xmm4 = _mm_mul_ps(signs23.vector, xmm4);
-  xmm5 = _mm_mul_ps(signs23.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs23.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs23.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs23.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm3, xmm0);
   xmm1 = _mm_add_ps(xmm4, xmm1);
@@ -200,7 +209,11 @@ void recons_4dir_minus( halfspinor_array hs0,
   __m128 xmm6;
   __m128 xmm7;
 
-  
+
+  SSESign signs13 ALIGN= {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
+  SSESign signs12 ALIGN= {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
+  SSESign signs14 ALIGN= {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};  
+  /*
   union { 
   float a[4];
     __m128 vector;
@@ -215,7 +228,7 @@ void recons_4dir_minus( halfspinor_array hs0,
   float a[4];
     __m128 vector;
   } signs14 ALIGN = {{-1,1,1,-1}};
-
+  */
 
   
   /* Load 1st 2 spin components of spinor (swizzle:
@@ -299,9 +312,9 @@ void recons_4dir_minus( halfspinor_array hs0,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
 
-  xmm3 = _mm_mul_ps(signs13.vector, xmm3);
-  xmm4 = _mm_mul_ps(signs13.vector, xmm4);
-  xmm5 = _mm_mul_ps(signs13.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs13.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs13.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs13.vector, xmm5);
   
   xmm0 = _mm_add_ps( xmm3, xmm0 );
   xmm1 = _mm_add_ps( xmm4, xmm1 );
@@ -317,9 +330,9 @@ void recons_4dir_minus( halfspinor_array hs0,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
 
-  xmm3 = _mm_mul_ps(signs12.vector, xmm3);
-  xmm4 = _mm_mul_ps(signs12.vector, xmm4);
-  xmm5 = _mm_mul_ps(signs12.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs12.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs12.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs12.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm3, xmm0);
   xmm1 = _mm_add_ps(xmm4, xmm1);
@@ -335,9 +348,9 @@ void recons_4dir_minus( halfspinor_array hs0,
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
   xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
 
-  xmm3 = _mm_mul_ps(signs14.vector, xmm3);
-  xmm4 = _mm_mul_ps(signs14.vector, xmm4);
-  xmm5 = _mm_mul_ps(signs14.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs14.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs14.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs14.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm3, xmm0);
   xmm1 = _mm_add_ps(xmm4, xmm1);
