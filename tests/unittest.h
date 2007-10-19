@@ -1,9 +1,14 @@
 #ifndef UNITTEST_H
 #define UNITTEST_H
 
+
 #include "qdp.h"
 #include <vector>
 
+#include <sse_config.h>
+#ifdef DSLASH_USE_QMT_THREADS
+#include <qmt.h>
+#endif
 using namespace QDP; 
 
 namespace Assertions { 
@@ -94,11 +99,28 @@ private:
     num_unexpected_failed(0),
     num_tried(0)
   {
+    
     QDP_initialize(argc, argv);
+#ifdef DSLASH_USE_QMT_THREADS
+    // Initialize threads
+    int thread_status = qmt_init();
+    if( thread_status == 0 ) { 
+      QDPIO::cout << "Success" << endl;
+      QDPIO::cout << "Created: " << qmt_num_threads() << " threads" << endl;
+      QDPIO::cout << "My tread ID is: " << qmt_thread_id() << endl;
+    }
+    else { 
+      QDPIO::cout << "Failure... qmt_init() returned " << thread_status << endl;
+      
+      QDP_abort(1);
+    }
+#endif
+
     multi1d<int> nrow(Nd);
     nrow = latdims;
     Layout::setLattSize(nrow);
     Layout::create();
+
   }
 
   void run(void) {    
