@@ -10,6 +10,15 @@ extern "C" {
     __m128 vector;
   } SSESign;
 
+  static SSESign signs24 __attribute__((unused)) ALIGN= {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 }};
+  static SSESign signs34 __attribute__((unused)) ALIGN= {{ 0x00000000, 0x00000000, 0x80000000, 0x80000000 }};
+  static SSESign signs23 __attribute__((unused)) ALIGN= {{ 0x00000000, 0x80000000, 0x80000000, 0x00000000 }};
+
+
+  static SSESign signs13 __attribute__((unused)) ALIGN= {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
+  static SSESign signs12 __attribute__((unused)) ALIGN= {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
+  static SSESign signs14 __attribute__((unused)) ALIGN= {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};  
+
 void recons_4dir_plus( halfspinor_array hs0,
 		       halfspinor_array hs1,
 		       halfspinor_array hs2,
@@ -25,26 +34,7 @@ void recons_4dir_plus( halfspinor_array hs0,
   __m128 xmm6;
   __m128 xmm7;
 
-  SSESign signs24 ALIGN= {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 }};
-  SSESign signs34 ALIGN= {{ 0x00000000, 0x00000000, 0x80000000, 0x80000000 }};
-  SSESign signs23 ALIGN= {{ 0x00000000, 0x80000000, 0x80000000, 0x00000000 }};
 
-  /*
-  union { 
-  float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
-
-  union { 
-  float a[4];
-    __m128 vector;
-  } signs34 ALIGN = {{1,1,-1,-1}};
-
-  union { 
-  float a[4];
-    __m128 vector;
-  } signs23 ALIGN = {{1,-1,-1,1}};
-  */
 
   
   /* Load 1st 2 spin components of spinor (swizzle:
@@ -210,25 +200,6 @@ void recons_4dir_minus( halfspinor_array hs0,
   __m128 xmm7;
 
 
-  SSESign signs13 ALIGN= {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
-  SSESign signs12 ALIGN= {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
-  SSESign signs14 ALIGN= {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};  
-  /*
-  union { 
-  float a[4];
-    __m128 vector;
-  } signs13 ALIGN = {{-1,1,-1,1}};
-
-  union { 
-  float a[4];
-    __m128 vector;
-  } signs12 ALIGN = {{-1,-1,1,1}};
-
-  union { 
-  float a[4];
-    __m128 vector;
-  } signs14 ALIGN = {{-1,1,1,-1}};
-  */
 
   
   /* Load 1st 2 spin components of spinor (swizzle:

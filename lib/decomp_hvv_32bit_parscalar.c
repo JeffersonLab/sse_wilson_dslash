@@ -11,6 +11,13 @@ extern "C" {
     __m128 vector;
   } SSESign;
 
+  static SSESign signs13 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
+  static SSESign signs12 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
+  static SSESign signs14 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};
+  static SSESign signs24 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 }};
+  static SSESign signs34 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x00000000, 0x80000000, 0x80000000 }};
+  static SSESign signs23 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x80000000, 0x80000000, 0x00000000 }};
+
 
 void decomp_hvv_gamma0_plus( spinor_array src, 
 			     u_mat_array u,
@@ -31,19 +38,7 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-  SSESign signs24 = {{0x00000000,0x80000000,0x00000000, 0x80000000}};
-  SSESign signs13 = {{0x80000000,0x00000000,0x80000000, 0x00000000}};
-  /*
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
 
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs13 ALIGN = {{-1,1,-1,1}};
-  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -80,6 +75,7 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   /* HALF VECTOR in xmm0,1,2 on entry */
   /* Result in      xmm3,4,5 on exit */
 
+#if 1
   xmm3 = _mm_load_ss(&u[0][0][0]);
   xmm6 = _mm_load_ss(&u[0][1][0]);
   xmm4 = _mm_load_ss(&u[1][0][0]);
@@ -155,6 +151,7 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   xmm3 = _mm_add_ps(xmm0, xmm3);
   xmm5 = _mm_add_ps(xmm6, xmm5);
   xmm4 = _mm_add_ps(xmm7, xmm4);
+#endif
 
   /* Result in      xmm3,4,5 */
   /* END MVV */
@@ -185,20 +182,6 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   /* Compiler should spill, or use 64 bit extras */
   __m128 xmm6;
   __m128 xmm7;
-
-  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
-  SSESign signs12 = {{ 0x80000000, 0x80000000,0x00000000, 0x00000000 }};
-  /*
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
-
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs12 ALIGN = {{-1,-1,1,1}};
-  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -235,6 +218,7 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   /* HALF VECTOR in xmm0,1,2 on entry */
   /* Result in      xmm3,4,5 on exit */
 
+#if 1
   xmm3 = _mm_load_ss(&u[0][0][0]);
   xmm6 = _mm_load_ss(&u[0][1][0]);
   xmm4 = _mm_load_ss(&u[1][0][0]);
@@ -310,7 +294,7 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   xmm3 = _mm_add_ps(xmm0, xmm3);
   xmm5 = _mm_add_ps(xmm6, xmm5);
   xmm4 = _mm_add_ps(xmm7, xmm4);
-
+#endif
   /* Result in      xmm3,4,5 */
   /* END MVV */
 
@@ -341,19 +325,8 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
-  SSESign signs14 = {{ 0x80000000, 0x00000000,0x00000000, 0x80000000 }};
-  /*
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
 
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs14 ALIGN = {{-1,1,1,-1}};
-  */
+
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -388,7 +361,7 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   /* MAT HVV BEGIN */
   /* HALF VECTOR in xmm0,1,2 on entry */
   /* Result in      xmm3,4,5 on exit */
-
+#if 1
   xmm3 = _mm_load_ss(&u[0][0][0]);
   xmm6 = _mm_load_ss(&u[0][1][0]);
   xmm4 = _mm_load_ss(&u[1][0][0]);
@@ -464,6 +437,7 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   xmm3 = _mm_add_ps(xmm0, xmm3);
   xmm5 = _mm_add_ps(xmm6, xmm5);
   xmm4 = _mm_add_ps(xmm7, xmm4);
+#endif
 
   /* Result in      xmm3,4,5 */
   /* END MVV */
@@ -496,14 +470,6 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
-
-  /*
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
-  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -530,7 +496,7 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   /* MAT HVV BEGIN */
   /* HALF VECTOR in xmm0,1,2 on entry */
   /* Result in      xmm3,4,5 on exit */
-
+#if 1
   xmm3 = _mm_load_ss(&u[0][0][0]);
   xmm6 = _mm_load_ss(&u[0][1][0]);
   xmm4 = _mm_load_ss(&u[1][0][0]);
@@ -606,7 +572,7 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   xmm3 = _mm_add_ps(xmm0, xmm3);
   xmm5 = _mm_add_ps(xmm6, xmm5);
   xmm4 = _mm_add_ps(xmm7, xmm4);
-
+#endif
   /* Result in      xmm3,4,5 */
   /* END MVV */
 
@@ -638,13 +604,7 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
-  /*
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
-  */
+
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -680,7 +640,7 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   /* MAT HVV BEGIN */
   /* HALF VECTOR in xmm0,1,2 on entry */
   /* Result in      xmm3,4,5 on exit */
-
+#if 1
   xmm3 = _mm_load_ss(&u[0][0][0]);
   xmm6 = _mm_load_ss(&u[0][1][0]);
   xmm4 = _mm_load_ss(&u[1][0][0]);
@@ -756,6 +716,7 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   xmm3 = _mm_add_ps(xmm0, xmm3);
   xmm5 = _mm_add_ps(xmm6, xmm5);
   xmm4 = _mm_add_ps(xmm7, xmm4);
+#endif
 
   /* Result in      xmm3,4,5 */
   /* END MVV */
@@ -786,21 +747,6 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   /* Compiler should spill, or use 64 bit extras */
   __m128 xmm6;
   __m128 xmm7;
-
-  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
-  SSESign signs34 = {{ 0x00000000, 0x00000000,0x80000000, 0x80000000 }};
-
-  /*
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
-
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs34 ALIGN = {{1,1,-1,-1}};
-  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -836,7 +782,7 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   /* MAT HVV BEGIN */
   /* HALF VECTOR in xmm0,1,2 on entry */
   /* Result in      xmm3,4,5 on exit */
-
+#if 1
   xmm3 = _mm_load_ss(&u[0][0][0]);
   xmm6 = _mm_load_ss(&u[0][1][0]);
   xmm4 = _mm_load_ss(&u[1][0][0]);
@@ -912,6 +858,7 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   xmm3 = _mm_add_ps(xmm0, xmm3);
   xmm5 = _mm_add_ps(xmm6, xmm5);
   xmm4 = _mm_add_ps(xmm7, xmm4);
+#endif
 
   /* Result in      xmm3,4,5 */
   /* END MVV */
@@ -943,19 +890,7 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
-  SSESign signs23 = {{ 0x00000000, 0x80000000,0x80000000, 0x00000000 }};
-  /*
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
 
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs23 ALIGN = {{1,-1,-1,1}};
-  */
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -991,7 +926,7 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   /* MAT HVV BEGIN */
   /* HALF VECTOR in xmm0,1,2 on entry */
   /* Result in      xmm3,4,5 on exit */
-
+#if 1
   xmm3 = _mm_load_ss(&u[0][0][0]);
   xmm6 = _mm_load_ss(&u[0][1][0]);
   xmm4 = _mm_load_ss(&u[1][0][0]);
@@ -1067,6 +1002,7 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   xmm3 = _mm_add_ps(xmm0, xmm3);
   xmm5 = _mm_add_ps(xmm6, xmm5);
   xmm4 = _mm_add_ps(xmm7, xmm4);
+#endif
 
   /* Result in      xmm3,4,5 */
   /* END MVV */
@@ -1099,14 +1035,6 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
-  SSESign signs24 = {{ 0x00000000, 0x80000000,0x00000000, 0x80000000 }};
-  /*
-  union { 
-    float a[4];
-    __m128 vector;
-  } signs24 ALIGN = {{1,-1,1,-1}};
-  */
-
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -1132,7 +1060,7 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   /* MAT HVV BEGIN */
   /* HALF VECTOR in xmm0,1,2 on entry */
   /* Result in      xmm3,4,5 on exit */
-
+#if 1
   xmm3 = _mm_load_ss(&u[0][0][0]);
   xmm6 = _mm_load_ss(&u[0][1][0]);
   xmm4 = _mm_load_ss(&u[1][0][0]);
@@ -1208,6 +1136,7 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   xmm3 = _mm_add_ps(xmm0, xmm3);
   xmm5 = _mm_add_ps(xmm6, xmm5);
   xmm4 = _mm_add_ps(xmm7, xmm4);
+#endif
 
   /* Result in      xmm3,4,5 */
   /* END MVV */

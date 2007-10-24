@@ -28,7 +28,7 @@ extern "C" {
     \param site (int) The site we want to do the offset lookup for
     \param mu   (int) The index for the gamma matrix in the projector (0-3)
   */
-  int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu); 
+  /* int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu) ;  */
 
 #ifdef __cplusplus
 };

@@ -8,9 +8,17 @@ extern "C" {
 #include <xmmintrin.h>
 
   typedef union { 
-    float c[4];
+    unsigned int a[4];
     __m128 vector;
-  } SSESgn;
+  } SSESign;
+
+  static SSESign signs13 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
+  static SSESign signs12 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
+  static SSESign signs14 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};
+  static SSESign signs24 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 }};
+  static SSESign signs34 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x00000000, 0x80000000, 0x80000000 }};
+  static SSESign signs23 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x80000000, 0x80000000, 0x00000000 }};
+  
 
   void dslash_plus_dir0_forward(spinor_array spinor_in,
 				u_mat_array u,
@@ -27,8 +35,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs24 = {{ 1 , -1, 1, -1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
 
 
     /* Component 0 into the low 2 floats */
@@ -57,9 +63,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
 
-    xmm3 = _mm_mul_ps(signs24.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs24.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs24.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs24.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs24.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs24.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -106,9 +112,9 @@ extern "C" {
     xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
     xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
     xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-    xmm0 = _mm_mul_ps(signs13.vector, xmm0);
-    xmm1 = _mm_mul_ps(signs13.vector, xmm1);
-    xmm2 = _mm_mul_ps(signs13.vector, xmm2);
+    xmm0 = _mm_xor_ps(signs13.vector, xmm0);
+    xmm1 = _mm_xor_ps(signs13.vector, xmm1);
+    xmm2 = _mm_xor_ps(signs13.vector, xmm2);
     xmm6 = _mm_mul_ps(xmm0,xmm6);
     xmm7 = _mm_mul_ps(xmm1,xmm7);
     xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -155,9 +161,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0x1b);
     xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0x1b);
 
-    xmm3 = _mm_mul_ps( signs13.vector, xmm3);
-    xmm4 = _mm_mul_ps( signs13.vector, xmm4);
-    xmm5 = _mm_mul_ps( signs13.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs13.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs13.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs13.vector, xmm5);
 
     /* Store */
     _mm_store_ps(&lower_sum[0][0][0], xmm3);
@@ -182,8 +188,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs24 = {{ 1 , -1, 1, -1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
 
 
     /* Component 0 into the low 2 floats */
@@ -212,9 +216,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
 
-    xmm3 = _mm_mul_ps(signs13.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs13.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs13.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs13.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs13.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs13.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -263,9 +267,9 @@ extern "C" {
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -330,9 +334,9 @@ extern "C" {
   xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0x1b);
   xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0x1b);
 
-  xmm3 = _mm_mul_ps( signs24.vector, xmm3);
-  xmm4 = _mm_mul_ps( signs24.vector, xmm4);
-  xmm5 = _mm_mul_ps( signs24.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs24.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs24.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs24.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -362,9 +366,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs34 = {{ 1 , 1, -1, -1 }};
-    SSESgn signs12 = {{ -1 , -1, 1, 1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
   
     /* Component 0 into the low 2 floats */
     xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&spinor_in[0][0][0]);
@@ -392,9 +393,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
 
-    xmm3 = _mm_mul_ps(signs34.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs34.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs34.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs34.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs34.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs34.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -442,9 +443,9 @@ extern "C" {
     xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
     xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
     xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-    xmm0 = _mm_mul_ps(signs13.vector, xmm0);
-    xmm1 = _mm_mul_ps(signs13.vector, xmm1);
-    xmm2 = _mm_mul_ps(signs13.vector, xmm2);
+    xmm0 = _mm_xor_ps(signs13.vector, xmm0);
+    xmm1 = _mm_xor_ps(signs13.vector, xmm1);
+    xmm2 = _mm_xor_ps(signs13.vector, xmm2);
     xmm6 = _mm_mul_ps(xmm0,xmm6);
     xmm7 = _mm_mul_ps(xmm1,xmm7);
     xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -504,9 +505,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0x4e);
     xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0x4e);
 
-    xmm3 = _mm_mul_ps( signs12.vector, xmm3);
-    xmm4 = _mm_mul_ps( signs12.vector, xmm4);
-    xmm5 = _mm_mul_ps( signs12.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs12.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs12.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs12.vector, xmm5);
 
     /* Accumulate */
     xmm0 = _mm_add_ps(xmm0, xmm3);
@@ -534,9 +535,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs24 = {{ 1 , -1, 1, -1 }};
-    SSESgn signs34 = {{ 1, 1, -1, -1}};
-    SSESgn signs12 = {{ -1, -1, 1, 1}};
 
 
     /* Component 0 into the low 2 floats */
@@ -565,9 +563,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
 
-    xmm3 = _mm_mul_ps(signs12.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs12.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs12.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs12.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs12.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs12.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -616,9 +614,9 @@ extern "C" {
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -683,9 +681,9 @@ extern "C" {
   xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0x4e);
   xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0x4e);
 
-  xmm3 = _mm_mul_ps( signs34.vector, xmm3);
-  xmm4 = _mm_mul_ps( signs34.vector, xmm4);
-  xmm5 = _mm_mul_ps( signs34.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs34.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs34.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs34.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -714,9 +712,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs23 = {{ 1 , -1, -1, 1 }};
-    SSESgn signs14 = {{ -1 , 1, 1, -1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
   
     /* Component 0 into the low 2 floats */
     xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&spinor_in[0][0][0]);
@@ -744,9 +739,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
 
-    xmm3 = _mm_mul_ps(signs23.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs23.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs23.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs23.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs23.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs23.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -794,9 +789,9 @@ extern "C" {
     xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
     xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
     xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-    xmm0 = _mm_mul_ps(signs13.vector, xmm0);
-    xmm1 = _mm_mul_ps(signs13.vector, xmm1);
-    xmm2 = _mm_mul_ps(signs13.vector, xmm2);
+    xmm0 = _mm_xor_ps(signs13.vector, xmm0);
+    xmm1 = _mm_xor_ps(signs13.vector, xmm1);
+    xmm2 = _mm_xor_ps(signs13.vector, xmm2);
     xmm6 = _mm_mul_ps(xmm0,xmm6);
     xmm7 = _mm_mul_ps(xmm1,xmm7);
     xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -856,9 +851,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0xb1);
     xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0xb1);
 
-    xmm3 = _mm_mul_ps( signs14.vector, xmm3);
-    xmm4 = _mm_mul_ps( signs14.vector, xmm4);
-    xmm5 = _mm_mul_ps( signs14.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs14.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs14.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs14.vector, xmm5);
 
     /* Accumulate */
     xmm0 = _mm_add_ps(xmm0, xmm3);
@@ -887,9 +882,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs14 = {{ -1 , 1, 1, -1 }};
-    SSESgn signs23 = {{ 1, -1, -1, 1}};
-    SSESgn signs24 = {{ 1, -1, 1, -1}};
 
 
     /* Component 0 into the low 2 floats */
@@ -918,9 +910,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
 
-    xmm3 = _mm_mul_ps(signs14.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs14.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs14.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs14.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs14.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs14.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -969,9 +961,9 @@ extern "C" {
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -1036,9 +1028,9 @@ extern "C" {
   xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0xb1);
   xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0xb1);
 
-  xmm3 = _mm_mul_ps( signs23.vector, xmm3);
-  xmm4 = _mm_mul_ps( signs23.vector, xmm4);
-  xmm5 = _mm_mul_ps( signs23.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs23.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs23.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs23.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -1067,10 +1059,7 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs23 = {{ 1 , -1, -1, 1 }};
-    SSESgn signs14 = {{ -1 , 1, 1, -1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
-  
+   
     /* Component 0 into the low 2 floats */
     xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&spinor_in[0][0][0]);
     xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&spinor_in[0][1][0]);
@@ -1138,9 +1127,9 @@ extern "C" {
     xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
     xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
     xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-    xmm0 = _mm_mul_ps(signs13.vector, xmm0);
-    xmm1 = _mm_mul_ps(signs13.vector, xmm1);
-    xmm2 = _mm_mul_ps(signs13.vector, xmm2);
+    xmm0 = _mm_xor_ps(signs13.vector, xmm0);
+    xmm1 = _mm_xor_ps(signs13.vector, xmm1);
+    xmm2 = _mm_xor_ps(signs13.vector, xmm2);
     xmm6 = _mm_mul_ps(xmm0,xmm6);
     xmm7 = _mm_mul_ps(xmm1,xmm7);
     xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -1224,9 +1213,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs14 = {{ -1 , 1, 1, -1 }};
-    SSESgn signs23 = {{ 1, -1, -1, 1}};
-    SSESgn signs24 = {{ 1, -1, 1, -1}};
 
 
     /* Component 0 into the low 2 floats */
@@ -1297,9 +1283,9 @@ extern "C" {
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -1392,8 +1378,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs24 = {{ 1 , -1, 1, -1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
 
 
     /* Component 0 into the low 2 floats */
@@ -1422,9 +1406,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
 
-    xmm3 = _mm_mul_ps(signs13.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs13.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs13.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs13.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs13.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs13.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -1471,9 +1455,9 @@ extern "C" {
     xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
     xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
     xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-    xmm0 = _mm_mul_ps(signs13.vector, xmm0);
-    xmm1 = _mm_mul_ps(signs13.vector, xmm1);
-    xmm2 = _mm_mul_ps(signs13.vector, xmm2);
+    xmm0 = _mm_xor_ps(signs13.vector, xmm0);
+    xmm1 = _mm_xor_ps(signs13.vector, xmm1);
+    xmm2 = _mm_xor_ps(signs13.vector, xmm2);
     xmm6 = _mm_mul_ps(xmm0,xmm6);
     xmm7 = _mm_mul_ps(xmm1,xmm7);
     xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -1520,9 +1504,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0x1b);
     xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0x1b);
 
-    xmm3 = _mm_mul_ps( signs24.vector, xmm3);
-    xmm4 = _mm_mul_ps( signs24.vector, xmm4);
-    xmm5 = _mm_mul_ps( signs24.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs24.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs24.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs24.vector, xmm5);
 
     /* Store */
     _mm_store_ps(&lower_sum[0][0][0], xmm3);
@@ -1547,9 +1531,7 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs24 = {{ 1 , -1, 1, -1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
-
+   
 
     /* Component 0 into the low 2 floats */
     xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&spinor_in[0][0][0]);
@@ -1577,9 +1559,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
 
-    xmm3 = _mm_mul_ps(signs24.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs24.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs24.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs24.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs24.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs24.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -1628,9 +1610,9 @@ extern "C" {
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -1695,9 +1677,9 @@ extern "C" {
   xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0x1b);
   xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0x1b);
 
-  xmm3 = _mm_mul_ps( signs13.vector, xmm3);
-  xmm4 = _mm_mul_ps( signs13.vector, xmm4);
-  xmm5 = _mm_mul_ps( signs13.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs13.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs13.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs13.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -1726,12 +1708,6 @@ extern "C" {
     __m128 xmm5 ALIGN;
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
-
-    SSESgn signs34 = {{ 1 , 1, -1, -1 }};
-
-    SSESgn signs12 = {{ -1 , -1, 1, 1 }};
-
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
   
     /* Component 0 into the low 2 floats */
     xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&spinor_in[0][0][0]);
@@ -1759,9 +1735,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
 
-    xmm3 = _mm_mul_ps(signs12.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs12.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs12.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs12.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs12.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs12.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -1809,9 +1785,9 @@ extern "C" {
     xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
     xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
     xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-    xmm0 = _mm_mul_ps(signs13.vector, xmm0);
-    xmm1 = _mm_mul_ps(signs13.vector, xmm1);
-    xmm2 = _mm_mul_ps(signs13.vector, xmm2);
+    xmm0 = _mm_xor_ps(signs13.vector, xmm0);
+    xmm1 = _mm_xor_ps(signs13.vector, xmm1);
+    xmm2 = _mm_xor_ps(signs13.vector, xmm2);
     xmm6 = _mm_mul_ps(xmm0,xmm6);
     xmm7 = _mm_mul_ps(xmm1,xmm7);
     xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -1871,9 +1847,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0x4e);
     xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0x4e);
 
-    xmm3 = _mm_mul_ps( signs34.vector, xmm3);
-    xmm4 = _mm_mul_ps( signs34.vector, xmm4);
-    xmm5 = _mm_mul_ps( signs34.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs34.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs34.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs34.vector, xmm5);
 
     /* Accumulate */
     xmm0 = _mm_add_ps(xmm0, xmm3);
@@ -1900,10 +1876,6 @@ extern "C" {
     __m128 xmm5 ALIGN;
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
-
-    SSESgn signs24 = {{ 1 , -1, 1, -1 }};
-    SSESgn signs34 = {{ 1, 1, -1, -1}};
-    SSESgn signs12 = {{ -1, -1, 1, 1}};
 
 
     /* Component 0 into the low 2 floats */
@@ -1932,9 +1904,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
 
-    xmm3 = _mm_mul_ps(signs34.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs34.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs34.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs34.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs34.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs34.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -1983,9 +1955,9 @@ extern "C" {
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -2050,9 +2022,9 @@ extern "C" {
   xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0x4e);
   xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0x4e);
 
-  xmm3 = _mm_mul_ps( signs12.vector, xmm3);
-  xmm4 = _mm_mul_ps( signs12.vector, xmm4);
-  xmm5 = _mm_mul_ps( signs12.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs12.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs12.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs12.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -2080,10 +2052,6 @@ extern "C" {
     __m128 xmm5 ALIGN;
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
-
-    SSESgn signs23 = {{ 1 , -1, -1, 1 }};
-    SSESgn signs14 = {{ -1 , 1, 1, -1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
   
     /* Component 0 into the low 2 floats */
     xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&spinor_in[0][0][0]);
@@ -2111,9 +2079,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
 
-    xmm3 = _mm_mul_ps(signs14.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs14.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs14.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs14.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs14.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs14.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -2161,9 +2129,9 @@ extern "C" {
     xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
     xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
     xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-    xmm0 = _mm_mul_ps(signs13.vector, xmm0);
-    xmm1 = _mm_mul_ps(signs13.vector, xmm1);
-    xmm2 = _mm_mul_ps(signs13.vector, xmm2);
+    xmm0 = _mm_xor_ps(signs13.vector, xmm0);
+    xmm1 = _mm_xor_ps(signs13.vector, xmm1);
+    xmm2 = _mm_xor_ps(signs13.vector, xmm2);
     xmm6 = _mm_mul_ps(xmm0,xmm6);
     xmm7 = _mm_mul_ps(xmm1,xmm7);
     xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -2223,9 +2191,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0xb1);
     xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0xb1);
 
-    xmm3 = _mm_mul_ps( signs23.vector, xmm3);
-    xmm4 = _mm_mul_ps( signs23.vector, xmm4);
-    xmm5 = _mm_mul_ps( signs23.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs23.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs23.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs23.vector, xmm5);
 
     /* Accumulate */
     xmm0 = _mm_add_ps(xmm0, xmm3);
@@ -2254,10 +2222,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs14 = {{ -1 , 1, 1, -1 }};
-    SSESgn signs23 = {{ 1, -1, -1, 1}};
-    SSESgn signs24 = {{ 1, -1, 1, -1}};
-
 
     /* Component 0 into the low 2 floats */
     xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&spinor_in[0][0][0]);
@@ -2285,9 +2249,9 @@ extern "C" {
     xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
     xmm5 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
 
-    xmm3 = _mm_mul_ps(signs23.vector, xmm3);
-    xmm4 = _mm_mul_ps(signs23.vector, xmm4);
-    xmm5 = _mm_mul_ps(signs23.vector, xmm5);
+    xmm3 = _mm_xor_ps(signs23.vector, xmm3);
+    xmm4 = _mm_xor_ps(signs23.vector, xmm4);
+    xmm5 = _mm_xor_ps(signs23.vector, xmm5);
 
     xmm0 = _mm_add_ps(xmm0, xmm3);
     xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -2336,9 +2300,9 @@ extern "C" {
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -2403,9 +2367,9 @@ extern "C" {
   xmm4 = _mm_shuffle_ps( xmm4, xmm4, 0xb1);
   xmm5 = _mm_shuffle_ps( xmm5, xmm5, 0xb1);
 
-  xmm3 = _mm_mul_ps( signs14.vector, xmm3);
-  xmm4 = _mm_mul_ps( signs14.vector, xmm4);
-  xmm5 = _mm_mul_ps( signs14.vector, xmm5);
+  xmm3 = _mm_xor_ps(signs14.vector, xmm3);
+  xmm4 = _mm_xor_ps(signs14.vector, xmm4);
+  xmm5 = _mm_xor_ps(signs14.vector, xmm5);
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -2433,10 +2397,6 @@ extern "C" {
     __m128 xmm5 ALIGN;
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
-
-    SSESgn signs23 = {{ 1 , -1, -1, 1 }};
-    SSESgn signs14 = {{ -1 , 1, 1, -1 }};
-    SSESgn signs13 = {{ -1, 1, -1, 1}};
   
     /* Component 0 into the low 2 floats */
     xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&spinor_in[0][0][0]);
@@ -2505,9 +2465,9 @@ extern "C" {
     xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
     xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
     xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-    xmm0 = _mm_mul_ps(signs13.vector, xmm0);
-    xmm1 = _mm_mul_ps(signs13.vector, xmm1);
-    xmm2 = _mm_mul_ps(signs13.vector, xmm2);
+    xmm0 = _mm_xor_ps(signs13.vector, xmm0);
+    xmm1 = _mm_xor_ps(signs13.vector, xmm1);
+    xmm2 = _mm_xor_ps(signs13.vector, xmm2);
     xmm6 = _mm_mul_ps(xmm0,xmm6);
     xmm7 = _mm_mul_ps(xmm1,xmm7);
     xmm3 = _mm_add_ps(xmm6,xmm3);
@@ -2591,9 +2551,6 @@ extern "C" {
     __m128 xmm6 ALIGN;
     __m128 xmm7 ALIGN;
 
-    SSESgn signs14 = {{ -1 , 1, 1, -1 }};
-    SSESgn signs23 = {{ 1, -1, -1, 1}};
-    SSESgn signs24 = {{ 1, -1, 1, -1}};
 
 
     /* Component 0 into the low 2 floats */
@@ -2664,9 +2621,9 @@ extern "C" {
   xmm2 = _mm_shuffle_ps(xmm2, xmm2, 0xb1);
   xmm6 = _mm_shuffle_ps(xmm6, xmm6, 0x0 );
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x0 );
-  xmm0 = _mm_mul_ps(signs24.vector, xmm0);
-  xmm1 = _mm_mul_ps(signs24.vector, xmm1);
-  xmm2 = _mm_mul_ps(signs24.vector, xmm2);
+  xmm0 = _mm_xor_ps(signs24.vector, xmm0);
+  xmm1 = _mm_xor_ps(signs24.vector, xmm1);
+  xmm2 = _mm_xor_ps(signs24.vector, xmm2);
   xmm6 = _mm_mul_ps(xmm0,xmm6);
   xmm7 = _mm_mul_ps(xmm1,xmm7);
   xmm3 = _mm_add_ps(xmm6,xmm3);

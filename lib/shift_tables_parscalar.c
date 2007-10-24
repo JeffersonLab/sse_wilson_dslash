@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.7 2007-09-25 20:24:34 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.8 2007-10-24 19:54:10 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -40,13 +40,14 @@ extern "C" {
 #endif
 
 
-  typedef int offset[4];
+  //  typedef int offset[4];
 
-  static offset** offset_table;
+  static int* xoffset_table;
+  int* offset_table;
 
 
 /* Max machine size */
-  static int subgrid_vol = -1;
+  int subgrid_vol = -1;
   static int subgrid_vol_cb = -1;
 
   /* Number of dimensions */
@@ -453,25 +454,28 @@ void make_shift_tables(int icolor_start[2], int bound[2][4][4])
     }
   }
 
-  
+  /*
   offset_table = (offset **)malloc(4*sizeof(offset*));
   if( offset_table == 0 ) {
     QMP_error("init_wnxtsu3dslash: could not initialize offset_table");
     QMP_abort(1);
   }
+  */
 
-  for(i=0; i < 4; i++) { 
-    offset_table[i] = (offset *)malloc(subgrid_vol*sizeof(offset));
-    if( offset_table[i] == 0 ) {
-      QMP_error("init_wnxtsu3dslash: could not initialize offset_table[i]");
-      QMP_abort(1);
-    }
+  /* 4 dims, 4 types, rest of the magic is to align the thingie */
+  xoffset_table = (int *)malloc(4*4*subgrid_vol*sizeof(int)+31);
+  if( xoffset_table == 0 ) {
+    QMP_error("init_wnxtsu3dslash: could not initialize offset_table[i]");
+    QMP_abort(1);
   }
+  /* This is the bit what aligns straight from AMD Manual */
+  offset_table = (int *)((((ptrdiff_t)(xoffset_table)) + 31L) & (-32L));
 
   for(linear=0; linear < subgrid_vol; linear++) { 
     for(type=0; type < 4; type++) {
       for(dir=0; dir < 4; dir++) { 
-	offset_table[type][linear][dir] =  shift_table[type][dir+4*linear] +3*subgrid_vol_cb*dir;
+	offset_table[ dir + 4*( linear + subgrid_vol*type ) ] = shift_table[type][dir+4*linear] +3*subgrid_vol_cb*dir;
+
       }
     }
   }
@@ -489,18 +493,15 @@ void make_shift_tables(int icolor_start[2], int bound[2][4][4])
 void free_shift_tables(void) 
 {
   int i;
-  for(i=0; i < 4; i++) { 
-    free( (offset_table)[i] );
-  }
-  free( offset_table );
+  free( xoffset_table );
 }
 
-
+#if 0
 int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu)
 {
-  return offset_table[type][site][mu];
+  return offset_table[mu + 4*( site + subgrid_vol*type) ];
 }
-
+#endif
 
 #ifdef __cplusplus
 }

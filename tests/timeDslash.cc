@@ -88,7 +88,7 @@ timeDslash::run(void)
   }
 
   StopWatch swatch;
-  double n_secs = 5;
+  double n_secs = 10;
   int iters=1;
   double time=0;
   QDPIO::cout << endl << "\t Calibrating for " << n_secs << " seconds " << endl;

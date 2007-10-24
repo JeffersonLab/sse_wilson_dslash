@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.12 2007-10-01 18:45:42 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.13 2007-10-24 19:54:10 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -63,6 +63,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+  extern int subgrid_vol;
+  extern int *offset_table;
+
+  static inline 
+  int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu)
+  {
+    return offset_table[mu + 4*( site + subgrid_vol*type) ];
+  }
 
 
 static int initP=0;
@@ -279,8 +288,9 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
   prefetch_single_nta(s3);
 
   up1=&gauge_field[low][0];
+  prefetch_su3(up1);
   up2=&gauge_field[low][1];
-
+  prefetch_su3(up2);
 
   /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1+=2) {

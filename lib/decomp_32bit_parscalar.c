@@ -7,6 +7,21 @@
 extern "C" {
 #endif
 
+  typedef union { 
+    unsigned int a[4];
+    __m128 vector;
+  } SSESign;
+
+  static SSESign signs24 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 }};
+  static SSESign signs34 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x00000000, 0x80000000, 0x80000000 }};
+  static SSESign signs23 __attribute__((unused)) ALIGN = {{ 0x00000000, 0x80000000, 0x80000000, 0x00000000 }};
+
+
+  static SSESign signs13 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
+  static SSESign signs12 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
+  static SSESign signs14 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};
+
+
 void decomp_gamma0_minus( spinor_array src, halfspinor_array dst) 
 {
 
@@ -34,12 +49,6 @@ void decomp_gamma0_minus( spinor_array src, halfspinor_array dst)
   __m128 ic1_s32;
   __m128 ic2_s32;
 
-  union { 
-    unsigned int a[4];
-    __m128 vector;
-  } signs ALIGN = {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 } };
-
-  //  {{1,-1,1,-1}};
 
   /* Load up the spinors */
   c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
@@ -64,9 +73,9 @@ void decomp_gamma0_minus( spinor_array src, halfspinor_array dst)
   c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0x1b);
   c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0x1b);
 
-  ic0_s32 = _mm_xor_ps(c0_s32, signs.vector);
-  ic1_s32 = _mm_xor_ps(c1_s32, signs.vector);
-  ic2_s32 = _mm_xor_ps(c2_s32, signs.vector);
+  ic0_s32 = _mm_xor_ps(c0_s32, signs24.vector);
+  ic1_s32 = _mm_xor_ps(c1_s32, signs24.vector);
+  ic2_s32 = _mm_xor_ps(c2_s32, signs24.vector);
 
   /* Add */
   c0_s01 = _mm_add_ps(c0_s01, ic0_s32);
@@ -105,11 +114,6 @@ void decomp_gamma1_minus( spinor_array src, halfspinor_array dst)
   __m128 sc1_s32;
   __m128 sc2_s32;
 
-  union { 
-    unsigned int a[4];
-    __m128 vector;
-  } signs ALIGN = {{ 0x00000000,0x00000000,0x80000000,0x80000000 } };
-      // {{1,1,-1,-1}};
 
   /* Load up the spinors */
   c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
@@ -134,9 +138,9 @@ void decomp_gamma1_minus( spinor_array src, halfspinor_array dst)
   c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0x4e);
   c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0x4e);
 
-  sc0_s32 = _mm_xor_ps(c0_s32, signs.vector);
-  sc1_s32 = _mm_xor_ps(c1_s32, signs.vector);
-  sc2_s32 = _mm_xor_ps(c2_s32, signs.vector);
+  sc0_s32 = _mm_xor_ps(c0_s32, signs34.vector);
+  sc1_s32 = _mm_xor_ps(c1_s32, signs34.vector);
+  sc2_s32 = _mm_xor_ps(c2_s32, signs34.vector);
 
   /* Add */
   c0_s01 = _mm_add_ps(c0_s01, sc0_s32);
@@ -177,11 +181,6 @@ void decomp_gamma2_minus( spinor_array src, halfspinor_array dst)
   __m128 sc1_s32;
   __m128 sc2_s32;
 
-  union { 
-    unsigned int a[4];
-    __m128 vector;
-  } signs ALIGN = {{ 0x00000000, 0x80000000, 0x80000000,0x00000000 }};
-      //  {{1,-1,-1,1}};
 
   /* Load up the spinors */
   c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
@@ -206,9 +205,9 @@ void decomp_gamma2_minus( spinor_array src, halfspinor_array dst)
   c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0xb1);
   c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0xb1);
 
-  sc0_s32 = _mm_xor_ps(c0_s32, signs.vector);
-  sc1_s32 = _mm_xor_ps(c1_s32, signs.vector);
-  sc2_s32 = _mm_xor_ps(c2_s32, signs.vector);
+  sc0_s32 = _mm_xor_ps(c0_s32, signs23.vector);
+  sc1_s32 = _mm_xor_ps(c1_s32, signs23.vector);
+  sc2_s32 = _mm_xor_ps(c2_s32, signs23.vector);
 
   /* Add */
   c0_s01 = _mm_add_ps(c0_s01, sc0_s32);
@@ -296,13 +295,6 @@ void decomp_gamma0_plus( spinor_array src, halfspinor_array dst)
   __m128 ic1_s32;
   __m128 ic2_s32;
 
-  union { 
-    // float a[4];
-    unsigned int a[4];
-    __m128 vector;
-  } signs ALIGN = {{ 0x80000000,0x00000000,0x80000000,0x00000000}};
-
-      // {{-1,1,-1,1}};
 
   /* Load up the spinors */
   /* Color 0 */
@@ -328,9 +320,9 @@ void decomp_gamma0_plus( spinor_array src, halfspinor_array dst)
   c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0x1b);
   c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0x1b);
 
-  ic0_s32 = _mm_xor_ps(c0_s32, signs.vector);
-  ic1_s32 = _mm_xor_ps(c1_s32, signs.vector);
-  ic2_s32 = _mm_xor_ps(c2_s32, signs.vector);
+  ic0_s32 = _mm_xor_ps(c0_s32, signs13.vector);
+  ic1_s32 = _mm_xor_ps(c1_s32, signs13.vector);
+  ic2_s32 = _mm_xor_ps(c2_s32, signs13.vector);
 
   /* Add */
   c0_s01 = _mm_add_ps(c0_s01, ic0_s32);
@@ -369,11 +361,6 @@ void decomp_gamma1_plus( spinor_array src, halfspinor_array dst)
   __m128 sc1_s32;
   __m128 sc2_s32;
 
-  union { 
-    unsigned int a[4];
-    __m128 vector;
-  } signs ALIGN = {{ 0x80000000,0x80000000,0x00000000, 0x00000000 }};
-      // {{-1,-1,1,1}};
 
   /* Load up the spinors */
   c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
@@ -398,9 +385,9 @@ void decomp_gamma1_plus( spinor_array src, halfspinor_array dst)
   c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0x4e);
   c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0x4e);
 
-  sc0_s32 = _mm_xor_ps(c0_s32, signs.vector);
-  sc1_s32 = _mm_xor_ps(c1_s32, signs.vector);
-  sc2_s32 = _mm_xor_ps(c2_s32, signs.vector);
+  sc0_s32 = _mm_xor_ps(c0_s32, signs12.vector);
+  sc1_s32 = _mm_xor_ps(c1_s32, signs12.vector);
+  sc2_s32 = _mm_xor_ps(c2_s32, signs12.vector);
 
   /* Add */
   c0_s01 = _mm_add_ps(c0_s01, sc0_s32);
@@ -439,11 +426,6 @@ void decomp_gamma2_plus( spinor_array src, halfspinor_array dst)
   __m128 sc1_s32;
   __m128 sc2_s32;
 
-  union { 
-    unsigned int a[4];
-    __m128 vector;
-  } signs ALIGN = { { 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};
-      //{{-1,1,1,-1}};
 
   /* Load up the spinors */
   c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
@@ -468,9 +450,9 @@ void decomp_gamma2_plus( spinor_array src, halfspinor_array dst)
   c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0xb1);
   c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0xb1);
 
-  sc0_s32 = _mm_xor_ps(c0_s32, signs.vector);
-  sc1_s32 = _mm_xor_ps(c1_s32, signs.vector);
-  sc2_s32 = _mm_xor_ps(c2_s32, signs.vector);
+  sc0_s32 = _mm_xor_ps(c0_s32, signs14.vector);
+  sc1_s32 = _mm_xor_ps(c1_s32, signs14.vector);
+  sc2_s32 = _mm_xor_ps(c2_s32, signs14.vector);
 
   /* Add */
   c0_s01 = _mm_add_ps(c0_s01, sc0_s32);
