@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.8 2007-10-02 20:54:34 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.9 2007-10-26 21:16:52 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -70,7 +70,17 @@ extern "C" {
 #include <recons.h>
 #include <mvv_recons_64bit.h>
 
+  extern int subgrid_vol;
+  extern int *offset_table;
+
+  static inline
+  int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu)
+  {
+    return offset_table[mu + 4*( site + subgrid_vol*type) ];
+  }
+
 static int initP=0;
+
 
 /* now overlays for spinors as arrays or structs */
 
