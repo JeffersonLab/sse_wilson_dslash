@@ -19,11 +19,21 @@ void recons_4dir_plus( halfspinor_array hs0,
 		       halfspinor_array hs3,
 		      spinor_array spinor);
 
+void recons_3dir_plus( halfspinor_array hs0,
+		       halfspinor_array hs1,
+		       halfspinor_array hs2,
+		       spinor_array spinor);
+
 void recons_4dir_minus( halfspinor_array hs0,
 		        halfspinor_array hs1,
 		        halfspinor_array hs2,
 		        halfspinor_array hs3,
 		       spinor_array spinor);
+
+void recons_3dir_minus( halfspinor_array hs0,
+		        halfspinor_array hs1,
+		        halfspinor_array hs2,
+			spinor_array spinor);
 
 
 

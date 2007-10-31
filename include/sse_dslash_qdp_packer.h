@@ -13,6 +13,7 @@ namespace SSEDslash {
 
 
   void qdp_pack_gauge(const multi1d<LatticeColorMatrix>&_u, multi1d<PrimitiveSU3Matrix>& u_tmp);
+  void qdp_pack_gauge3d(const multi1d<LatticeColorMatrix>&_u, multi1d<PrimitiveSU3Matrix>& u_tmp);
 
 };
 

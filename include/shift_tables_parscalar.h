@@ -17,9 +17,13 @@ extern "C" {
 
   // int getSubgridVol();
   int getSubgridVolCB();
+  int getSubgridVol3D();
   void make_shift_tables(int icolor_start[2], int bound[2][4][4]);
+  void make_shift_tables_3d(int bound[2][4][3]);
   void free_shift_tables(void);
+  void free_shift_tables_3d(void);
 
+  
   /*! This is the key routine. It is a table lookup for an offset 
     into the half spinor array. It indirects us to the tail regions
     as appropriate for sites to be communicated off-node 
