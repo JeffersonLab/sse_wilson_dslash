@@ -4,7 +4,7 @@ AM_CXXFLAGS=$(INCFLAGS) @SSEXX_AUX_CFLAGS@ @QMT_CFLAGS@
 AM_LDFLAGS=-L@top_builddir@/lib @LDFLAGS@ @SSEXX_AUX_LDFLAGS@ @QMT_LDFLAGS@
 LDADD = -llevel3 @SSEXX_AUX_LIBS@ @LIBS@ @QMT_LIBS@
 
-check_PROGRAMS = t_dslash time_dslash
+check_PROGRAMS = t_dslash time_dslash t_dslash_3d
 
 if BUILD_SITE_TESTS
 check_PROGRAMS += t_site_ops
@@ -21,13 +21,24 @@ FRAMEWORK_SRCS =  unittest.h \
 	dslashm_w.cc \
 	reunit.h \
 	reunit.cc
-	testDslashFull.h \
-	testDslashFull.cc
+
+FRAMEWORK_3D_SRCS = unittest.h \
+	dslashm_w.h \
+	dslashm_w.cc \
+	dslash_3d_w.h \
+	dslash_3d_w.cc \
+	reunit.h \
+	reunit.cc
 
 t_dslash_SOURCES = $(FRAMEWORK_SRCS) \
 	testDslashFull.h \
 	testDslashFull.cc \
 	t_dslash.cc
+
+t_dslash_3d_SOURCES = $(FRAMEWORK_3D_SRCS) \
+	testDslash3D.h \
+	testDslash3D.cc \
+	t_dslash_3d.cc
 
 time_dslash_SOURCES = $(FRAMEWORK_SRCS) \
 	timeDslash.h \
@@ -82,5 +93,6 @@ endif
 
 
 t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
+t_dslash_3d_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
 t_site_ops_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
 time_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a

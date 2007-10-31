@@ -124,7 +124,7 @@ private:
   }
 
   void run(void) {    
-     for( int i=0; i != tests.size(); i++) {
+     for( unsigned i=0; i != tests.size(); i++) {
       run(*(tests[i]));
     }
   }  
@@ -192,7 +192,7 @@ private:
     int success = 0;
     int failure = 0;
     int odd = 0;
-    for(int i=0; i < tests.size(); i++) { 
+    for(unsigned int i=0; i < tests.size(); i++) { 
       if( trueEverywhere(tests[i]->success == SUCCESS) ) {
 	success++;
       }

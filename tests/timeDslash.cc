@@ -22,8 +22,6 @@ void
 timeDslash::run(void) 
 {
   LatticeFermion chi, chi2, psi;
-  int cb;
-  int isign;
 
   // What we consider to be small enough...
   Double small;

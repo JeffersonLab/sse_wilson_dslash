@@ -5,7 +5,7 @@
 #include "sse32.h"
 
 #include <cmath>
-#include "site_dslash_32bit_scalar.h"
+#include "site_dslash_32bit_scalar.c"
 
 using namespace QDP;
 using namespace std;
