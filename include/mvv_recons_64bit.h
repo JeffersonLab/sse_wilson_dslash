@@ -20,6 +20,11 @@ void mvv_recons_gamma2_plus_add( halfspinor_array src,
 				 u_mat_array u,
 				spinor_array dst);
 
+void mvv_recons_gamma2_plus_add_store( halfspinor_array src, 
+				       u_mat_array u,
+				       spinor_array sum,
+				       spinor_array dst);
+
 void mvv_recons_gamma3_plus_add_store( halfspinor_array src, 
 			     u_mat_array u,
 			     spinor_array sum,
@@ -37,6 +42,11 @@ void mvv_recons_gamma1_minus_add( halfspinor_array src,
 void mvv_recons_gamma2_minus_add( halfspinor_array src, 
 				 u_mat_array u,
 				spinor_array dst);
+
+void mvv_recons_gamma2_minus_add_store( halfspinor_array src, 
+					u_mat_array u,
+					spinor_array sum,
+					spinor_array dst);
 
 void mvv_recons_gamma3_minus_add_store( halfspinor_array src, 
 			     u_mat_array u,
