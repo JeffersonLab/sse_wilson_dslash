@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.13 2007-10-24 19:54:10 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.14 2007-10-31 15:12:46 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -59,6 +59,11 @@
 #include <sse_align.h>  /* Alignment stuff to ensure 16 byte alignments */
 #include <types32.h>    /* Types and prefetch macros */
 #include <dispatch_parscalar.h>   /* Threads dispatch definition */
+
+#include "decomp.h"
+#include "decomp_hvv.h"
+#include "mvv_recons_32bit.h"
+#include "recons.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -173,7 +178,6 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
   u_mat_array* um3 ALIGN;    /* Temporary gauge pointer for prefetching */
  
   spinor_array* sm1 ALIGN;   /* spinor */
-  spinor_array* sm2 ALIGN;   /* temporary spinor for fixing up loop ends so sm1 can be prefetched */
 
 
   const ThreadWorkerArgs *a = (const ThreadWorkerArgs *)ptr;
@@ -428,7 +432,6 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
   int ix1,iz1;
   spinor_array* s1 ALIGN;
   spinor_array* sp1 ALIGN;
-  spinor_array* sp2 ALIGN;
 
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr;
 
