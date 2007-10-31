@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# $Id: Makefile.in,v 1.17 2007-10-31 15:12:45 bjoo Exp $
+# $Id: Makefile.in,v 1.18 2007-10-31 17:34:39 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -70,9 +70,11 @@ host_triplet = @host@
 @PARSCALAR_DOUBLE_TRUE@	decomp_64bit_parscalar.c \
 @PARSCALAR_DOUBLE_TRUE@	decomp_hvv_64bit_parscalar.c \
 @PARSCALAR_DOUBLE_TRUE@	mvv_recons_64bit_parscalar.c \
-@PARSCALAR_DOUBLE_TRUE@	recons_64bit_parscalar.c
+@PARSCALAR_DOUBLE_TRUE@	recons_64bit_parscalar.c \
+@PARSCALAR_DOUBLE_TRUE@	shift_tables_parscalar_3d.c \
+@PARSCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_parscalar_3d.c
 
-@BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@am__append_8 = qdp_packer_nopad.cc
+@BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@am__append_8 = qdp_packer_nopad.cc qdp_packer_3d.cc
 subdir = lib
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -108,7 +110,7 @@ am__liblevel3_a_SOURCES_DIST = shift_tables_scalar.c packer_nopad.c \
 	qdp_packer_p4_pad.cc qdp_packer_3d.cc \
 	sse_su3dslash_64bit_parscalar.c decomp_64bit_parscalar.c \
 	decomp_hvv_64bit_parscalar.c mvv_recons_64bit_parscalar.c \
-	recons_64bit_parscalar.c
+	recons_64bit_parscalar.c sse_su3dslash_64bit_parscalar_3d.c
 @SCALAR_SINGLE_TRUE@am__objects_1 = shift_tables_scalar.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	packer_nopad.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_scalar.$(OBJEXT) \
@@ -142,8 +144,11 @@ am__liblevel3_a_SOURCES_DIST = shift_tables_scalar.c packer_nopad.c \
 @PARSCALAR_DOUBLE_TRUE@	decomp_64bit_parscalar.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	decomp_hvv_64bit_parscalar.$(OBJEXT) \
 @PARSCALAR_DOUBLE_TRUE@	mvv_recons_64bit_parscalar.$(OBJEXT) \
-@PARSCALAR_DOUBLE_TRUE@	recons_64bit_parscalar.$(OBJEXT)
-@BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@am__objects_8 = qdp_packer_nopad.$(OBJEXT)
+@PARSCALAR_DOUBLE_TRUE@	recons_64bit_parscalar.$(OBJEXT) \
+@PARSCALAR_DOUBLE_TRUE@	shift_tables_parscalar_3d.$(OBJEXT) \
+@PARSCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_parscalar_3d.$(OBJEXT)
+@BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@am__objects_8 = qdp_packer_nopad.$(OBJEXT) \
+@BUILD_QDP_PACKERS_TRUE@@PARSCALAR_DOUBLE_TRUE@	qdp_packer_3d.$(OBJEXT)
 am_liblevel3_a_OBJECTS = $(am__objects_1) $(am__objects_2) \
 	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
 	$(am__objects_6) $(am__objects_7) $(am__objects_8)
@@ -389,6 +394,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_parscalar_3d.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_64bit_parscalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_64bit_parscalar_3d.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_64bit_scalar.Po@am__quote@
 
 .c.o:
