@@ -13,7 +13,7 @@ using namespace QDP;
 #endif
 
 #include "sse_dslash_3d.h"
-#include "sse_dslash_qdp_packer.h"
+#include "sse_dslash_qdp_packer_3d.h"
 
 using namespace Assertions;
 using namespace std;
@@ -49,9 +49,9 @@ timeDslash3D::run(void)
   init_sse_su3dslash_3d(Layout::lattSize().slice());
 
   /// Pack the gauge fields
-  multi1d<SSEDslash::PrimitiveSU3Matrix> packed_gauge;
+  multi1d<SSEDslash3D::PrimitiveSU3Matrix> packed_gauge;
   packed_gauge.resize( 4 * Layout::sitesOnNode() );
-  SSEDslash::qdp_pack_gauge(u, packed_gauge);
+  SSEDslash3D::qdp_pack_gauge_3d(u, packed_gauge);
  
   QDPIO::cout << endl;
 
