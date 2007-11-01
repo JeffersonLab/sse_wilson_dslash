@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# $Id: Makefile.in,v 1.19 2007-10-31 17:38:06 bjoo Exp $
+# $Id: Makefile.in,v 1.20 2007-11-01 14:33:00 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -45,10 +45,10 @@ host_triplet = @host@
 #
 # An AM_CONDITIONAL if statement to decide which fermion type
 #
-@SCALAR_SINGLE_TRUE@am__append_1 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c site_dslash_32bit_scalar.c
-@BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@am__append_2 = qdp_packer_nopad.cc
-@SCALAR_DOUBLE_TRUE@am__append_3 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c site_dslash_64bit_scalar.c
-@BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@am__append_4 = qdp_packer_nopad.cc
+@SCALAR_SINGLE_TRUE@am__append_1 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c site_dslash_32bit_scalar.c shift_tables_scalar_3d.c  sse_su3dslash_32bit_scalar_3d.c
+@BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@am__append_2 = qdp_packer_nopad.cc qdp_packer_3d.cc
+@SCALAR_DOUBLE_TRUE@am__append_3 = shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c site_dslash_64bit_scalar.c shift_tables_scalar_3d.c sse_su3dslash_64bit_scalar_3d.c
+@BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@am__append_4 = qdp_packer_nopad.cc qdp_packer_3d.cc
 @PARSCALAR_SINGLE_TRUE@am__append_5 = shift_tables_parscalar.c \
 @PARSCALAR_SINGLE_TRUE@	packer_p4_pad.c \
 @PARSCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_parscalar.c \
@@ -100,29 +100,37 @@ liblevel3_a_AR = $(AR) $(ARFLAGS)
 liblevel3_a_LIBADD =
 am__liblevel3_a_SOURCES_DIST = shift_tables_scalar.c packer_nopad.c \
 	sse_su3dslash_32bit_scalar.c dispatch_scalar.c \
-	site_dslash_32bit_scalar.c qdp_packer_nopad.cc \
-	sse_su3dslash_64bit_scalar.c site_dslash_64bit_scalar.c \
+	site_dslash_32bit_scalar.c shift_tables_scalar_3d.c \
+	sse_su3dslash_32bit_scalar_3d.c qdp_packer_nopad.cc \
+	qdp_packer_3d.cc sse_su3dslash_64bit_scalar.c \
+	site_dslash_64bit_scalar.c sse_su3dslash_64bit_scalar_3d.c \
 	shift_tables_parscalar.c packer_p4_pad.c \
 	sse_su3dslash_32bit_parscalar.c dispatch_parscalar.c \
 	decomp_32bit_parscalar.c decomp_hvv_32bit_parscalar.c \
 	mvv_recons_32bit_parscalar.c recons_32bit_parscalar.c \
 	shift_tables_parscalar_3d.c sse_su3dslash_32bit_parscalar_3d.c \
-	qdp_packer_p4_pad.cc qdp_packer_3d.cc \
-	sse_su3dslash_64bit_parscalar.c decomp_64bit_parscalar.c \
-	decomp_hvv_64bit_parscalar.c mvv_recons_64bit_parscalar.c \
-	recons_64bit_parscalar.c sse_su3dslash_64bit_parscalar_3d.c
+	qdp_packer_p4_pad.cc sse_su3dslash_64bit_parscalar.c \
+	decomp_64bit_parscalar.c decomp_hvv_64bit_parscalar.c \
+	mvv_recons_64bit_parscalar.c recons_64bit_parscalar.c \
+	sse_su3dslash_64bit_parscalar_3d.c
 @SCALAR_SINGLE_TRUE@am__objects_1 = shift_tables_scalar.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	packer_nopad.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_scalar.$(OBJEXT) \
 @SCALAR_SINGLE_TRUE@	dispatch_scalar.$(OBJEXT) \
-@SCALAR_SINGLE_TRUE@	site_dslash_32bit_scalar.$(OBJEXT)
-@BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@am__objects_2 = qdp_packer_nopad.$(OBJEXT)
+@SCALAR_SINGLE_TRUE@	site_dslash_32bit_scalar.$(OBJEXT) \
+@SCALAR_SINGLE_TRUE@	shift_tables_scalar_3d.$(OBJEXT) \
+@SCALAR_SINGLE_TRUE@	sse_su3dslash_32bit_scalar_3d.$(OBJEXT)
+@BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@am__objects_2 = qdp_packer_nopad.$(OBJEXT) \
+@BUILD_QDP_PACKERS_TRUE@@SCALAR_SINGLE_TRUE@	qdp_packer_3d.$(OBJEXT)
 @SCALAR_DOUBLE_TRUE@am__objects_3 = shift_tables_scalar.$(OBJEXT) \
 @SCALAR_DOUBLE_TRUE@	packer_nopad.$(OBJEXT) \
 @SCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_scalar.$(OBJEXT) \
 @SCALAR_DOUBLE_TRUE@	dispatch_scalar.$(OBJEXT) \
-@SCALAR_DOUBLE_TRUE@	site_dslash_64bit_scalar.$(OBJEXT)
-@BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@am__objects_4 = qdp_packer_nopad.$(OBJEXT)
+@SCALAR_DOUBLE_TRUE@	site_dslash_64bit_scalar.$(OBJEXT) \
+@SCALAR_DOUBLE_TRUE@	shift_tables_scalar_3d.$(OBJEXT) \
+@SCALAR_DOUBLE_TRUE@	sse_su3dslash_64bit_scalar_3d.$(OBJEXT)
+@BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@am__objects_4 = qdp_packer_nopad.$(OBJEXT) \
+@BUILD_QDP_PACKERS_TRUE@@SCALAR_DOUBLE_TRUE@	qdp_packer_3d.$(OBJEXT)
 @PARSCALAR_SINGLE_TRUE@am__objects_5 =  \
 @PARSCALAR_SINGLE_TRUE@	shift_tables_parscalar.$(OBJEXT) \
 @PARSCALAR_SINGLE_TRUE@	packer_p4_pad.$(OBJEXT) \
@@ -388,14 +396,17 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shift_tables_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shift_tables_parscalar_3d.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shift_tables_scalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shift_tables_scalar_3d.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/site_dslash_32bit_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/site_dslash_64bit_scalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_parscalar_3d.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_scalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_32bit_scalar_3d.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_64bit_parscalar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_64bit_parscalar_3d.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_64bit_scalar.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sse_su3dslash_64bit_scalar_3d.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

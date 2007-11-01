@@ -1,4 +1,4 @@
-# $Id: Makefile.am,v 1.8 2007-10-31 17:34:39 bjoo Exp $
+# $Id: Makefile.am,v 1.9 2007-11-01 14:32:59 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -26,16 +26,16 @@ liblevel3_a_SOURCES =
 #
 
 if SCALAR_SINGLE
-liblevel3_a_SOURCES += shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c site_dslash_32bit_scalar.c
+liblevel3_a_SOURCES += shift_tables_scalar.c packer_nopad.c sse_su3dslash_32bit_scalar.c dispatch_scalar.c site_dslash_32bit_scalar.c shift_tables_scalar_3d.c  sse_su3dslash_32bit_scalar_3d.c
 if BUILD_QDP_PACKERS
-liblevel3_a_SOURCES += qdp_packer_nopad.cc
+liblevel3_a_SOURCES += qdp_packer_nopad.cc qdp_packer_3d.cc
 endif
 endif
 
 if SCALAR_DOUBLE
-liblevel3_a_SOURCES += shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c site_dslash_64bit_scalar.c
+liblevel3_a_SOURCES += shift_tables_scalar.c packer_nopad.c sse_su3dslash_64bit_scalar.c dispatch_scalar.c site_dslash_64bit_scalar.c shift_tables_scalar_3d.c sse_su3dslash_64bit_scalar_3d.c
 if BUILD_QDP_PACKERS
-liblevel3_a_SOURCES += qdp_packer_nopad.cc
+liblevel3_a_SOURCES += qdp_packer_nopad.cc qdp_packer_3d.cc
 endif
 endif
 
