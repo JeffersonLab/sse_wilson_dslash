@@ -1,4 +1,4 @@
-/* $Id: shift_tables_scalar_3d.c,v 1.1 2007-11-01 14:33:02 bjoo Exp $
+/* $Id: shift_tables_scalar_3d.c,v 1.2 2007-11-01 15:33:39 bjoo Exp $
 
 /* Set the offset tables used by the 32-bit and 64-bit single node dslash */
 
@@ -229,11 +229,13 @@ int* make_shift_tables_3d(const int nrow[])
 
 
  /* Loop through sites - you can choose your path below */
-  /* For now let's go lexicographically */  
+  /* For now let's go lexicographically */ 
   for(t=0; t < nrow[3]; t++) { 
     for(z=0; z < nrow[2]; z++) {
       for(y=0; y < nrow[1]; y++) { 
 	for(x=0; x < nrow[0]; x++) {
+
+
 	  coord[0] = x;
 	  coord[1] = y;
 	  coord[2] = z; 

@@ -134,6 +134,7 @@ timeDslash::run(void)
   time /= (double)Layout::numNodes();
 
   QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << endl;
+  QDPIO::cout << "\t " << 1.0e6*time/(double)iters << " u sec/iteration" << endl;    
   double Mflops = 1390.0f*(double)(iters)*(double)(Layout::vol()/2)/1.0e6;
   double perf = Mflops/time;
   QDPIO::cout << "\t Performance is: " << perf << " Mflops in Total" << endl;
