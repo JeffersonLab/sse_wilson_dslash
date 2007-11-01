@@ -11,10 +11,6 @@ void dslash_3d(LatticeFermion& chi,
 	       const LatticeFermion& psi,
 	       int isign, int cb3d)
 {
-#if 0
-  dslash(chi,u, psi, isign, cb3d);
-#endif
-
     /*     F 
      *   a2  (x)  :=  U  (x) (1 - isign gamma  ) psi(x)
      *     mu          mu                    mu
@@ -34,7 +30,6 @@ void dslash_3d(LatticeFermion& chi,
      * and all args must be known at compile time. Hence, the function names carry
      * (as functions usually do) the meaning (and implicit args) to a function.
      */
-#if 1
     int otherCB = (cb3d == 0 ? 1 : 0);
 
     switch (isign)
@@ -114,7 +109,4 @@ void dslash_3d(LatticeFermion& chi,
       
       break;
     }
-
-
-#endif
 }
