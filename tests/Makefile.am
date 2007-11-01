@@ -4,12 +4,13 @@ AM_CXXFLAGS=$(INCFLAGS) @SSEXX_AUX_CFLAGS@ @QMT_CFLAGS@
 AM_LDFLAGS=-L@top_builddir@/lib @LDFLAGS@ @SSEXX_AUX_LDFLAGS@ @QMT_LDFLAGS@
 LDADD = -llevel3 @SSEXX_AUX_LIBS@ @LIBS@ @QMT_LIBS@
 
-check_PROGRAMS = t_dslash time_dslash t_dslash_3d
+check_PROGRAMS = t_dslash t_dslash_3d
 
 if BUILD_SITE_TESTS
 check_PROGRAMS += t_site_ops
 endif
 
+check_PROGRAMS += time_dslash time_dslash_3d
 TESTS=
 if RUN_TESTS
 TESTS += $(check_PROGRAMS)
@@ -44,6 +45,11 @@ time_dslash_SOURCES = $(FRAMEWORK_SRCS) \
 	timeDslash.h \
 	timeDslash.cc \
 	time_dslash.cc
+
+time_dslash_3d_SOURCES = $(FRAMEWORK_3D_SRCS) \
+	timeDslash3D.h \
+	timeDslash3D.cc \
+	time_dslash_3d.cc
 
 
 if SCALAR_SINGLE
@@ -92,7 +98,11 @@ t_site_ops_SOURCES = $(FRAMEWORK_SRCS) \
 endif
 
 
-t_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
-t_dslash_3d_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
-t_site_ops_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
-time_dslash_DEPENDENCIES = @top_builddir@/lib/liblevel3.a
+t_dslash_DEPENDENCIES = build_lib
+t_dslash_3d_DEPENDENCIES = build_lib
+t_site_ops_DEPENDENCIES = build_lib
+time_dslash_DEPENDENCIES = build_lib
+time_dslash_3d_DEPENDENCIES = build_lib
+
+.PHONY: build_lib
+	cd @top_builddir@/lib; $(MAKE)
