@@ -18,6 +18,14 @@ extern "C" {
   int backward_neighbor(int *soffsets, int mysite, int mymu);
   int* make_shift_tables(int icolor_start[2], const int lat_size[4]);
   void free_shift_tables(int **table);
+
+  int getSubgridVol3D();
+  int getSubgridVolCB3D();
+  int forward_neighbor_3d(int *soffsets, int mysite, int mymu);
+  int backward_neighbor_3d(int *soffsets, int mysite, int mymu);
+  int* make_shift_tables_3d(const int lat_size[4]);
+  void free_shift_tables_3d(int **table);
+
 #ifdef __cplusplus
 };
 #endif

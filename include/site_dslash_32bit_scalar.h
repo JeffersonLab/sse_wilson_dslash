@@ -40,6 +40,12 @@ extern "C" {
 				       u_mat_array  u,
 				       halfspinor_array  upper_sum,
 				       halfspinor_array  lower_sum   );
+
+  void dslash_plus_dir2_backward_add_store(  spinor_array  spinor_in,
+					     u_mat_array  u,
+					     halfspinor_array  upper_sum,
+					     halfspinor_array  lower_sum,
+					     spinor_array spinor_out );
   
   void dslash_plus_dir3_forward_add(  spinor_array  spinor_in,
 				      u_mat_array  u,
@@ -50,7 +56,7 @@ extern "C" {
 					     u_mat_array  u,
 					     halfspinor_array  upper_sum,
 					     halfspinor_array  lower_sum,
-					     spinor_array output_spinor);
+					     spinor_array spinor_out);
   
   void dslash_minus_dir0_forward(  spinor_array  spinor_in,
 				   u_mat_array  u,
@@ -83,6 +89,12 @@ extern "C" {
 					u_mat_array  u,
 					halfspinor_array  upper_sum,
 					halfspinor_array  lower_sum   );
+
+  void dslash_minus_dir2_backward_add_store(  spinor_array  spinor_in,
+					u_mat_array  u,
+					halfspinor_array  upper_sum,
+					halfspinor_array  lower_sum,
+					spinor_array spinor_out);
   
   void dslash_minus_dir3_forward_add(  spinor_array  spinor_in,
 				       u_mat_array  u,
@@ -93,7 +105,7 @@ extern "C" {
 					      u_mat_array  u,
 					      halfspinor_array  upper_sum,
 					      halfspinor_array  lower_sum,
-					      spinor_array output_spinor);
+					      spinor_array spinor_out);
   
   
   
