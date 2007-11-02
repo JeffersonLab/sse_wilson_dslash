@@ -39,8 +39,47 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   __m128 xmm7;
 
 
+  __m128 t1; 
+  __m128 t2; 
 
-  /* Load up the spinors */
+#if 1  /* Try higher bandwidth method. */
+  /* On opterons assuming data is in cache 
+     loadps has a latency of 2 and a througput of 2 per cycle
+     so 6 loads become 3 loads in parallel, and so the minimum 
+     latency is 6 cycles 3*2 */
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  t1   = _mm_load_ps(&src[0][2][0]);
+  xmm2 = _mm_load_ps(&src[1][1][0]);
+
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  t2   = _mm_load_ps(&src[2][2][0]);
+  xmm5 = _mm_load_ps(&src[3][1][0]);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movelh_ps(xmm1, xmm2);
+  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+
+  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
+  /* 2 cycles with throughput of 2 */
+  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
+  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+
+  /* Move low bytes of t1,t2 to low bytes of xmm2, xmm5 */
+  /* 2 cycles with a througput of 2 */
+  xmm2 = _mm_shuffle_ps( t1, xmm2, 0xe4);
+  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+
+  /* Should be a total of 14 cycles minimum...
+#else
+
+  /* Minimum Latency of 4 per cycle. Throughput is 2 per cycle.
+     12 of these, parallelise to 6 steps (thoughput of 2)
+     so minimum cost of 24 cycles? */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
   xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][2][0]);
@@ -56,7 +95,7 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-  
+#endif  
 
   /* Now the decomposition: gamma0_plus */
   xmm3 = _mm_shuffle_ps(xmm3, xmm3, 0x1b);
@@ -183,6 +222,45 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
+
+  __m128 t1; 
+  __m128 t2; 
+
+#if 1  /* Try higher bandwidth method. */
+  /* On opterons assuming data is in cache 
+     loadps has a latency of 2 and a througput of 2 per cycle
+     so 6 loads become 3 loads in parallel, and so the minimum 
+     latency is 6 cycles 3*2 */
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  t1   = _mm_load_ps(&src[0][2][0]);
+  xmm2 = _mm_load_ps(&src[1][1][0]);
+
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  t2   = _mm_load_ps(&src[2][2][0]);
+  xmm5 = _mm_load_ps(&src[3][1][0]);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movelh_ps(xmm1, xmm2);
+  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+
+  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
+  /* 2 cycles with throughput of 2 */
+  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
+  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+
+  /* Move low bytes of t1,t2 to low bytes of xmm2, xmm5 */
+  /* 2 cycles with a througput of 2 */
+  xmm2 = _mm_shuffle_ps( t1, xmm2, 0xe4);
+  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+
+  /* Should be a total of 14 cycles minimum...
+#else
+
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -199,7 +277,7 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-  
+#endif  
 
   /* Now the decomposition: gamma0_plus */
   xmm3 = _mm_shuffle_ps(xmm3, xmm3, 0x4e);
@@ -326,6 +404,44 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   __m128 xmm7;
 
 
+  __m128 t1; 
+  __m128 t2; 
+
+#if 1  /* Try higher bandwidth method. */
+  /* On opterons assuming data is in cache 
+     loadps has a latency of 2 and a througput of 2 per cycle
+     so 6 loads become 3 loads in parallel, and so the minimum 
+     latency is 6 cycles 3*2 */
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  t1   = _mm_load_ps(&src[0][2][0]);
+  xmm2 = _mm_load_ps(&src[1][1][0]);
+
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  t2   = _mm_load_ps(&src[2][2][0]);
+  xmm5 = _mm_load_ps(&src[3][1][0]);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movelh_ps(xmm1, xmm2);
+  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+
+  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
+  /* 2 cycles with throughput of 2 */
+  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
+  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+
+  /* Move low bytes of t1,t2 to low bytes of xmm2, xmm5 */
+  /* 2 cycles with a througput of 2 */
+  xmm2 = _mm_shuffle_ps( t1, xmm2, 0xe4);
+  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+
+  /* Should be a total of 14 cycles minimum...
+#else
+
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -343,7 +459,7 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-  
+#endif  
 
   /* Now the decomposition: gamma0_plus */
   xmm3 = _mm_shuffle_ps(xmm3, xmm3, 0xb1);
@@ -471,6 +587,44 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   __m128 xmm7;
 
 
+  __m128 t1; 
+  __m128 t2; 
+
+#if 1  /* Try higher bandwidth method. */
+  /* On opterons assuming data is in cache 
+     loadps has a latency of 2 and a througput of 2 per cycle
+     so 6 loads become 3 loads in parallel, and so the minimum 
+     latency is 6 cycles 3*2 */
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  t1   = _mm_load_ps(&src[0][2][0]);
+  xmm2 = _mm_load_ps(&src[1][1][0]);
+
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  t2   = _mm_load_ps(&src[2][2][0]);
+  xmm5 = _mm_load_ps(&src[3][1][0]);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movelh_ps(xmm1, xmm2);
+  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+
+  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
+  /* 2 cycles with throughput of 2 */
+  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
+  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+
+  /* Move low bytes of t1,t2 to low bytes of xmm2, xmm5 */
+  /* 2 cycles with a througput of 2 */
+  xmm2 = _mm_shuffle_ps( t1, xmm2, 0xe4);
+  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+
+  /* Should be a total of 14 cycles minimum...
+#else
+
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -487,7 +641,7 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-  
+#endif  
 
   xmm0 = _mm_add_ps(xmm0, xmm3);
   xmm1 = _mm_add_ps(xmm1, xmm4);
@@ -605,6 +759,44 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   __m128 xmm7;
 
 
+  __m128 t1; 
+  __m128 t2; 
+
+#if 1  /* Try higher bandwidth method. */
+  /* On opterons assuming data is in cache 
+     loadps has a latency of 2 and a througput of 2 per cycle
+     so 6 loads become 3 loads in parallel, and so the minimum 
+     latency is 6 cycles 3*2 */
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  t1   = _mm_load_ps(&src[0][2][0]);
+  xmm2 = _mm_load_ps(&src[1][1][0]);
+
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  t2   = _mm_load_ps(&src[2][2][0]);
+  xmm5 = _mm_load_ps(&src[3][1][0]);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movelh_ps(xmm1, xmm2);
+  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+
+  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
+  /* 2 cycles with throughput of 2 */
+  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
+  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+
+  /* Move low bytes of t1,t2 to low bytes of xmm2, xmm5 */
+  /* 2 cycles with a througput of 2 */
+  xmm2 = _mm_shuffle_ps( t1, xmm2, 0xe4);
+  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+
+  /* Should be a total of 14 cycles minimum...
+#else
+
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -622,7 +814,7 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-  
+#endif  
 
   /* Now the decomposition: gamma0_minus */
   xmm3 = _mm_shuffle_ps(xmm3, xmm3, 0x1b);
@@ -748,6 +940,45 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
+
+  __m128 t1; 
+  __m128 t2; 
+
+#if 1  /* Try higher bandwidth method. */
+  /* On opterons assuming data is in cache 
+     loadps has a latency of 2 and a througput of 2 per cycle
+     so 6 loads become 3 loads in parallel, and so the minimum 
+     latency is 6 cycles 3*2 */
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  t1   = _mm_load_ps(&src[0][2][0]);
+  xmm2 = _mm_load_ps(&src[1][1][0]);
+
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  t2   = _mm_load_ps(&src[2][2][0]);
+  xmm5 = _mm_load_ps(&src[3][1][0]);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movelh_ps(xmm1, xmm2);
+  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+
+  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
+  /* 2 cycles with throughput of 2 */
+  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
+  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+
+  /* Move low bytes of t1,t2 to low bytes of xmm2, xmm5 */
+  /* 2 cycles with a througput of 2 */
+  xmm2 = _mm_shuffle_ps( t1, xmm2, 0xe4);
+  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+
+  /* Should be a total of 14 cycles minimum...
+#else
+
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -764,7 +995,7 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-  
+#endif  
 
   /* Now the decomposition: gamma0_minus */
   xmm3 = _mm_shuffle_ps(xmm3, xmm3, 0x4e);
@@ -892,6 +1123,44 @@ void decomp_hvv_gamma2_minus( spinor_array src,
 
 
 
+  __m128 t1; 
+  __m128 t2; 
+
+#if 1  /* Try higher bandwidth method. */
+  /* On opterons assuming data is in cache 
+     loadps has a latency of 2 and a througput of 2 per cycle
+     so 6 loads become 3 loads in parallel, and so the minimum 
+     latency is 6 cycles 3*2 */
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  t1   = _mm_load_ps(&src[0][2][0]);
+  xmm2 = _mm_load_ps(&src[1][1][0]);
+
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  t2   = _mm_load_ps(&src[2][2][0]);
+  xmm5 = _mm_load_ps(&src[3][1][0]);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movelh_ps(xmm1, xmm2);
+  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+
+  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
+  /* 2 cycles with throughput of 2 */
+  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
+  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+
+  /* Move low bytes of t1,t2 to low bytes of xmm2, xmm5 */
+  /* 2 cycles with a througput of 2 */
+  xmm2 = _mm_shuffle_ps( t1, xmm2, 0xe4);
+  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+
+  /* Should be a total of 14 cycles minimum...
+#else
+
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -908,7 +1177,7 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-  
+#endif  
 
   /* Now the decomposition: gamma0_minus */
   xmm3 = _mm_shuffle_ps(xmm3, xmm3, 0xb1);
@@ -1035,6 +1304,45 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   __m128 xmm6;
   __m128 xmm7;
 
+
+  __m128 t1; 
+  __m128 t2; 
+
+#if 1  /* Try higher bandwidth method. */
+  /* On opterons assuming data is in cache 
+     loadps has a latency of 2 and a througput of 2 per cycle
+     so 6 loads become 3 loads in parallel, and so the minimum 
+     latency is 6 cycles 3*2 */
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  t1   = _mm_load_ps(&src[0][2][0]);
+  xmm2 = _mm_load_ps(&src[1][1][0]);
+
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  t2   = _mm_load_ps(&src[2][2][0]);
+  xmm5 = _mm_load_ps(&src[3][1][0]);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+  /* 2 cycles with a throughput of 2 */
+  xmm1 = _mm_movelh_ps(xmm1, xmm2);
+  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+
+  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
+  /* 2 cycles with throughput of 2 */
+  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
+  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+
+  /* Move low bytes of t1,t2 to low bytes of xmm2, xmm5 */
+  /* 2 cycles with a througput of 2 */
+  xmm2 = _mm_shuffle_ps( t1, xmm2, 0xe4);
+  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+
+  /* Should be a total of 14 cycles minimum...
+#else
+
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -1052,6 +1360,7 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
   
+#endif
 
   xmm0 = _mm_sub_ps(xmm0, xmm3);
   xmm1 = _mm_sub_ps(xmm1, xmm4);

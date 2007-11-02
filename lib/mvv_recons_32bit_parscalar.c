@@ -670,6 +670,7 @@ void mvv_recons_gamma2_plus_add_store(  halfspinor_array src,
   __m128 xmm11;
   __m128 xmm12;
 
+
   SSESign signs13 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
   SSESign signs14 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};
 
@@ -864,19 +865,10 @@ void mvv_recons_gamma2_plus_add_store(  halfspinor_array src,
   xmm1 = _mm_add_ps(xmm4,xmm1);
   xmm2 = _mm_add_ps(xmm5,xmm2);
 
-  /* Scatter out into the spinor */
-  _mm_storel_pi((__m64 *)&dst[0][0][0],xmm0);
-  _mm_storel_pi((__m64 *)&dst[0][1][0],xmm1);
-  _mm_storel_pi((__m64 *)&dst[0][2][0],xmm2);
-
-  _mm_storeh_pi((__m64 *)&dst[1][0][0],xmm0);
-  _mm_storeh_pi((__m64 *)&dst[1][1][0],xmm1);
-  _mm_storeh_pi((__m64 *)&dst[1][2][0],xmm2);
-
   /* Load lower sum project and accumulate */
-  xmm0 = _mm_load_ps( &lower_sum[0][0][0] );
-  xmm1 = _mm_load_ps( &lower_sum[1][0][0] );
-  xmm2 = _mm_load_ps( &lower_sum[2][0][0] );
+  xmm6 = _mm_load_ps( &lower_sum[0][0][0] );
+  xmm7 = _mm_load_ps( &lower_sum[1][0][0] );
+  xmm8 = _mm_load_ps( &lower_sum[2][0][0] );
 
   xmm3 = _mm_shuffle_ps(xmm3, xmm3, 0xb1);
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
@@ -886,18 +878,64 @@ void mvv_recons_gamma2_plus_add_store(  halfspinor_array src,
   xmm4 = _mm_xor_ps(signs14.vector, xmm4);
   xmm5 = _mm_xor_ps(signs14.vector, xmm5);
 
-  xmm0 = _mm_add_ps(xmm3, xmm0);
-  xmm1 = _mm_add_ps(xmm4, xmm1);
-  xmm2 = _mm_add_ps(xmm5, xmm2);
+  xmm6 = _mm_add_ps(xmm3, xmm6);
+  xmm7 = _mm_add_ps(xmm4, xmm7);
+  xmm8 = _mm_add_ps(xmm5, xmm8);
 
-  _mm_storel_pi((__m64 *)&dst[2][0][0],xmm0);
-  _mm_storel_pi((__m64 *)&dst[2][1][0],xmm1);
-  _mm_storel_pi((__m64 *)&dst[2][2][0],xmm2);
+#if 1
+  /* Try not deswizzling */
+  _mm_store_ps(&dst[0][0][0], xmm0);
+  _mm_store_ps(&dst[0][2][0], xmm1);
+  _mm_store_ps(&dst[1][1][0], xmm2);
+  _mm_store_ps(&dst[2][0][0], xmm6);
+  _mm_store_ps(&dst[2][2][0], xmm7);
+  _mm_store_ps(&dst[3][1][0], xmm8);
+#endif
 
-  _mm_storeh_pi((__m64 *)&dst[3][0][0],xmm0);
-  _mm_storeh_pi((__m64 *)&dst[3][1][0],xmm1);
-  _mm_storeh_pi((__m64 *)&dst[3][2][0],xmm2);
+#if 0
+  /* High bytes. of xmm0, xmm6 to high bytes of xmm9, xmm10 */
+  xmm9 = _mm_shuffle_ps(xmm9,  xmm0, 0xe4);
+  xmm10= _mm_shuffle_ps(xmm10, xmm6, 0xe4);
 
+  /* Low bytes of xmm2, xmm8 to low bytes of xmm9, xmm10 */
+  xmm9 = _mm_shuffle_ps(xmm2, xmm9, 0xe4);
+  xmm10= _mm_shuffle_ps(xmm8, xmm10, 0xe4);
+
+  /* Low bytes of xmm1, xmm7 to high bytes of xmm0, xmm6 */
+  xmm0 = _mm_movelh_ps(xmm0, xmm1);
+  xmm6 = _mm_movelh_ps(xmm6, xmm7);
+
+  /* High bytes of xmm1, xmm7 to low bytes of xmm2, xmm8 */
+  xmm2 = _mm_movehl_ps(xmm2, xmm1);
+  xmm8 = _mm_movehl_ps(xmm8, xmm7);
+
+  _mm_store_ps(&dst[0][0][0], xmm0);
+  _mm_store_ps(&dst[0][2][0], xmm9);
+  _mm_store_ps(&dst[1][1][0], xmm2);
+  _mm_store_ps(&dst[2][0][0], xmm6);
+  _mm_store_ps(&dst[2][2][0], xmm10);
+  _mm_store_ps(&dst[3][1][0], xmm8);
+#endif    
+  
+#if 0
+  /* Scatter out into the spinor */
+  _mm_storel_pi((__m64 *)&dst[0][0][0],xmm0);
+  _mm_storel_pi((__m64 *)&dst[0][1][0],xmm1);
+  _mm_storel_pi((__m64 *)&dst[0][2][0],xmm2);
+
+  _mm_storeh_pi((__m64 *)&dst[1][0][0],xmm0);
+  _mm_storeh_pi((__m64 *)&dst[1][1][0],xmm1);
+  _mm_storeh_pi((__m64 *)&dst[1][2][0],xmm2);
+
+
+  _mm_storel_pi((__m64 *)&dst[2][0][0],xmm6);
+  _mm_storel_pi((__m64 *)&dst[2][1][0],xmm7);
+  _mm_storel_pi((__m64 *)&dst[2][2][0],xmm8);
+
+  _mm_storeh_pi((__m64 *)&dst[3][0][0],xmm6);
+  _mm_storeh_pi((__m64 *)&dst[3][1][0],xmm7);
+  _mm_storeh_pi((__m64 *)&dst[3][2][0],xmm8);
+#endif
 }
 
 void mvv_recons_gamma3_plus_add_store(  halfspinor_array src, 
@@ -1114,6 +1152,61 @@ void mvv_recons_gamma3_plus_add_store(  halfspinor_array src,
   xmm1 = _mm_add_ps(xmm4,xmm1);
   xmm2 = _mm_add_ps(xmm5,xmm2);
 
+
+
+  /* Load lower sum and accumulate */
+  xmm6 = _mm_load_ps( &lower_sum[0][0][0] );
+  xmm7 = _mm_load_ps( &lower_sum[1][0][0] );
+  xmm8 = _mm_load_ps( &lower_sum[2][0][0] );
+
+  /* Recons -- sse_vector sub */
+  xmm6 = _mm_sub_ps( xmm6, xmm3 );
+  xmm7 = _mm_sub_ps( xmm7, xmm4 );
+  xmm8 = _mm_sub_ps( xmm8, xmm5 );
+
+#if 1
+
+  /* Try not deswizzling */
+  _mm_store_ps(&dst[0][0][0], xmm0);
+  _mm_store_ps(&dst[0][2][0], xmm1);
+  _mm_store_ps(&dst[1][1][0], xmm2);
+  _mm_store_ps(&dst[2][0][0], xmm6);
+  _mm_store_ps(&dst[2][2][0], xmm7);
+  _mm_store_ps(&dst[3][1][0], xmm8);
+
+#endif
+
+#if 0
+
+  /* Try a higher bandwidth store. First swizzle
+     the structure */
+
+  /* High bytes. of xmm0, xmm6 to high bytes of xmm9, xmm10 */
+  xmm9 = _mm_shuffle_ps(xmm9,  xmm0, 0xe4);
+  xmm10= _mm_shuffle_ps(xmm10, xmm6, 0xe4);
+
+  /* Low bytes of xmm2, xmm8 to low bytes of xmm9, xmm10 */
+  xmm9 = _mm_shuffle_ps(xmm2, xmm9, 0xe4);
+  xmm10= _mm_shuffle_ps(xmm8, xmm10, 0xe4);
+
+  /* Low bytes of xmm1, xmm7 to high bytes of xmm0, xmm6 */
+  xmm0 = _mm_movelh_ps(xmm0, xmm1);
+  xmm6 = _mm_movelh_ps(xmm6, xmm7);
+
+  /* High bytes of xmm1, xmm7 to low bytes of xmm2, xmm8 */
+  xmm2 = _mm_movehl_ps(xmm2, xmm1);
+  xmm8 = _mm_movehl_ps(xmm8, xmm7);
+
+  _mm_store_ps(&dst[0][0][0], xmm0);
+  _mm_store_ps(&dst[0][2][0], xmm9);
+  _mm_store_ps(&dst[1][1][0], xmm2);
+  _mm_store_ps(&dst[2][0][0], xmm6);
+  _mm_store_ps(&dst[2][2][0], xmm10);
+  _mm_store_ps(&dst[3][1][0], xmm8);
+#endif
+  
+#if 0
+
   /* Scatter out into the spinor */
   _mm_storel_pi((__m64 *)&dst[0][0][0],xmm0);
   _mm_storel_pi((__m64 *)&dst[0][1][0],xmm1);
@@ -1123,24 +1216,14 @@ void mvv_recons_gamma3_plus_add_store(  halfspinor_array src,
   _mm_storeh_pi((__m64 *)&dst[1][1][0],xmm1);
   _mm_storeh_pi((__m64 *)&dst[1][2][0],xmm2);
 
+  _mm_storel_pi((__m64 *)&dst[2][0][0],xmm6);
+  _mm_storel_pi((__m64 *)&dst[2][1][0],xmm7);
+  _mm_storel_pi((__m64 *)&dst[2][2][0],xmm8);
 
-  /* Load lower sum and accumulate */
-  xmm0 = _mm_load_ps( &lower_sum[0][0][0] );
-  xmm1 = _mm_load_ps( &lower_sum[1][0][0] );
-  xmm2 = _mm_load_ps( &lower_sum[2][0][0] );
-
-  /* Recons -- sse_vector sub */
-  xmm0 = _mm_sub_ps( xmm0, xmm3 );
-  xmm1 = _mm_sub_ps( xmm1, xmm4 );
-  xmm2 = _mm_sub_ps( xmm2, xmm5 );
-
-  _mm_storel_pi((__m64 *)&dst[2][0][0],xmm0);
-  _mm_storel_pi((__m64 *)&dst[2][1][0],xmm1);
-  _mm_storel_pi((__m64 *)&dst[2][2][0],xmm2);
-
-  _mm_storeh_pi((__m64 *)&dst[3][0][0],xmm0);
-  _mm_storeh_pi((__m64 *)&dst[3][1][0],xmm1);
-  _mm_storeh_pi((__m64 *)&dst[3][2][0],xmm2);
+  _mm_storeh_pi((__m64 *)&dst[3][0][0],xmm6);
+  _mm_storeh_pi((__m64 *)&dst[3][1][0],xmm7);
+  _mm_storeh_pi((__m64 *)&dst[3][2][0],xmm8);
+#endif
 
 }
 
@@ -2070,19 +2153,11 @@ void mvv_recons_gamma2_minus_add_store(  halfspinor_array src,
   xmm1 = _mm_add_ps(xmm4,xmm1);
   xmm2 = _mm_add_ps(xmm5,xmm2);
 
-  /* Scatter out into the spinor */
-  _mm_storel_pi((__m64 *)&dst[0][0][0],xmm0);
-  _mm_storel_pi((__m64 *)&dst[0][1][0],xmm1);
-  _mm_storel_pi((__m64 *)&dst[0][2][0],xmm2);
-
-  _mm_storeh_pi((__m64 *)&dst[1][0][0],xmm0);
-  _mm_storeh_pi((__m64 *)&dst[1][1][0],xmm1);
-  _mm_storeh_pi((__m64 *)&dst[1][2][0],xmm2);
 
   /* Load lower sum project and accumulate */
-  xmm0 = _mm_load_ps( &lower_sum[0][0][0] );
-  xmm1 = _mm_load_ps( &lower_sum[1][0][0] );
-  xmm2 = _mm_load_ps( &lower_sum[2][0][0] );
+  xmm6 = _mm_load_ps( &lower_sum[0][0][0] );
+  xmm7 = _mm_load_ps( &lower_sum[1][0][0] );
+  xmm8 = _mm_load_ps( &lower_sum[2][0][0] );
 
   xmm3 = _mm_shuffle_ps(xmm3, xmm3, 0xb1);
   xmm4 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
@@ -2092,18 +2167,69 @@ void mvv_recons_gamma2_minus_add_store(  halfspinor_array src,
   xmm4 = _mm_xor_ps(signs23.vector, xmm4);
   xmm5 = _mm_xor_ps(signs23.vector, xmm5);
 
-  xmm0 = _mm_add_ps(xmm3, xmm0);
-  xmm1 = _mm_add_ps(xmm4, xmm1);
-  xmm2 = _mm_add_ps(xmm5, xmm2);
+  xmm6 = _mm_add_ps(xmm3, xmm6);
+  xmm7 = _mm_add_ps(xmm4, xmm7);
+  xmm8 = _mm_add_ps(xmm5, xmm8);
 
-  _mm_storel_pi((__m64 *)&dst[2][0][0],xmm0);
-  _mm_storel_pi((__m64 *)&dst[2][1][0],xmm1);
-  _mm_storel_pi((__m64 *)&dst[2][2][0],xmm2);
+#if 1
+  /* Try not deswizzling */
+  _mm_store_ps(&dst[0][0][0], xmm0);
+  _mm_store_ps(&dst[0][2][0], xmm1);
+  _mm_store_ps(&dst[1][1][0], xmm2);
+  _mm_store_ps(&dst[2][0][0], xmm6);
+  _mm_store_ps(&dst[2][2][0], xmm7);
+  _mm_store_ps(&dst[3][1][0], xmm8);
+#endif
 
-  _mm_storeh_pi((__m64 *)&dst[3][0][0],xmm0);
-  _mm_storeh_pi((__m64 *)&dst[3][1][0],xmm1);
-  _mm_storeh_pi((__m64 *)&dst[3][2][0],xmm2);
 
+#if 0
+
+  /* Try a higher bandwidth store. First swizzle
+     the structure */
+
+  /* High bytes. of xmm0, xmm6 to high bytes of xmm9, xmm10 */
+  xmm9 = _mm_shuffle_ps(xmm9,  xmm0, 0xe4);
+  xmm10= _mm_shuffle_ps(xmm10, xmm6, 0xe4);
+
+  /* Low bytes of xmm2, xmm8 to low bytes of xmm9, xmm10 */
+  xmm9 = _mm_shuffle_ps(xmm2, xmm9, 0xe4);
+  xmm10= _mm_shuffle_ps(xmm8, xmm10, 0xe4);
+
+  /* Low bytes of xmm1, xmm7 to high bytes of xmm0, xmm6 */
+  xmm0 = _mm_movelh_ps(xmm0, xmm1);
+  xmm6 = _mm_movelh_ps(xmm6, xmm7);
+
+  /* High bytes of xmm1, xmm7 to low bytes of xmm2, xmm8 */
+  xmm2 = _mm_movehl_ps(xmm2, xmm1);
+  xmm8 = _mm_movehl_ps(xmm8, xmm7);
+
+  _mm_store_ps(&dst[0][0][0], xmm0);
+  _mm_store_ps(&dst[0][2][0], xmm9);
+  _mm_store_ps(&dst[1][1][0], xmm2);
+  _mm_store_ps(&dst[2][0][0], xmm6);
+  _mm_store_ps(&dst[2][2][0], xmm10);
+  _mm_store_ps(&dst[3][1][0], xmm8);
+#endif    
+  
+#if 0
+
+  /* Scatter out into the spinor */
+  _mm_storel_pi((__m64 *)&dst[0][0][0],xmm0);
+  _mm_storel_pi((__m64 *)&dst[0][1][0],xmm1);
+  _mm_storel_pi((__m64 *)&dst[0][2][0],xmm2);
+
+  _mm_storeh_pi((__m64 *)&dst[1][0][0],xmm0);
+  _mm_storeh_pi((__m64 *)&dst[1][1][0],xmm1);
+  _mm_storeh_pi((__m64 *)&dst[1][2][0],xmm2);
+
+  _mm_storel_pi((__m64 *)&dst[2][0][0],xmm6);
+  _mm_storel_pi((__m64 *)&dst[2][1][0],xmm7);
+  _mm_storel_pi((__m64 *)&dst[2][2][0],xmm8);
+
+  _mm_storeh_pi((__m64 *)&dst[3][0][0],xmm6);
+  _mm_storeh_pi((__m64 *)&dst[3][1][0],xmm7);
+  _mm_storeh_pi((__m64 *)&dst[3][2][0],xmm8);
+#endif
 
 }
 
@@ -2323,6 +2449,63 @@ void mvv_recons_gamma3_minus_add_store(  halfspinor_array src,
   xmm1 = _mm_add_ps(xmm4,xmm1);
   xmm2 = _mm_add_ps(xmm5,xmm2);
 
+
+
+  /* Load lower sum and accumulate */
+  xmm6 = _mm_load_ps( &lower_sum[0][0][0] );
+  xmm7 = _mm_load_ps( &lower_sum[1][0][0] );
+  xmm8 = _mm_load_ps( &lower_sum[2][0][0] );
+
+  /* Recons -- sse_vector sub */
+  xmm6 = _mm_add_ps( xmm6, xmm3 );
+  xmm7 = _mm_add_ps( xmm7, xmm4 );
+  xmm8 = _mm_add_ps( xmm8, xmm5 );
+
+
+#if 1
+
+  /* Try not deswizzling */
+  _mm_store_ps(&dst[0][0][0], xmm0);
+  _mm_store_ps(&dst[0][2][0], xmm1);
+  _mm_store_ps(&dst[1][1][0], xmm2);
+  _mm_store_ps(&dst[2][0][0], xmm6);
+  _mm_store_ps(&dst[2][2][0], xmm7);
+  _mm_store_ps(&dst[3][1][0], xmm8);
+
+#endif
+
+#if 0
+  /* Try a higher bandwidth store. First swizzle
+     the structure */
+
+  /* High bytes. of xmm0, xmm6 to high bytes of xmm9, xmm10 */
+  xmm9 = _mm_shuffle_ps(xmm9,  xmm0, 0xe4);
+  xmm10= _mm_shuffle_ps(xmm10, xmm6, 0xe4);
+
+  /* Low bytes of xmm2, xmm8 to low bytes of xmm9, xmm10 */
+  xmm9 = _mm_shuffle_ps(xmm2, xmm9, 0xe4);
+  xmm10= _mm_shuffle_ps(xmm8, xmm10, 0xe4);
+
+  /* Low bytes of xmm1, xmm7 to high bytes of xmm0, xmm6 */
+  xmm0 = _mm_movelh_ps(xmm0, xmm1);
+  xmm6 = _mm_movelh_ps(xmm6, xmm7);
+
+  /* High bytes of xmm1, xmm7 to low bytes of xmm2, xmm8 */
+  xmm2 = _mm_movehl_ps(xmm2, xmm1);
+  xmm8 = _mm_movehl_ps(xmm8, xmm7);
+
+  _mm_store_ps(&dst[0][0][0], xmm0);
+  _mm_store_ps(&dst[0][2][0], xmm9);
+  _mm_store_ps(&dst[1][1][0], xmm2);
+  _mm_store_ps(&dst[2][0][0], xmm6);
+  _mm_store_ps(&dst[2][2][0], xmm10);
+  _mm_store_ps(&dst[3][1][0], xmm8);
+    
+  
+#endif
+
+#if 0
+
   /* Scatter out into the spinor */
   _mm_storel_pi((__m64 *)&dst[0][0][0],xmm0);
   _mm_storel_pi((__m64 *)&dst[0][1][0],xmm1);
@@ -2333,24 +2516,15 @@ void mvv_recons_gamma3_minus_add_store(  halfspinor_array src,
   _mm_storeh_pi((__m64 *)&dst[1][2][0],xmm2);
 
 
-  /* Load lower sum and accumulate */
-  xmm0 = _mm_load_ps( &lower_sum[0][0][0] );
-  xmm1 = _mm_load_ps( &lower_sum[1][0][0] );
-  xmm2 = _mm_load_ps( &lower_sum[2][0][0] );
+  _mm_storel_pi((__m64 *)&dst[2][0][0],xmm6);
+  _mm_storel_pi((__m64 *)&dst[2][1][0],xmm7);
+  _mm_storel_pi((__m64 *)&dst[2][2][0],xmm8);
 
-  /* Recons -- sse_vector sub */
-  xmm0 = _mm_add_ps( xmm0, xmm3 );
-  xmm1 = _mm_add_ps( xmm1, xmm4 );
-  xmm2 = _mm_add_ps( xmm2, xmm5 );
+  _mm_storeh_pi((__m64 *)&dst[3][0][0],xmm6);
+  _mm_storeh_pi((__m64 *)&dst[3][1][0],xmm7);
+  _mm_storeh_pi((__m64 *)&dst[3][2][0],xmm8);
 
-  _mm_storel_pi((__m64 *)&dst[2][0][0],xmm0);
-  _mm_storel_pi((__m64 *)&dst[2][1][0],xmm1);
-  _mm_storel_pi((__m64 *)&dst[2][2][0],xmm2);
-
-  _mm_storeh_pi((__m64 *)&dst[3][0][0],xmm0);
-  _mm_storeh_pi((__m64 *)&dst[3][1][0],xmm1);
-  _mm_storeh_pi((__m64 *)&dst[3][2][0],xmm2);
-
+#endif
 }
 
 
