@@ -1,4 +1,4 @@
-// $Id: t_site_ops_parscalar.cc,v 1.1 2007-10-03 17:18:52 bjoo Exp $
+// $Id: t_site_ops_parscalar.cc,v 1.2 2007-11-07 20:52:37 bjoo Exp $
 
 #include <iostream>
 #include <cstdio>
@@ -43,11 +43,14 @@ int main(int argc, char **argv)
   tests.addTest(new testMvvRecons0Plus(), "testMvvRecons0Plus");
   tests.addTest(new testMvvRecons1PlusAdd(), "testMvvRecons1PlusAdd");
   tests.addTest(new testMvvRecons2PlusAdd(), "testMvvRecons2PlusAdd");
+  tests.addTest(new testMvvRecons2PlusAddStore(), "testMvvRecons2PlusAddStore");
   tests.addTest(new testMvvRecons3PlusAddStore(), "testMvvRecons3PlusAddStore");
+
 
   tests.addTest(new testMvvRecons0Minus(), "testMvvRecons0Minus");
   tests.addTest(new testMvvRecons1MinusAdd(), "testMvvRecons1MinusAdd");
   tests.addTest(new testMvvRecons2MinusAdd(), "testMvvRecons2MinusAdd");
+  tests.addTest(new testMvvRecons2MinusAddStore(), "testMvvRecons2MinusAddStore");
   tests.addTest(new testMvvRecons3MinusAddStore(), "testMvvRecons3MinusAddStore");
 
   tests.addTest(new testRecons4DirPlus(), "testReconsDir4Plus");

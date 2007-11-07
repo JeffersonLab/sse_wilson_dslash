@@ -265,7 +265,7 @@ void testMvvRecons2PlusAdd::run(void)
 
 }
 
-void testMvvRecons3PlusAddStore::run(void) 
+void testMvvRecons2PlusAddStore::run(void) 
 {
 
   halfspinor_array hspinor;
@@ -273,6 +273,9 @@ void testMvvRecons3PlusAddStore::run(void)
 
   halfspinor_array r12_1 ALIGN, r34_1 ALIGN;
   halfspinor_array r12_2 ALIGN,r34_2 ALIGN;
+
+  halfspinor_array hs1 ALIGN;
+  halfspinor_array hs2 ALIGN;
 
   spinor_array spinor1;
   spinor_array spinor2;
@@ -309,35 +312,101 @@ void testMvvRecons3PlusAddStore::run(void)
   _sse_su3_multiply((matrix));
   _sse_vector_load(r12_1);
   _sse_vector_add();
-  _sse_pair_store(spinor1[0], spinor1[1]);
+  _sse_vector_store(hs1);
+  _sse_vector_load(r34_1);
+  _sse_24_gamma2_minus();
+  _sse_vector_store(hs2);
+
+
+
+  mvv_recons_gamma2_plus_add_store(hspinor, matrix, r12_2, r34_2, spinor2);
+  
+  for(int j=0; j < 3*2*2; j++) { 
+    float diff = *((float *)hs1+j) - *((float *)spinor2[0]+j);
+#if 0
+    QDPIO::cout << " diff lower = " << diff << endl;
+#endif
+    assertion( fabs(diff) < 1.0e-9 );
+
+    float diff2 = *((float *)hs2+j) - *((float *)spinor2[2]+j);
+#if 0
+    QDPIO::cout << " diff upper = " << diff2 << endl;
+#endif
+    assertion( fabs(diff2) < 1.0e-9 );
+
+  }
+}
+
+void testMvvRecons3PlusAddStore::run(void) 
+{
+
+  halfspinor_array hspinor;
+  u_mat_array matrix;
+
+  halfspinor_array r12_1 ALIGN, r34_1 ALIGN;
+  halfspinor_array r12_2 ALIGN,r34_2 ALIGN;
+
+  halfspinor_array hs1 ALIGN;
+  halfspinor_array hs2 ALIGN;
+
+  spinor_array spinor1;
+  spinor_array spinor2;
+
+
+  /* Random numbers in halfspinors */
+  for(int col=0; col < 3; col++) { 
+    for(int spin2=0; spin2 < 2; spin2++) { 
+      for(int reim=0; reim < 2; reim++) { 
+	hspinor[col][spin2][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	r12_1[col][spin2][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	r34_1[col][spin2][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+
+	/* Set up 'existing partial sum' */
+	r12_2[col][spin2][reim] = r12_1[col][spin2][reim];
+	r34_2[col][spin2][reim] = r34_1[col][spin2][reim];
+	
+
+      }
+    }
+  }
+  
+
+  // Random matrix 
+  for(int col1=0; col1 < 3; col1++) { 
+    for(int col2=0; col2 < 3; col2++) { 
+      for(int reim=0; reim < 2; reim++) { 
+	matrix[col1][col2][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+      }
+    }
+  }
+
+  _sse_vector_load(hspinor);
+  _sse_su3_multiply((matrix));
+  _sse_vector_load(r12_1);
+  _sse_vector_add();
+  _sse_vector_store(hs1);
   _sse_vector_load(r34_1);
   _sse_24_gamma3_minus();
-  _sse_pair_store(spinor1[2], spinor1[3]);
+  _sse_vector_store(hs2);
 
 
 
   mvv_recons_gamma3_plus_add_store(hspinor, matrix, r12_2, r34_2, spinor2);
   
-
-  for(int col=0; col < 3; col++) { 
-    for(int spin=0; spin < 4; spin++) { 
-      for(int reim=0; reim < 2; reim++) { 
-	float diff = spinor1[spin][col][reim] - spinor2[spin][col][reim];
-	diff /= (float)(3*2*4);
-
+  for(int j=0; j < 3*2*2; j++) { 
+    float diff = *((float *)hs1+j) - *((float *)spinor2[0]+j);
 #if 0
-	QDPIO::cout << "  col=" << col 
-		    << " sp=" << spin
-		    << " re=" << reim 
-		    << " diff upper = " << diff 
-		    << endl;
+    QDPIO::cout << " diff lower = " << diff << endl;
 #endif
-	assertion( fabs(diff) < 1.0e-9 );
+    assertion( fabs(diff) < 1.0e-9 );
 
-      }
-    }
+    float diff2 = *((float *)hs2+j) - *((float *)spinor2[2]+j);
+#if 0
+    QDPIO::cout << " diff upper = " << diff2 << endl;
+#endif
+    assertion( fabs(diff2) < 1.0e-9 );
+
   }
-
 }
 
 void testMvvRecons0Minus::run(void) 
@@ -579,7 +648,8 @@ void testMvvRecons2MinusAdd::run(void)
 
 }
 
-void testMvvRecons3MinusAddStore::run(void) 
+
+void testMvvRecons2MinusAddStore::run(void) 
 {
 
   halfspinor_array hspinor;
@@ -588,7 +658,9 @@ void testMvvRecons3MinusAddStore::run(void)
   halfspinor_array r12_1 ALIGN, r34_1 ALIGN;
   halfspinor_array r12_2 ALIGN,r34_2 ALIGN;
 
-  spinor_array spinor1;
+  halfspinor_array hs1 ALIGN;
+  halfspinor_array hs2 ALIGN;
+
   spinor_array spinor2;
 
 
@@ -623,33 +695,98 @@ void testMvvRecons3MinusAddStore::run(void)
   _sse_su3_multiply((matrix));
   _sse_vector_load(r12_1);
   _sse_vector_add();
-  _sse_pair_store(spinor1[0], spinor1[1]);
+  _sse_vector_store(hs1);  /* Store sum but unswizzled */
   _sse_vector_load(r34_1);
-  _sse_24_gamma3_plus();
-  _sse_pair_store(spinor1[2], spinor1[3]);
+  _sse_24_gamma2_plus();
+  _sse_vector_store(hs2);  /* Store sum but unswizzeld */
 
 
-
-  mvv_recons_gamma3_minus_add_store(hspinor, matrix, r12_2, r34_2, spinor2);
-  
-
-  for(int col=0; col < 3; col++) { 
-    for(int spin=0; spin < 4; spin++) { 
-      for(int reim=0; reim < 2; reim++) { 
-	float diff = spinor1[spin][col][reim] - spinor2[spin][col][reim];
-	diff /= (float)(3*2*4);
-
+  mvv_recons_gamma2_minus_add_store(hspinor, matrix, r12_2, r34_2, spinor2);
+    
+  for(int j=0; j < 3*2*2; j++) { 
+    float diff = *((float *)hs1+j) - *((float *)spinor2[0]+j);
 #if 0
-	QDPIO::cout << "  col=" << col 
-		    << " sp=" << spin
-		    << " re=" << reim 
-		    << " diff upper = " << diff 
-		    << endl;
+    QDPIO::cout << " diff lower = " << diff << endl;
 #endif
-	assertion( fabs(diff) < 1.0e-9 );
+    assertion( fabs(diff) < 1.0e-9 );
+
+    float diff2 = *((float *)hs2+j) - *((float *)spinor2[2]+j);
+#if 0
+    QDPIO::cout << " diff upper = " << diff2 << endl;
+#endif
+    assertion( fabs(diff2) < 1.0e-9 );
+
+  }
+
+}
+
+void testMvvRecons3MinusAddStore::run(void) 
+{
+
+  halfspinor_array hspinor;
+  u_mat_array matrix;
+
+  halfspinor_array r12_1 ALIGN, r34_1 ALIGN;
+  halfspinor_array r12_2 ALIGN,r34_2 ALIGN;
+
+  halfspinor_array hs1 ALIGN;
+  halfspinor_array hs2 ALIGN;
+
+  spinor_array spinor2;
+
+
+  /* Random numbers in halfspinors */
+  for(int col=0; col < 3; col++) { 
+    for(int spin2=0; spin2 < 2; spin2++) { 
+      for(int reim=0; reim < 2; reim++) { 
+	hspinor[col][spin2][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	r12_1[col][spin2][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+	r34_1[col][spin2][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+
+	/* Set up 'existing partial sum' */
+	r12_2[col][spin2][reim] = r12_1[col][spin2][reim];
+	r34_2[col][spin2][reim] = r34_1[col][spin2][reim];
+	
 
       }
     }
+  }
+  
+
+  // Random matrix 
+  for(int col1=0; col1 < 3; col1++) { 
+    for(int col2=0; col2 < 3; col2++) { 
+      for(int reim=0; reim < 2; reim++) { 
+	matrix[col1][col2][reim] = (float)(rand() - RAND_MAX/2)/(float)(RAND_MAX/2)*2.0;
+      }
+    }
+  }
+
+  _sse_vector_load(hspinor);
+  _sse_su3_multiply((matrix));
+  _sse_vector_load(r12_1);
+  _sse_vector_add();
+  _sse_vector_store(hs1);  /* Store sum but unswizzled */
+  _sse_vector_load(r34_1);
+  _sse_24_gamma3_plus();
+  _sse_vector_store(hs2);  /* Store sum but unswizzeld */
+
+
+  mvv_recons_gamma3_minus_add_store(hspinor, matrix, r12_2, r34_2, spinor2);
+    
+  for(int j=0; j < 3*2*2; j++) { 
+    float diff = *((float *)hs1+j) - *((float *)spinor2[0]+j);
+#if 0
+    QDPIO::cout << " diff lower = " << diff << endl;
+#endif
+    assertion( fabs(diff) < 1.0e-9 );
+
+    float diff2 = *((float *)hs2+j) - *((float *)spinor2[2]+j);
+#if 0
+    QDPIO::cout << " diff upper = " << diff2 << endl;
+#endif
+    assertion( fabs(diff2) < 1.0e-9 );
+
   }
 
 }
