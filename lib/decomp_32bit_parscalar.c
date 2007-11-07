@@ -22,31 +22,31 @@ extern "C" {
   static SSESign signs12 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
   static SSESign signs14 __attribute__((unused)) ALIGN = {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};
 
-volatile
+
 void decomp_gamma0_minus( spinor_array src, halfspinor_array dst) 
 {
 
   /* c <-> color, s <-> spin */
 
   /* Space for upper components */
-  __m128 xmm0;
-  __m128 xmm2;
-  __m128 xmm1;
+  __m128 c0_s01;
+  __m128 c1_s01;
+  __m128 c2_s01;
 
   /* Space for lower components */
-  __m128 xmm3;
-  __m128 xmm4;
-  __m128 xmm5;
+  __m128 c0_s23;
+  __m128 c1_s23;
+  __m128 c2_s23;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 xmm6;
+  __m128 c0_s32;
   __m128 c1_s32;
   __m128 c2_s32;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 ixmm6;
+  __m128 ic0_s32;
   __m128 ic1_s32;
   __m128 ic2_s32;
 
@@ -55,66 +55,66 @@ void decomp_gamma0_minus( spinor_array src, halfspinor_array dst)
 
   /* Load up the spinors */
 #if 0
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][1][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][2][0]);
+  c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
+  c1_s01 = _mm_loadl_pi(c1_s01, (__m64 *)&src[0][1][0]);
+  c2_s01 = _mm_loadl_pi(c2_s01, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][1][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][2][0]);
+  c0_s01 = _mm_loadh_pi(c0_s01, (__m64 *)&src[1][0][0]);
+  c1_s01 = _mm_loadh_pi(c1_s01, (__m64 *)&src[1][1][0]);
+  c2_s01 = _mm_loadh_pi(c2_s01, (__m64 *)&src[1][2][0]);
 
-  xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
-  xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
-  xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
+  c0_s23 = _mm_loadl_pi(c0_s23, (__m64 *)&src[2][0][0]);
+  c1_s23 = _mm_loadl_pi(c1_s23, (__m64 *)&src[2][1][0]);
+  c2_s23 = _mm_loadl_pi(c2_s23, (__m64 *)&src[2][2][0]);
 
-  xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
-  xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
-  xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+  c0_s23 = _mm_loadh_pi(c0_s23, (__m64 *)&src[3][0][0]);
+  c1_s23 = _mm_loadh_pi(c1_s23, (__m64 *)&src[3][1][0]);
+  c2_s23 = _mm_loadh_pi(c2_s23, (__m64 *)&src[3][2][0]);
 #else
   /* Try higher bandwidth method. */
-  xmm0 = _mm_load_ps(&src[0][0][0]);
+  c0_s01 = _mm_load_ps(&src[0][0][0]);
   t1     = _mm_load_ps(&src[0][2][0]);
-  xmm1 = _mm_load_ps(&src[1][1][0]);
+  c2_s01 = _mm_load_ps(&src[1][1][0]);
 
-  xmm3 = _mm_load_ps(&src[2][0][0]);
+  c0_s23 = _mm_load_ps(&src[2][0][0]);
   t2     = _mm_load_ps(&src[2][2][0]);
-  xmm5 = _mm_load_ps(&src[3][1][0]);
+  c2_s23 = _mm_load_ps(&src[3][1][0]);
 
-  xmm2 = _mm_movehl_ps(xmm2, xmm0);
-  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+  c1_s01 = _mm_movehl_ps(c1_s01, c0_s01);
+  c1_s23 = _mm_movehl_ps(c1_s23, c0_s23);
 
-  xmm2 = _mm_movelh_ps(xmm2, xmm1);
-  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+  c1_s01 = _mm_movelh_ps(c1_s01, c2_s01);
+  c1_s23 = _mm_movelh_ps(c1_s23, c2_s23);
 
-  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
-  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
-  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+  /* Move high bytes of t1,t2 to high bytes of c0_s01, c0_s23 */
+  c0_s01 = _mm_shuffle_ps( c0_s01, t1, 0xe4);
+  c0_s23 = _mm_shuffle_ps( c0_s23, t2, 0xe4);
 
-  /* Move low bytes of t1,t2 to low bytes of xmm1, xmm5 */
+  /* Move low bytes of t1,t2 to low bytes of c2_s01, c2_s23 */
 
-  xmm1 = _mm_shuffle_ps( t1, xmm1, 0xe4);
-  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+  c2_s01 = _mm_shuffle_ps( t1, c2_s01, 0xe4);
+  c2_s23 = _mm_shuffle_ps( t2, c2_s23, 0xe4);
 #endif
 
  
   /* Swap the lower components  and multiply by -i*/
-  xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0x1b);
-  c1_s32 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
-  c2_s32 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
+  c0_s32 = _mm_shuffle_ps(c0_s23, c0_s23, 0x1b);
+  c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0x1b);
+  c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0x1b);
 
-  ixmm6 = _mm_xor_ps(xmm6, signs24.vector);
+  ic0_s32 = _mm_xor_ps(c0_s32, signs24.vector);
   ic1_s32 = _mm_xor_ps(c1_s32, signs24.vector);
   ic2_s32 = _mm_xor_ps(c2_s32, signs24.vector);
 
   /* Add */
-  xmm0 = _mm_add_ps(xmm0, ixmm6);
-  xmm2 = _mm_add_ps(xmm2, ic1_s32);
-  xmm1 = _mm_add_ps(xmm1, ic2_s32);
+  c0_s01 = _mm_add_ps(c0_s01, ic0_s32);
+  c1_s01 = _mm_add_ps(c1_s01, ic1_s32);
+  c2_s01 = _mm_add_ps(c2_s01, ic2_s32);
 
   /* Store */
-  _mm_store_ps(&dst[0][0][0],xmm0);
-  _mm_store_ps(&dst[1][0][0],xmm2);
-  _mm_store_ps(&dst[2][0][0],xmm1);
+  _mm_store_ps(&dst[0][0][0],c0_s01);
+  _mm_store_ps(&dst[1][0][0],c1_s01);
+  _mm_store_ps(&dst[2][0][0],c2_s01);
    
 }
 
@@ -122,25 +122,25 @@ void decomp_gamma0_minus( spinor_array src, halfspinor_array dst)
 void decomp_gamma1_minus( spinor_array src, halfspinor_array dst)
 {
   /* Space for upper components */
-  __m128 xmm0;
-  __m128 xmm2;
-  __m128 xmm1;
+  __m128 c0_s01;
+  __m128 c1_s01;
+  __m128 c2_s01;
 
   /* Space for lower components */
-  __m128 xmm3;
-  __m128 xmm4;
-  __m128 xmm5;
+  __m128 c0_s23;
+  __m128 c1_s23;
+  __m128 c2_s23;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 xmm6;
-  __m128 xmm7;
+  __m128 c0_s32;
+  __m128 c1_s32;
   __m128 c2_s32;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 sxmm6;
-  __m128 sxmm7;
+  __m128 sc0_s32;
+  __m128 sc1_s32;
   __m128 sc2_s32;
 
   __m128 t1; 
@@ -148,66 +148,66 @@ void decomp_gamma1_minus( spinor_array src, halfspinor_array dst)
 
 #if 0
   /* Load up the spinors */
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][1][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][2][0]);
+  c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
+  c1_s01 = _mm_loadl_pi(c1_s01, (__m64 *)&src[0][1][0]);
+  c2_s01 = _mm_loadl_pi(c2_s01, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][1][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][2][0]);
+  c0_s01 = _mm_loadh_pi(c0_s01, (__m64 *)&src[1][0][0]);
+  c1_s01 = _mm_loadh_pi(c1_s01, (__m64 *)&src[1][1][0]);
+  c2_s01 = _mm_loadh_pi(c2_s01, (__m64 *)&src[1][2][0]);
 
-  xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
-  xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
-  xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
+  c0_s23 = _mm_loadl_pi(c0_s23, (__m64 *)&src[2][0][0]);
+  c1_s23 = _mm_loadl_pi(c1_s23, (__m64 *)&src[2][1][0]);
+  c2_s23 = _mm_loadl_pi(c2_s23, (__m64 *)&src[2][2][0]);
 
-  xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
-  xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
-  xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+  c0_s23 = _mm_loadh_pi(c0_s23, (__m64 *)&src[3][0][0]);
+  c1_s23 = _mm_loadh_pi(c1_s23, (__m64 *)&src[3][1][0]);
+  c2_s23 = _mm_loadh_pi(c2_s23, (__m64 *)&src[3][2][0]);
 #else 
   /* Try higher bandwidth method. */
-  xmm0 = _mm_load_ps(&src[0][0][0]);
+  c0_s01 = _mm_load_ps(&src[0][0][0]);
   t1     = _mm_load_ps(&src[0][2][0]);
-  xmm1 = _mm_load_ps(&src[1][1][0]);
+  c2_s01 = _mm_load_ps(&src[1][1][0]);
 
-  xmm3 = _mm_load_ps(&src[2][0][0]);
+  c0_s23 = _mm_load_ps(&src[2][0][0]);
   t2     = _mm_load_ps(&src[2][2][0]);
-  xmm5 = _mm_load_ps(&src[3][1][0]);
+  c2_s23 = _mm_load_ps(&src[3][1][0]);
 
-  xmm2 = _mm_movehl_ps(xmm2, xmm0);
-  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+  c1_s01 = _mm_movehl_ps(c1_s01, c0_s01);
+  c1_s23 = _mm_movehl_ps(c1_s23, c0_s23);
 
-  xmm2 = _mm_movelh_ps(xmm2, xmm1);
-  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+  c1_s01 = _mm_movelh_ps(c1_s01, c2_s01);
+  c1_s23 = _mm_movelh_ps(c1_s23, c2_s23);
 
-  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
-  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
-  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+  /* Move high bytes of t1,t2 to high bytes of c0_s01, c0_s23 */
+  c0_s01 = _mm_shuffle_ps( c0_s01, t1, 0xe4);
+  c0_s23 = _mm_shuffle_ps( c0_s23, t2, 0xe4);
 
-  /* Move low bytes of t1,t2 to low bytes of xmm1, xmm5 */
+  /* Move low bytes of t1,t2 to low bytes of c2_s01, c2_s23 */
 
-  xmm1 = _mm_shuffle_ps( t1, xmm1, 0xe4);
-  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+  c2_s01 = _mm_shuffle_ps( t1, c2_s01, 0xe4);
+  c2_s23 = _mm_shuffle_ps( t2, c2_s23, 0xe4);
 #endif
 
  
   /* Swap the lower components */
-  xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0x4e);
-  xmm7 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
-  c2_s32 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
+  c0_s32 = _mm_shuffle_ps(c0_s23, c0_s23, 0x4e);
+  c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0x4e);
+  c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0x4e);
 
-  sxmm6 = _mm_xor_ps(xmm6, signs34.vector);
-  sxmm7 = _mm_xor_ps(xmm7, signs34.vector);
+  sc0_s32 = _mm_xor_ps(c0_s32, signs34.vector);
+  sc1_s32 = _mm_xor_ps(c1_s32, signs34.vector);
   sc2_s32 = _mm_xor_ps(c2_s32, signs34.vector);
 
   /* Add */
-  xmm0 = _mm_add_ps(xmm0, sxmm6);
-  xmm2 = _mm_add_ps(xmm2, sxmm7);
-  xmm1 = _mm_add_ps(xmm1, sc2_s32);
+  c0_s01 = _mm_add_ps(c0_s01, sc0_s32);
+  c1_s01 = _mm_add_ps(c1_s01, sc1_s32);
+  c2_s01 = _mm_add_ps(c2_s01, sc2_s32);
 
   /* Store */
-  _mm_store_ps(&dst[0][0][0],xmm0);
-  _mm_store_ps(&dst[1][0][0],xmm2);
-  _mm_store_ps(&dst[2][0][0],xmm1);
+  _mm_store_ps(&dst[0][0][0],c0_s01);
+  _mm_store_ps(&dst[1][0][0],c1_s01);
+  _mm_store_ps(&dst[2][0][0],c2_s01);
 
   
 
@@ -217,25 +217,25 @@ void decomp_gamma2_minus( spinor_array src, halfspinor_array dst)
 {
 
   /* Space for upper components */
-  __m128 xmm0;
-  __m128 xmm2;
-  __m128 xmm1;
+  __m128 c0_s01;
+  __m128 c1_s01;
+  __m128 c2_s01;
 
   /* Space for lower components */
-  __m128 xmm3;
-  __m128 xmm4;
-  __m128 xmm5;
+  __m128 c0_s23;
+  __m128 c1_s23;
+  __m128 c2_s23;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 xmm6;
-  __m128 xmm7;
+  __m128 c0_s32;
+  __m128 c1_s32;
   __m128 c2_s32;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 sxmm6;
-  __m128 sxmm7;
+  __m128 sc0_s32;
+  __m128 sc1_s32;
   __m128 sc2_s32;
 
   __m128 t1; 
@@ -243,66 +243,66 @@ void decomp_gamma2_minus( spinor_array src, halfspinor_array dst)
 
 #if 0
   /* Load up the spinors */
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][1][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][2][0]);
+  c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
+  c1_s01 = _mm_loadl_pi(c1_s01, (__m64 *)&src[0][1][0]);
+  c2_s01 = _mm_loadl_pi(c2_s01, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][1][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][2][0]);
+  c0_s01 = _mm_loadh_pi(c0_s01, (__m64 *)&src[1][0][0]);
+  c1_s01 = _mm_loadh_pi(c1_s01, (__m64 *)&src[1][1][0]);
+  c2_s01 = _mm_loadh_pi(c2_s01, (__m64 *)&src[1][2][0]);
 
-  xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
-  xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
-  xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
+  c0_s23 = _mm_loadl_pi(c0_s23, (__m64 *)&src[2][0][0]);
+  c1_s23 = _mm_loadl_pi(c1_s23, (__m64 *)&src[2][1][0]);
+  c2_s23 = _mm_loadl_pi(c2_s23, (__m64 *)&src[2][2][0]);
 
-  xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
-  xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
-  xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+  c0_s23 = _mm_loadh_pi(c0_s23, (__m64 *)&src[3][0][0]);
+  c1_s23 = _mm_loadh_pi(c1_s23, (__m64 *)&src[3][1][0]);
+  c2_s23 = _mm_loadh_pi(c2_s23, (__m64 *)&src[3][2][0]);
 #else 
   /* Try higher bandwidth method. */
-  xmm0 = _mm_load_ps(&src[0][0][0]);
+  c0_s01 = _mm_load_ps(&src[0][0][0]);
   t1     = _mm_load_ps(&src[0][2][0]);
-  xmm1 = _mm_load_ps(&src[1][1][0]);
+  c2_s01 = _mm_load_ps(&src[1][1][0]);
 
-  xmm3 = _mm_load_ps(&src[2][0][0]);
+  c0_s23 = _mm_load_ps(&src[2][0][0]);
   t2     = _mm_load_ps(&src[2][2][0]);
-  xmm5 = _mm_load_ps(&src[3][1][0]);
+  c2_s23 = _mm_load_ps(&src[3][1][0]);
 
-  xmm2 = _mm_movehl_ps(xmm2, xmm0);
-  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+  c1_s01 = _mm_movehl_ps(c1_s01, c0_s01);
+  c1_s23 = _mm_movehl_ps(c1_s23, c0_s23);
 
-  xmm2 = _mm_movelh_ps(xmm2, xmm1);
-  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+  c1_s01 = _mm_movelh_ps(c1_s01, c2_s01);
+  c1_s23 = _mm_movelh_ps(c1_s23, c2_s23);
 
-  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
-  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
-  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+  /* Move high bytes of t1,t2 to high bytes of c0_s01, c0_s23 */
+  c0_s01 = _mm_shuffle_ps( c0_s01, t1, 0xe4);
+  c0_s23 = _mm_shuffle_ps( c0_s23, t2, 0xe4);
 
-  /* Move low bytes of t1,t2 to low bytes of xmm1, xmm5 */
+  /* Move low bytes of t1,t2 to low bytes of c2_s01, c2_s23 */
 
-  xmm1 = _mm_shuffle_ps( t1, xmm1, 0xe4);
-  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+  c2_s01 = _mm_shuffle_ps( t1, c2_s01, 0xe4);
+  c2_s23 = _mm_shuffle_ps( t2, c2_s23, 0xe4);
 #endif
 
  
   /* Swap the lower components */
-  xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0xb1);
-  xmm7 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
-  c2_s32 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
+  c0_s32 = _mm_shuffle_ps(c0_s23, c0_s23, 0xb1);
+  c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0xb1);
+  c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0xb1);
 
-  sxmm6 = _mm_xor_ps(xmm6, signs23.vector);
-  sxmm7 = _mm_xor_ps(xmm7, signs23.vector);
+  sc0_s32 = _mm_xor_ps(c0_s32, signs23.vector);
+  sc1_s32 = _mm_xor_ps(c1_s32, signs23.vector);
   sc2_s32 = _mm_xor_ps(c2_s32, signs23.vector);
 
   /* Add */
-  xmm0 = _mm_add_ps(xmm0, sxmm6);
-  xmm2 = _mm_add_ps(xmm2, sxmm7);
-  xmm1 = _mm_add_ps(xmm1, sc2_s32);
+  c0_s01 = _mm_add_ps(c0_s01, sc0_s32);
+  c1_s01 = _mm_add_ps(c1_s01, sc1_s32);
+  c2_s01 = _mm_add_ps(c2_s01, sc2_s32);
 
   /* Store */
-  _mm_store_ps(&dst[0][0][0],xmm0);
-  _mm_store_ps(&dst[1][0][0],xmm2);
-  _mm_store_ps(&dst[2][0][0],xmm1);
+  _mm_store_ps(&dst[0][0][0],c0_s01);
+  _mm_store_ps(&dst[1][0][0],c1_s01);
+  _mm_store_ps(&dst[2][0][0],c2_s01);
 
   
 
@@ -312,71 +312,71 @@ void decomp_gamma3_minus( spinor_array src, halfspinor_array dst)
 {
 
   /* Space for upper components */
-  __m128 xmm0;
-  __m128 xmm2;
-  __m128 xmm1;
+  __m128 c0_s01;
+  __m128 c1_s01;
+  __m128 c2_s01;
 
   /* Space for lower components */
-  __m128 xmm3;
-  __m128 xmm4;
-  __m128 xmm5;
+  __m128 c0_s23;
+  __m128 c1_s23;
+  __m128 c2_s23;
 
   __m128 t1; 
   __m128 t2; 
 
 #if 0
   /* Load up the spinors */
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][1][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][2][0]);
+  c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
+  c1_s01 = _mm_loadl_pi(c1_s01, (__m64 *)&src[0][1][0]);
+  c2_s01 = _mm_loadl_pi(c2_s01, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][1][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][2][0]);
+  c0_s01 = _mm_loadh_pi(c0_s01, (__m64 *)&src[1][0][0]);
+  c1_s01 = _mm_loadh_pi(c1_s01, (__m64 *)&src[1][1][0]);
+  c2_s01 = _mm_loadh_pi(c2_s01, (__m64 *)&src[1][2][0]);
 
-  xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
-  xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
-  xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
+  c0_s23 = _mm_loadl_pi(c0_s23, (__m64 *)&src[2][0][0]);
+  c1_s23 = _mm_loadl_pi(c1_s23, (__m64 *)&src[2][1][0]);
+  c2_s23 = _mm_loadl_pi(c2_s23, (__m64 *)&src[2][2][0]);
 
-  xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
-  xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
-  xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+  c0_s23 = _mm_loadh_pi(c0_s23, (__m64 *)&src[3][0][0]);
+  c1_s23 = _mm_loadh_pi(c1_s23, (__m64 *)&src[3][1][0]);
+  c2_s23 = _mm_loadh_pi(c2_s23, (__m64 *)&src[3][2][0]);
 #else 
   /* Try higher bandwidth method. */
-  xmm0 = _mm_load_ps(&src[0][0][0]);
+  c0_s01 = _mm_load_ps(&src[0][0][0]);
   t1     = _mm_load_ps(&src[0][2][0]);
-  xmm1 = _mm_load_ps(&src[1][1][0]);
+  c2_s01 = _mm_load_ps(&src[1][1][0]);
 
-  xmm3 = _mm_load_ps(&src[2][0][0]);
+  c0_s23 = _mm_load_ps(&src[2][0][0]);
   t2     = _mm_load_ps(&src[2][2][0]);
-  xmm5 = _mm_load_ps(&src[3][1][0]);
+  c2_s23 = _mm_load_ps(&src[3][1][0]);
 
-  xmm2 = _mm_movehl_ps(xmm2, xmm0);
-  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+  c1_s01 = _mm_movehl_ps(c1_s01, c0_s01);
+  c1_s23 = _mm_movehl_ps(c1_s23, c0_s23);
 
-  xmm2 = _mm_movelh_ps(xmm2, xmm1);
-  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+  c1_s01 = _mm_movelh_ps(c1_s01, c2_s01);
+  c1_s23 = _mm_movelh_ps(c1_s23, c2_s23);
 
-  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
-  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
-  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+  /* Move high bytes of t1,t2 to high bytes of c0_s01, c0_s23 */
+  c0_s01 = _mm_shuffle_ps( c0_s01, t1, 0xe4);
+  c0_s23 = _mm_shuffle_ps( c0_s23, t2, 0xe4);
 
-  /* Move low bytes of t1,t2 to low bytes of xmm1, xmm5 */
+  /* Move low bytes of t1,t2 to low bytes of c2_s01, c2_s23 */
 
-  xmm1 = _mm_shuffle_ps( t1, xmm1, 0xe4);
-  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+  c2_s01 = _mm_shuffle_ps( t1, c2_s01, 0xe4);
+  c2_s23 = _mm_shuffle_ps( t2, c2_s23, 0xe4);
 #endif
 
  
   /* sub */
-  xmm0 = _mm_sub_ps(xmm0, xmm3);
-  xmm2 = _mm_sub_ps(xmm2, xmm4);
-  xmm1 = _mm_sub_ps(xmm1, xmm5);
+  c0_s01 = _mm_sub_ps(c0_s01, c0_s23);
+  c1_s01 = _mm_sub_ps(c1_s01, c1_s23);
+  c2_s01 = _mm_sub_ps(c2_s01, c2_s23);
 
   /* Store */
-  _mm_store_ps(&dst[0][0][0],xmm0);
-  _mm_store_ps(&dst[1][0][0],xmm2);
-  _mm_store_ps(&dst[2][0][0],xmm1);
+  _mm_store_ps(&dst[0][0][0],c0_s01);
+  _mm_store_ps(&dst[1][0][0],c1_s01);
+  _mm_store_ps(&dst[2][0][0],c2_s01);
 
 }
 
@@ -388,25 +388,25 @@ void decomp_gamma0_plus( spinor_array src, halfspinor_array dst)
   /* c <-> color, s <-> spin */
 
   /* Space for upper components */
-  __m128 xmm0;
-  __m128 xmm2;
-  __m128 xmm1;
+  __m128 c0_s01;
+  __m128 c1_s01;
+  __m128 c2_s01;
 
   /* Space for lower components */
-  __m128 xmm3;
-  __m128 xmm4;
-  __m128 xmm5;
+  __m128 c0_s23;
+  __m128 c1_s23;
+  __m128 c2_s23;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 xmm6;
-  __m128 xmm7;
+  __m128 c0_s32;
+  __m128 c1_s32;
   __m128 c2_s32;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 ixmm6;
-  __m128 ixmm7;
+  __m128 ic0_s32;
+  __m128 ic1_s32;
   __m128 ic2_s32;
 
   __m128 t1; 
@@ -415,66 +415,66 @@ void decomp_gamma0_plus( spinor_array src, halfspinor_array dst)
 #if 0
   /* Load up the spinors */
   /* Color 0 */
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][1][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][2][0]);
+  c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
+  c1_s01 = _mm_loadl_pi(c1_s01, (__m64 *)&src[0][1][0]);
+  c2_s01 = _mm_loadl_pi(c2_s01, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][1][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][2][0]);
+  c0_s01 = _mm_loadh_pi(c0_s01, (__m64 *)&src[1][0][0]);
+  c1_s01 = _mm_loadh_pi(c1_s01, (__m64 *)&src[1][1][0]);
+  c2_s01 = _mm_loadh_pi(c2_s01, (__m64 *)&src[1][2][0]);
 
-  xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
-  xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
-  xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
+  c0_s23 = _mm_loadl_pi(c0_s23, (__m64 *)&src[2][0][0]);
+  c1_s23 = _mm_loadl_pi(c1_s23, (__m64 *)&src[2][1][0]);
+  c2_s23 = _mm_loadl_pi(c2_s23, (__m64 *)&src[2][2][0]);
 
-  xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
-  xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
-  xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+  c0_s23 = _mm_loadh_pi(c0_s23, (__m64 *)&src[3][0][0]);
+  c1_s23 = _mm_loadh_pi(c1_s23, (__m64 *)&src[3][1][0]);
+  c2_s23 = _mm_loadh_pi(c2_s23, (__m64 *)&src[3][2][0]);
 #else 
   /* Try higher bandwidth method. */
-  xmm0 = _mm_load_ps(&src[0][0][0]);
+  c0_s01 = _mm_load_ps(&src[0][0][0]);
   t1     = _mm_load_ps(&src[0][2][0]);
-  xmm1 = _mm_load_ps(&src[1][1][0]);
+  c2_s01 = _mm_load_ps(&src[1][1][0]);
 
-  xmm3 = _mm_load_ps(&src[2][0][0]);
+  c0_s23 = _mm_load_ps(&src[2][0][0]);
   t2     = _mm_load_ps(&src[2][2][0]);
-  xmm5 = _mm_load_ps(&src[3][1][0]);
+  c2_s23 = _mm_load_ps(&src[3][1][0]);
 
-  xmm2 = _mm_movehl_ps(xmm2, xmm0);
-  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+  c1_s01 = _mm_movehl_ps(c1_s01, c0_s01);
+  c1_s23 = _mm_movehl_ps(c1_s23, c0_s23);
 
-  xmm2 = _mm_movelh_ps(xmm2, xmm1);
-  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+  c1_s01 = _mm_movelh_ps(c1_s01, c2_s01);
+  c1_s23 = _mm_movelh_ps(c1_s23, c2_s23);
 
-  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
-  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
-  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+  /* Move high bytes of t1,t2 to high bytes of c0_s01, c0_s23 */
+  c0_s01 = _mm_shuffle_ps( c0_s01, t1, 0xe4);
+  c0_s23 = _mm_shuffle_ps( c0_s23, t2, 0xe4);
 
-  /* Move low bytes of t1,t2 to low bytes of xmm1, xmm5 */
+  /* Move low bytes of t1,t2 to low bytes of c2_s01, c2_s23 */
 
-  xmm1 = _mm_shuffle_ps( t1, xmm1, 0xe4);
-  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+  c2_s01 = _mm_shuffle_ps( t1, c2_s01, 0xe4);
+  c2_s23 = _mm_shuffle_ps( t2, c2_s23, 0xe4);
 #endif
 
  
   /* Swap the lower components  and multiply by +i*/
-  xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0x1b);
-  xmm7 = _mm_shuffle_ps(xmm4, xmm4, 0x1b);
-  c2_s32 = _mm_shuffle_ps(xmm5, xmm5, 0x1b);
+  c0_s32 = _mm_shuffle_ps(c0_s23, c0_s23, 0x1b);
+  c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0x1b);
+  c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0x1b);
 
-  ixmm6 = _mm_xor_ps(xmm6, signs13.vector);
-  ixmm7 = _mm_xor_ps(xmm7, signs13.vector);
+  ic0_s32 = _mm_xor_ps(c0_s32, signs13.vector);
+  ic1_s32 = _mm_xor_ps(c1_s32, signs13.vector);
   ic2_s32 = _mm_xor_ps(c2_s32, signs13.vector);
 
   /* Add */
-  xmm0 = _mm_add_ps(xmm0, ixmm6);
-  xmm2 = _mm_add_ps(xmm2, ixmm7);
-  xmm1 = _mm_add_ps(xmm1, ic2_s32);
+  c0_s01 = _mm_add_ps(c0_s01, ic0_s32);
+  c1_s01 = _mm_add_ps(c1_s01, ic1_s32);
+  c2_s01 = _mm_add_ps(c2_s01, ic2_s32);
 
   /* Store */
-  _mm_store_ps(&dst[0][0][0],xmm0);
-  _mm_store_ps(&dst[1][0][0],xmm2);
-  _mm_store_ps(&dst[2][0][0],xmm1);
+  _mm_store_ps(&dst[0][0][0],c0_s01);
+  _mm_store_ps(&dst[1][0][0],c1_s01);
+  _mm_store_ps(&dst[2][0][0],c2_s01);
    
 
 }
@@ -482,25 +482,25 @@ void decomp_gamma0_plus( spinor_array src, halfspinor_array dst)
 void decomp_gamma1_plus( spinor_array src, halfspinor_array dst) 
 {
   /* Space for upper components */
-  __m128 xmm0;
-  __m128 xmm2;
-  __m128 xmm1;
+  __m128 c0_s01;
+  __m128 c1_s01;
+  __m128 c2_s01;
 
   /* Space for lower components */
-  __m128 xmm3;
-  __m128 xmm4;
-  __m128 xmm5;
+  __m128 c0_s23;
+  __m128 c1_s23;
+  __m128 c2_s23;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 xmm6;
-  __m128 xmm7;
+  __m128 c0_s32;
+  __m128 c1_s32;
   __m128 c2_s32;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 sxmm6;
-  __m128 sxmm7;
+  __m128 sc0_s32;
+  __m128 sc1_s32;
   __m128 sc2_s32;
 
   __m128 t1; 
@@ -508,66 +508,66 @@ void decomp_gamma1_plus( spinor_array src, halfspinor_array dst)
 
 #if 0
   /* Load up the spinors */
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][1][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][2][0]);
+  c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
+  c1_s01 = _mm_loadl_pi(c1_s01, (__m64 *)&src[0][1][0]);
+  c2_s01 = _mm_loadl_pi(c2_s01, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][1][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][2][0]);
+  c0_s01 = _mm_loadh_pi(c0_s01, (__m64 *)&src[1][0][0]);
+  c1_s01 = _mm_loadh_pi(c1_s01, (__m64 *)&src[1][1][0]);
+  c2_s01 = _mm_loadh_pi(c2_s01, (__m64 *)&src[1][2][0]);
 
-  xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
-  xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
-  xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
+  c0_s23 = _mm_loadl_pi(c0_s23, (__m64 *)&src[2][0][0]);
+  c1_s23 = _mm_loadl_pi(c1_s23, (__m64 *)&src[2][1][0]);
+  c2_s23 = _mm_loadl_pi(c2_s23, (__m64 *)&src[2][2][0]);
 
-  xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
-  xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
-  xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+  c0_s23 = _mm_loadh_pi(c0_s23, (__m64 *)&src[3][0][0]);
+  c1_s23 = _mm_loadh_pi(c1_s23, (__m64 *)&src[3][1][0]);
+  c2_s23 = _mm_loadh_pi(c2_s23, (__m64 *)&src[3][2][0]);
 #else 
   /* Try higher bandwidth method. */
-  xmm0 = _mm_load_ps(&src[0][0][0]);
+  c0_s01 = _mm_load_ps(&src[0][0][0]);
   t1     = _mm_load_ps(&src[0][2][0]);
-  xmm1 = _mm_load_ps(&src[1][1][0]);
+  c2_s01 = _mm_load_ps(&src[1][1][0]);
 
-  xmm3 = _mm_load_ps(&src[2][0][0]);
+  c0_s23 = _mm_load_ps(&src[2][0][0]);
   t2     = _mm_load_ps(&src[2][2][0]);
-  xmm5 = _mm_load_ps(&src[3][1][0]);
+  c2_s23 = _mm_load_ps(&src[3][1][0]);
 
-  xmm2 = _mm_movehl_ps(xmm2, xmm0);
-  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+  c1_s01 = _mm_movehl_ps(c1_s01, c0_s01);
+  c1_s23 = _mm_movehl_ps(c1_s23, c0_s23);
 
-  xmm2 = _mm_movelh_ps(xmm2, xmm1);
-  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+  c1_s01 = _mm_movelh_ps(c1_s01, c2_s01);
+  c1_s23 = _mm_movelh_ps(c1_s23, c2_s23);
 
-  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
-  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
-  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+  /* Move high bytes of t1,t2 to high bytes of c0_s01, c0_s23 */
+  c0_s01 = _mm_shuffle_ps( c0_s01, t1, 0xe4);
+  c0_s23 = _mm_shuffle_ps( c0_s23, t2, 0xe4);
 
-  /* Move low bytes of t1,t2 to low bytes of xmm1, xmm5 */
+  /* Move low bytes of t1,t2 to low bytes of c2_s01, c2_s23 */
 
-  xmm1 = _mm_shuffle_ps( t1, xmm1, 0xe4);
-  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+  c2_s01 = _mm_shuffle_ps( t1, c2_s01, 0xe4);
+  c2_s23 = _mm_shuffle_ps( t2, c2_s23, 0xe4);
 #endif
 
  
   /* Swap the lower components */
-  xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0x4e);
-  xmm7 = _mm_shuffle_ps(xmm4, xmm4, 0x4e);
-  c2_s32 = _mm_shuffle_ps(xmm5, xmm5, 0x4e);
+  c0_s32 = _mm_shuffle_ps(c0_s23, c0_s23, 0x4e);
+  c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0x4e);
+  c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0x4e);
 
-  sxmm6 = _mm_xor_ps(xmm6, signs12.vector);
-  sxmm7 = _mm_xor_ps(xmm7, signs12.vector);
+  sc0_s32 = _mm_xor_ps(c0_s32, signs12.vector);
+  sc1_s32 = _mm_xor_ps(c1_s32, signs12.vector);
   sc2_s32 = _mm_xor_ps(c2_s32, signs12.vector);
 
   /* Add */
-  xmm0 = _mm_add_ps(xmm0, sxmm6);
-  xmm2 = _mm_add_ps(xmm2, sxmm7);
-  xmm1 = _mm_add_ps(xmm1, sc2_s32);
+  c0_s01 = _mm_add_ps(c0_s01, sc0_s32);
+  c1_s01 = _mm_add_ps(c1_s01, sc1_s32);
+  c2_s01 = _mm_add_ps(c2_s01, sc2_s32);
 
   /* Store */
-  _mm_store_ps(&dst[0][0][0],xmm0);
-  _mm_store_ps(&dst[1][0][0],xmm2);
-  _mm_store_ps(&dst[2][0][0],xmm1);
+  _mm_store_ps(&dst[0][0][0],c0_s01);
+  _mm_store_ps(&dst[1][0][0],c1_s01);
+  _mm_store_ps(&dst[2][0][0],c2_s01);
 
 
 }
@@ -575,25 +575,25 @@ void decomp_gamma1_plus( spinor_array src, halfspinor_array dst)
 void decomp_gamma2_plus( spinor_array src, halfspinor_array dst) 
 {
   /* Space for upper components */
-  __m128 xmm0;
-  __m128 xmm2;
-  __m128 xmm1;
+  __m128 c0_s01;
+  __m128 c1_s01;
+  __m128 c2_s01;
 
   /* Space for lower components */
-  __m128 xmm3;
-  __m128 xmm4;
-  __m128 xmm5;
+  __m128 c0_s23;
+  __m128 c1_s23;
+  __m128 c2_s23;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 xmm6;
-  __m128 xmm7;
+  __m128 c0_s32;
+  __m128 c1_s32;
   __m128 c2_s32;
 
   /* Swap upper and lower components */
   /* Compiler should spill, or use 64 bit extras */
-  __m128 sxmm6;
-  __m128 sxmm7;
+  __m128 sc0_s32;
+  __m128 sc1_s32;
   __m128 sc2_s32;
 
   __m128 t1; 
@@ -601,65 +601,65 @@ void decomp_gamma2_plus( spinor_array src, halfspinor_array dst)
 
 #if 0
   /* Load up the spinors */
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][1][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][2][0]);
+  c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
+  c1_s01 = _mm_loadl_pi(c1_s01, (__m64 *)&src[0][1][0]);
+  c2_s01 = _mm_loadl_pi(c2_s01, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][1][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][2][0]);
+  c0_s01 = _mm_loadh_pi(c0_s01, (__m64 *)&src[1][0][0]);
+  c1_s01 = _mm_loadh_pi(c1_s01, (__m64 *)&src[1][1][0]);
+  c2_s01 = _mm_loadh_pi(c2_s01, (__m64 *)&src[1][2][0]);
 
-  xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
-  xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
-  xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
+  c0_s23 = _mm_loadl_pi(c0_s23, (__m64 *)&src[2][0][0]);
+  c1_s23 = _mm_loadl_pi(c1_s23, (__m64 *)&src[2][1][0]);
+  c2_s23 = _mm_loadl_pi(c2_s23, (__m64 *)&src[2][2][0]);
 
-  xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
-  xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
-  xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+  c0_s23 = _mm_loadh_pi(c0_s23, (__m64 *)&src[3][0][0]);
+  c1_s23 = _mm_loadh_pi(c1_s23, (__m64 *)&src[3][1][0]);
+  c2_s23 = _mm_loadh_pi(c2_s23, (__m64 *)&src[3][2][0]);
 #else 
   /* Try higher bandwidth method. */
-  xmm0 = _mm_load_ps(&src[0][0][0]);
+  c0_s01 = _mm_load_ps(&src[0][0][0]);
   t1     = _mm_load_ps(&src[0][2][0]);
-  xmm1 = _mm_load_ps(&src[1][1][0]);
+  c2_s01 = _mm_load_ps(&src[1][1][0]);
 
-  xmm3 = _mm_load_ps(&src[2][0][0]);
+  c0_s23 = _mm_load_ps(&src[2][0][0]);
   t2     = _mm_load_ps(&src[2][2][0]);
-  xmm5 = _mm_load_ps(&src[3][1][0]);
+  c2_s23 = _mm_load_ps(&src[3][1][0]);
 
-  xmm2 = _mm_movehl_ps(xmm2, xmm0);
-  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+  c1_s01 = _mm_movehl_ps(c1_s01, c0_s01);
+  c1_s23 = _mm_movehl_ps(c1_s23, c0_s23);
 
-  xmm2 = _mm_movelh_ps(xmm2, xmm1);
-  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+  c1_s01 = _mm_movelh_ps(c1_s01, c2_s01);
+  c1_s23 = _mm_movelh_ps(c1_s23, c2_s23);
 
-  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
-  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
-  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+  /* Move high bytes of t1,t2 to high bytes of c0_s01, c0_s23 */
+  c0_s01 = _mm_shuffle_ps( c0_s01, t1, 0xe4);
+  c0_s23 = _mm_shuffle_ps( c0_s23, t2, 0xe4);
 
-  /* Move low bytes of t1,t2 to low bytes of xmm1, xmm5 */
-  xmm1 = _mm_shuffle_ps( t1, xmm1, 0xe4);
-  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+  /* Move low bytes of t1,t2 to low bytes of c2_s01, c2_s23 */
+  c2_s01 = _mm_shuffle_ps( t1, c2_s01, 0xe4);
+  c2_s23 = _mm_shuffle_ps( t2, c2_s23, 0xe4);
 #endif
 
  
   /* Swap the lower components */
-  xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0xb1);
-  xmm7 = _mm_shuffle_ps(xmm4, xmm4, 0xb1);
-  c2_s32 = _mm_shuffle_ps(xmm5, xmm5, 0xb1);
+  c0_s32 = _mm_shuffle_ps(c0_s23, c0_s23, 0xb1);
+  c1_s32 = _mm_shuffle_ps(c1_s23, c1_s23, 0xb1);
+  c2_s32 = _mm_shuffle_ps(c2_s23, c2_s23, 0xb1);
 
-  sxmm6 = _mm_xor_ps(xmm6, signs14.vector);
-  sxmm7 = _mm_xor_ps(xmm7, signs14.vector);
+  sc0_s32 = _mm_xor_ps(c0_s32, signs14.vector);
+  sc1_s32 = _mm_xor_ps(c1_s32, signs14.vector);
   sc2_s32 = _mm_xor_ps(c2_s32, signs14.vector);
 
   /* Add */
-  xmm0 = _mm_add_ps(xmm0, xmm6);
-  xmm2 = _mm_add_ps(xmm2, sxmm);
-  xmm1 = _mm_add_ps(xmm1, sc2_s32);
+  c0_s01 = _mm_add_ps(c0_s01, sc0_s32);
+  c1_s01 = _mm_add_ps(c1_s01, sc1_s32);
+  c2_s01 = _mm_add_ps(c2_s01, sc2_s32);
 
   /* Store */
-  _mm_store_ps(&dst[0][0][0],xmm0);
-  _mm_store_ps(&dst[1][0][0],xmm2);
-  _mm_store_ps(&dst[2][0][0],xmm1);
+  _mm_store_ps(&dst[0][0][0],c0_s01);
+  _mm_store_ps(&dst[1][0][0],c1_s01);
+  _mm_store_ps(&dst[2][0][0],c2_s01);
 
 
 }
@@ -667,71 +667,71 @@ void decomp_gamma2_plus( spinor_array src, halfspinor_array dst)
 void decomp_gamma3_plus( spinor_array src, halfspinor_array dst) 
 {
   /* Space for upper components */
-  __m128 xmm0;
-  __m128 xmm2;
-  __m128 xmm1;
+  __m128 c0_s01;
+  __m128 c1_s01;
+  __m128 c2_s01;
 
   /* Space for lower components */
-  __m128 xmm3;
-  __m128 xmm4;
-  __m128 xmm5;
+  __m128 c0_s23;
+  __m128 c1_s23;
+  __m128 c2_s23;
 
   __m128 t1; 
   __m128 t2; 
 
   /* Load up the spinors */
 #if 0
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][1][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][2][0]);
+  c0_s01 = _mm_loadl_pi(c0_s01, (__m64 *)&src[0][0][0]);
+  c1_s01 = _mm_loadl_pi(c1_s01, (__m64 *)&src[0][1][0]);
+  c2_s01 = _mm_loadl_pi(c2_s01, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][1][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][2][0]);
+  c0_s01 = _mm_loadh_pi(c0_s01, (__m64 *)&src[1][0][0]);
+  c1_s01 = _mm_loadh_pi(c1_s01, (__m64 *)&src[1][1][0]);
+  c2_s01 = _mm_loadh_pi(c2_s01, (__m64 *)&src[1][2][0]);
 
-  xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
-  xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
-  xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
+  c0_s23 = _mm_loadl_pi(c0_s23, (__m64 *)&src[2][0][0]);
+  c1_s23 = _mm_loadl_pi(c1_s23, (__m64 *)&src[2][1][0]);
+  c2_s23 = _mm_loadl_pi(c2_s23, (__m64 *)&src[2][2][0]);
 
-  xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
-  xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
-  xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+  c0_s23 = _mm_loadh_pi(c0_s23, (__m64 *)&src[3][0][0]);
+  c1_s23 = _mm_loadh_pi(c1_s23, (__m64 *)&src[3][1][0]);
+  c2_s23 = _mm_loadh_pi(c2_s23, (__m64 *)&src[3][2][0]);
 #else
   /* Try higher bandwidth method. */
-  xmm0 = _mm_load_ps(&src[0][0][0]);
+  c0_s01 = _mm_load_ps(&src[0][0][0]);
   t1     = _mm_load_ps(&src[0][2][0]);
-  xmm1 = _mm_load_ps(&src[1][1][0]);
+  c2_s01 = _mm_load_ps(&src[1][1][0]);
 
-  xmm3 = _mm_load_ps(&src[2][0][0]);
+  c0_s23 = _mm_load_ps(&src[2][0][0]);
   t2     = _mm_load_ps(&src[2][2][0]);
-  xmm5 = _mm_load_ps(&src[3][1][0]);
+  c2_s23 = _mm_load_ps(&src[3][1][0]);
 
-  xmm2 = _mm_movehl_ps(xmm2, xmm0);
-  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+  c1_s01 = _mm_movehl_ps(c1_s01, c0_s01);
+  c1_s23 = _mm_movehl_ps(c1_s23, c0_s23);
 
-  xmm2 = _mm_movelh_ps(xmm2, xmm1);
-  xmm4 = _mm_movelh_ps(xmm4, xmm5);
+  c1_s01 = _mm_movelh_ps(c1_s01, c2_s01);
+  c1_s23 = _mm_movelh_ps(c1_s23, c2_s23);
 
-  /* Move high bytes of t1,t2 to high bytes of xmm0, xmm3 */
-  xmm0 = _mm_shuffle_ps( xmm0, t1, 0xe4);
-  xmm3 = _mm_shuffle_ps( xmm3, t2, 0xe4);
+  /* Move high bytes of t1,t2 to high bytes of c0_s01, c0_s23 */
+  c0_s01 = _mm_shuffle_ps( c0_s01, t1, 0xe4);
+  c0_s23 = _mm_shuffle_ps( c0_s23, t2, 0xe4);
 
-  /* Move low bytes of t1,t2 to low bytes of xmm1, xmm5 */
-  xmm1 = _mm_shuffle_ps( t1, xmm1, 0xe4);
-  xmm5 = _mm_shuffle_ps( t2, xmm5, 0xe4);
+  /* Move low bytes of t1,t2 to low bytes of c2_s01, c2_s23 */
+  c2_s01 = _mm_shuffle_ps( t1, c2_s01, 0xe4);
+  c2_s23 = _mm_shuffle_ps( t2, c2_s23, 0xe4);
 #endif
 
 
  
   /* sub */
-  xmm0 = _mm_add_ps(xmm0, xmm3);
-  xmm2 = _mm_add_ps(xmm2, xmm4);
-  xmm1 = _mm_add_ps(xmm1, xmm5);
+  c0_s01 = _mm_add_ps(c0_s01, c0_s23);
+  c1_s01 = _mm_add_ps(c1_s01, c1_s23);
+  c2_s01 = _mm_add_ps(c2_s01, c2_s23);
 
   /* Store */
-  _mm_store_ps(&dst[0][0][0],xmm0);
-  _mm_store_ps(&dst[1][0][0],xmm2);
-  _mm_store_ps(&dst[2][0][0],xmm1);
+  _mm_store_ps(&dst[0][0][0],c0_s01);
+  _mm_store_ps(&dst[1][0][0],c1_s01);
+  _mm_store_ps(&dst[2][0][0],c2_s01);
 
 
 }

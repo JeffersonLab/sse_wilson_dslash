@@ -1,4 +1,4 @@
-# $Id: Makefile.am,v 1.10 2007-11-07 15:50:53 bjoo Exp $
+# $Id: Makefile.am,v 1.11 2007-11-07 16:24:58 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -12,8 +12,8 @@ INCFLAGS = -I$(TOPSRCDIR)/include -I$(TOPBUILDDIR)/include
 #
 # Any other compiler flags
 # 
-AM_CFLAGS = $(INCFLAGS) @CFLAGS@ @DEFS@ @QMT_CFLAGS@
-AM_CXXFLAGS = $(INCFLAGS) @CXXFLAGS@ @DEFS@ @QMT_CFLAGS@
+AM_CFLAGS = $(INCFLAGS) @CFLAGS@ @DEFS@ @SSEXX_AUX_CFLAGS@ @QMT_CFLAGS@
+AM_CXXFLAGS = $(INCFLAGS) @CXXFLAGS@ @DEFS@ @SSEXX_AUX_CFLAGS@ @QMT_CFLAGS@
 AM_CC  = $(CC)
 AM_CXX = $(CXX)
 
