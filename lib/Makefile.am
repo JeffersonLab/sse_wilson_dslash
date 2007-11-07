@@ -1,20 +1,26 @@
-# $Id: Makefile.am,v 1.9 2007-11-01 14:32:59 bjoo Exp $
+# $Id: Makefile.am,v 1.10 2007-11-07 15:50:53 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
 
 TOPSRCDIR=@top_srcdir@
+TOPBUILDDIR=@top_builddir@
 #
 # Include Path
 #
-INCFLAGS = -I$(TOPSRCDIR)/include
+INCFLAGS = -I$(TOPSRCDIR)/include -I$(TOPBUILDDIR)/include
 #
 # Any other compiler flags
 # 
-AM_CFLAGS = $(INCFLAGS) @CFLAGS@ @DEFS@ @SSEXX_AUX_CFLAGS@ @QMT_CFLAGS@
-AM_CXXFLAGS = $(INCFLAGS) @SSEXX_AUX_CFLAGS@ @QMT_CFLAGS@
+AM_CFLAGS = $(INCFLAGS) @CFLAGS@ @DEFS@ @QMT_CFLAGS@
+AM_CXXFLAGS = $(INCFLAGS) @CXXFLAGS@ @DEFS@ @QMT_CFLAGS@
 AM_CC  = $(CC)
 AM_CXX = $(CXX)
+
+.SUFFIXES=.c .h .cc .s. o
+
+.c.s:
+	$(CC) $(AM_CFLAGS) -S $< 
 
 lib_LIBRARIES = liblevel3.a
 

@@ -55,6 +55,7 @@ timeDslash::run(void)
  
   QDPIO::cout << endl;
 
+#if 0
   // Go through the test cases -- apply SSE dslash versus, QDP Dslash 
   for(int isign=1; isign >= -1; isign -=2) {
     for(int cb=0; cb < 2; cb++) { 
@@ -84,9 +85,10 @@ timeDslash::run(void)
 
     }
   }
+#endif
 
   StopWatch swatch;
-  double n_secs = 10;
+  double n_secs = 5;
   int iters=1;
   double time=0;
   QDPIO::cout << endl << "\t Calibrating for " << n_secs << " seconds " << endl;

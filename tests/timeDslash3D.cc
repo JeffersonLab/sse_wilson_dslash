@@ -54,7 +54,7 @@ timeDslash3D::run(void)
   SSEDslash3D::qdp_pack_gauge_3d(u, packed_gauge);
  
   QDPIO::cout << endl;
-
+#if 0
   // Go through the test cases -- apply SSE dslash versus, QDP Dslash 
   for(int isign=1; isign >= -1; isign -=2) {
     for(int cb=0; cb < 2; cb++) { 
@@ -138,10 +138,10 @@ timeDslash3D::run(void)
     QDPIO::cout << "\t QDP Dslash Performance is: " << perf << " Mflops in Total" << endl;
     QDPIO::cout << "\t QDP Dslash Performance is: " << perf / (double)Layout::numNodes() << " per MPI Process" << endl;
   }
-
+#endif 
   {
     StopWatch swatch;
-    double n_secs = 10;
+    double n_secs = 5;
     int iters=1;
     double time=0;
     QDPIO::cout << endl << "\t Calibrating for " << n_secs << " seconds " << endl;
