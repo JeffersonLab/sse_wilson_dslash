@@ -50,15 +50,32 @@ void decomp_gamma0_minus( spinor_array src, halfspinor_array dst)
   __m128 xmm11;
 
 
-  /* Load up the spinors */
-  xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
-  xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
-  xmm2 = _mm_loadl_pi(xmm2, (__m64 *)&src[0][2][0]);
 
-  xmm0 = _mm_loadh_pi(xmm0, (__m64 *)&src[1][0][0]);
-  xmm1 = _mm_loadh_pi(xmm1, (__m64 *)&src[1][1][0]);
-  xmm2 = _mm_loadh_pi(xmm2, (__m64 *)&src[1][2][0]);
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  xmm2 = _mm_load_ps(&src[0][2][0]);
+  xmm6 = _mm_load_ps(&src[1][1][0]);
+  
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  xmm5 = _mm_load_ps(&src[2][2][0]);
+  xmm7 = _mm_load_ps(&src[3][1][0]);
 
+  xmm1 = _mm_xor_ps(xmm1,xmm1); // This should zero 
+  xmm4 = _mm_xor_ps(xmm4,xmm4);
+
+  xmm1 = _mm_movelh_ps(xmm1,xmm6);
+  xmm4 = _mm_movelh_ps(xmm4,xmm7);
+
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+
+  xmm0 = _mm_shuffle_ps(xmm0, xmm2, 0xe4);
+  xmm3 = _mm_shuffle_ps(xmm3, xmm5, 0xe4);
+
+  xmm2 = _mm_shuffle_ps(xmm2, xmm6, 0xe4);
+  xmm5 = _mm_shuffle_ps(xmm5, xmm7, 0xe4);
+
+#if 0
   xmm3 = _mm_loadl_pi(xmm3, (__m64 *)&src[2][0][0]);
   xmm4 = _mm_loadl_pi(xmm4, (__m64 *)&src[2][1][0]);
   xmm5 = _mm_loadl_pi(xmm5, (__m64 *)&src[2][2][0]);
@@ -66,7 +83,7 @@ void decomp_gamma0_minus( spinor_array src, halfspinor_array dst)
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-
+#endif
  
   /* Swap the lower components  and multiply by -i*/
   xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0x1b);
@@ -114,7 +131,31 @@ void decomp_gamma1_minus( spinor_array src, halfspinor_array dst)
   __m128 xmm10;
   __m128 xmm11;
 
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  xmm2 = _mm_load_ps(&src[0][2][0]);
+  xmm6 = _mm_load_ps(&src[1][1][0]);
+  
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  xmm5 = _mm_load_ps(&src[2][2][0]);
+  xmm7 = _mm_load_ps(&src[3][1][0]);
 
+  xmm1 = _mm_xor_ps(xmm1,xmm1); // This should zero 
+  xmm4 = _mm_xor_ps(xmm4,xmm4);
+
+  xmm1 = _mm_movelh_ps(xmm1,xmm6);
+  xmm4 = _mm_movelh_ps(xmm4,xmm7);
+
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+
+  xmm0 = _mm_shuffle_ps(xmm0, xmm2, 0xe4);
+  xmm3 = _mm_shuffle_ps(xmm3, xmm5, 0xe4);
+
+  xmm2 = _mm_shuffle_ps(xmm2, xmm6, 0xe4);
+  xmm5 = _mm_shuffle_ps(xmm5, xmm7, 0xe4);
+
+#if 0
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -131,6 +172,7 @@ void decomp_gamma1_minus( spinor_array src, halfspinor_array dst)
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
+#endif
 
  
   /* Swap the lower components */
@@ -181,6 +223,31 @@ void decomp_gamma2_minus( spinor_array src, halfspinor_array dst)
   __m128 xmm10;
   __m128 xmm11;
 
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  xmm2 = _mm_load_ps(&src[0][2][0]);
+  xmm6 = _mm_load_ps(&src[1][1][0]);
+  
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  xmm5 = _mm_load_ps(&src[2][2][0]);
+  xmm7 = _mm_load_ps(&src[3][1][0]);
+
+  xmm1 = _mm_xor_ps(xmm1,xmm1); // This should zero 
+  xmm4 = _mm_xor_ps(xmm4,xmm4);
+
+  xmm1 = _mm_movelh_ps(xmm1,xmm6);
+  xmm4 = _mm_movelh_ps(xmm4,xmm7);
+
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+
+  xmm0 = _mm_shuffle_ps(xmm0, xmm2, 0xe4);
+  xmm3 = _mm_shuffle_ps(xmm3, xmm5, 0xe4);
+
+  xmm2 = _mm_shuffle_ps(xmm2, xmm6, 0xe4);
+  xmm5 = _mm_shuffle_ps(xmm5, xmm7, 0xe4);
+
+#if 0
 
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -198,7 +265,7 @@ void decomp_gamma2_minus( spinor_array src, halfspinor_array dst)
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-
+#endif
  
   /* Swap the lower components */
   xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0xb1);
@@ -236,6 +303,34 @@ void decomp_gamma3_minus( spinor_array src, halfspinor_array dst)
   __m128 xmm4;
   __m128 xmm5;
 
+  __m128 xmm6;
+  __m128 xmm7;
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  xmm2 = _mm_load_ps(&src[0][2][0]);
+  xmm6 = _mm_load_ps(&src[1][1][0]);
+  
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  xmm5 = _mm_load_ps(&src[2][2][0]);
+  xmm7 = _mm_load_ps(&src[3][1][0]);
+
+  xmm1 = _mm_xor_ps(xmm1,xmm1); // This should zero 
+  xmm4 = _mm_xor_ps(xmm4,xmm4);
+
+  xmm1 = _mm_movelh_ps(xmm1,xmm6);
+  xmm4 = _mm_movelh_ps(xmm4,xmm7);
+
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+
+  xmm0 = _mm_shuffle_ps(xmm0, xmm2, 0xe4);
+  xmm3 = _mm_shuffle_ps(xmm3, xmm5, 0xe4);
+
+  xmm2 = _mm_shuffle_ps(xmm2, xmm6, 0xe4);
+  xmm5 = _mm_shuffle_ps(xmm5, xmm7, 0xe4);
+
+#if 0
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -252,7 +347,7 @@ void decomp_gamma3_minus( spinor_array src, halfspinor_array dst)
   xmm3 = _mm_loadh_pi(xmm3, (__m64 *)&src[3][0][0]);
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
-
+#endif
  
   /* sub */
   xmm0 = _mm_sub_ps(xmm0, xmm3);
@@ -296,6 +391,32 @@ void decomp_gamma0_plus( spinor_array src, halfspinor_array dst)
   __m128 xmm11;
 
 
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  xmm2 = _mm_load_ps(&src[0][2][0]);
+  xmm6 = _mm_load_ps(&src[1][1][0]);
+  
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  xmm5 = _mm_load_ps(&src[2][2][0]);
+  xmm7 = _mm_load_ps(&src[3][1][0]);
+
+  xmm1 = _mm_xor_ps(xmm1,xmm1); // This should zero 
+  xmm4 = _mm_xor_ps(xmm4,xmm4);
+
+  xmm1 = _mm_movelh_ps(xmm1,xmm6);
+  xmm4 = _mm_movelh_ps(xmm4,xmm7);
+
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+
+  xmm0 = _mm_shuffle_ps(xmm0, xmm2, 0xe4);
+  xmm3 = _mm_shuffle_ps(xmm3, xmm5, 0xe4);
+
+  xmm2 = _mm_shuffle_ps(xmm2, xmm6, 0xe4);
+  xmm5 = _mm_shuffle_ps(xmm5, xmm7, 0xe4);
+
+#if 0
   /* Load up the spinors */
   /* Color 0 */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
@@ -314,6 +435,7 @@ void decomp_gamma0_plus( spinor_array src, halfspinor_array dst)
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
 
+#endif
  
   /* Swap the lower components  and multiply by +i*/
   xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0x1b);
@@ -362,6 +484,31 @@ void decomp_gamma1_plus( spinor_array src, halfspinor_array dst)
   __m128 xmm11;
 
 
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  xmm2 = _mm_load_ps(&src[0][2][0]);
+  xmm6 = _mm_load_ps(&src[1][1][0]);
+  
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  xmm5 = _mm_load_ps(&src[2][2][0]);
+  xmm7 = _mm_load_ps(&src[3][1][0]);
+
+  xmm1 = _mm_xor_ps(xmm1,xmm1); // This should zero 
+  xmm4 = _mm_xor_ps(xmm4,xmm4);
+
+  xmm1 = _mm_movelh_ps(xmm1,xmm6);
+  xmm4 = _mm_movelh_ps(xmm4,xmm7);
+
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+
+  xmm0 = _mm_shuffle_ps(xmm0, xmm2, 0xe4);
+  xmm3 = _mm_shuffle_ps(xmm3, xmm5, 0xe4);
+
+  xmm2 = _mm_shuffle_ps(xmm2, xmm6, 0xe4);
+  xmm5 = _mm_shuffle_ps(xmm5, xmm7, 0xe4);
+
+#if 0
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -379,6 +526,7 @@ void decomp_gamma1_plus( spinor_array src, halfspinor_array dst)
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
 
+#endif
  
   /* Swap the lower components */
   xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0x4e);
@@ -427,6 +575,31 @@ void decomp_gamma2_plus( spinor_array src, halfspinor_array dst)
   __m128 xmm11;
 
 
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  xmm2 = _mm_load_ps(&src[0][2][0]);
+  xmm6 = _mm_load_ps(&src[1][1][0]);
+  
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  xmm5 = _mm_load_ps(&src[2][2][0]);
+  xmm7 = _mm_load_ps(&src[3][1][0]);
+
+  xmm1 = _mm_xor_ps(xmm1,xmm1); // This should zero 
+  xmm4 = _mm_xor_ps(xmm4,xmm4);
+
+  xmm1 = _mm_movelh_ps(xmm1,xmm6);
+  xmm4 = _mm_movelh_ps(xmm4,xmm7);
+
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+
+  xmm0 = _mm_shuffle_ps(xmm0, xmm2, 0xe4);
+  xmm3 = _mm_shuffle_ps(xmm3, xmm5, 0xe4);
+
+  xmm2 = _mm_shuffle_ps(xmm2, xmm6, 0xe4);
+  xmm5 = _mm_shuffle_ps(xmm5, xmm7, 0xe4);
+
+#if 0
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -444,6 +617,7 @@ void decomp_gamma2_plus( spinor_array src, halfspinor_array dst)
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
 
+#endif
  
   /* Swap the lower components */
   xmm6 = _mm_shuffle_ps(xmm3, xmm3, 0xb1);
@@ -479,6 +653,35 @@ void decomp_gamma3_plus( spinor_array src, halfspinor_array dst)
   __m128 xmm4;
   __m128 xmm5;
 
+  __m128 xmm6;
+  __m128 xmm7;
+
+
+  xmm0 = _mm_load_ps(&src[0][0][0]);
+  xmm2 = _mm_load_ps(&src[0][2][0]);
+  xmm6 = _mm_load_ps(&src[1][1][0]);
+  
+  xmm3 = _mm_load_ps(&src[2][0][0]);
+  xmm5 = _mm_load_ps(&src[2][2][0]);
+  xmm7 = _mm_load_ps(&src[3][1][0]);
+
+  xmm1 = _mm_xor_ps(xmm1,xmm1); // This should zero 
+  xmm4 = _mm_xor_ps(xmm4,xmm4);
+
+  xmm1 = _mm_movelh_ps(xmm1,xmm6);
+  xmm4 = _mm_movelh_ps(xmm4,xmm7);
+
+  xmm1 = _mm_movehl_ps(xmm1, xmm0);
+  xmm4 = _mm_movehl_ps(xmm4, xmm3);
+
+
+  xmm0 = _mm_shuffle_ps(xmm0, xmm2, 0xe4);
+  xmm3 = _mm_shuffle_ps(xmm3, xmm5, 0xe4);
+
+  xmm2 = _mm_shuffle_ps(xmm2, xmm6, 0xe4);
+  xmm5 = _mm_shuffle_ps(xmm5, xmm7, 0xe4);
+
+#if 0
   /* Load up the spinors */
   xmm0 = _mm_loadl_pi(xmm0, (__m64 *)&src[0][0][0]);
   xmm1 = _mm_loadl_pi(xmm1, (__m64 *)&src[0][1][0]);
@@ -496,6 +699,7 @@ void decomp_gamma3_plus( spinor_array src, halfspinor_array dst)
   xmm4 = _mm_loadh_pi(xmm4, (__m64 *)&src[3][1][0]);
   xmm5 = _mm_loadh_pi(xmm5, (__m64 *)&src[3][2][0]);
 
+#endif
  
   /* sub */
   xmm0 = _mm_add_ps(xmm0, xmm3);

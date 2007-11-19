@@ -31,7 +31,7 @@ void recons_4dir_plus( halfspinor_array hs0,
 
   __m128 xmm9;
   __m128 xmm10;
-
+  __m128 xmm11;
 
   SSESign signs24 __attribute__((unused)) ALIGN= {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 }};
   SSESign signs34 __attribute__((unused)) ALIGN= {{ 0x00000000, 0x00000000, 0x80000000, 0x80000000 }};
@@ -138,21 +138,55 @@ void recons_4dir_plus( halfspinor_array hs0,
 
   /* Deswizzle and store */
   /* Store top half of result spinor */
-  _mm_storel_pi((__m64*)&spinor[0][0][0],xmm0);
-  _mm_storel_pi((__m64*)&spinor[0][1][0],xmm1);
-  _mm_storel_pi((__m64*)&spinor[0][2][0],xmm2);
-  _mm_storeh_pi((__m64*)&spinor[1][0][0],xmm0);
-  _mm_storeh_pi((__m64*)&spinor[1][1][0],xmm1);
-  _mm_storeh_pi((__m64*)&spinor[1][2][0],xmm2);
+  /* Currently we have:                */
+  /* xmm0  = [ 101 | 100 | 001 | 000 ] */
+  /* xmm1  = [ 111 | 110 | 011 | 010 ] */
+  /* xmm2  = [ 121 | 120 | 021 | 020 ] */
 
-  _mm_storel_pi((__m64*)&spinor[2][0][0],xmm6);
-  _mm_storel_pi((__m64*)&spinor[2][1][0],xmm7);
-  _mm_storel_pi((__m64*)&spinor[2][2][0],xmm8);
-  _mm_storeh_pi((__m64*)&spinor[3][0][0],xmm6);
-  _mm_storeh_pi((__m64*)&spinor[3][1][0],xmm7);
-  _mm_storeh_pi((__m64*)&spinor[3][2][0],xmm8);
+  /* Want to map to                    */
+  /*  R0   = [ 011 | 010 | 001 | 000 ] */
+  /*  R1   = [ 101 | 100 | 021 | 020 ] */
+  /*  R2   = [ 121 | 120 | 111 | 110 ] */
 
+  /* Then store as r0, r1, r2 */
+  /* xmm0 has the correct low two numbers to be R0 */
+  /* xmm2 has the correct low two numbers to be R1 */
+
+  /* Let us get all of xmm2 into xmm3 -> leaves xmm3 to be R1 */
+  xmm9 = _mm_xor_ps(xmm9, xmm9);
+  xmm10 = _mm_xor_ps(xmm10, xmm10);
+  xmm11 = _mm_xor_ps(xmm11, xmm11);
+
+  xmm9 = _mm_add_ps(xmm9, xmm0);
+  xmm9 = _mm_movelh_ps(xmm9, xmm1);
+
+  xmm10 = _mm_add_ps(xmm10, xmm2);
+  xmm10 = _mm_shuffle_ps(xmm10, xmm0, 0xe4);
+
+  xmm11 = _mm_add_ps(xmm11, xmm2);
+  xmm11 = _mm_movehl_ps(xmm11, xmm1);
+
+  xmm0 = _mm_xor_ps(xmm0,xmm0);
+  xmm1 = _mm_xor_ps(xmm1,xmm1);
+  xmm2 = _mm_xor_ps(xmm2,xmm2);
+
+  xmm0 = _mm_add_ps(xmm0,xmm6);
+  xmm0 = _mm_movelh_ps(xmm0,xmm7);
+
+  xmm1 = _mm_add_ps(xmm1, xmm8);
+  xmm1 = _mm_shuffle_ps(xmm1, xmm6, 0xe4);
   
+  xmm2 = _mm_add_ps(xmm2, xmm8);
+  xmm2 = _mm_movehl_ps(xmm2, xmm7);
+
+  _mm_store_ps((float *)&spinor[0][0][0], xmm9);
+  _mm_store_ps((float *)&spinor[0][2][0], xmm10);
+  _mm_store_ps((float *)&spinor[1][1][0], xmm11);
+
+  _mm_store_ps((float *)&spinor[2][0][0], xmm0);
+  _mm_store_ps((float *)&spinor[2][2][0], xmm1);
+  _mm_store_ps((float *)&spinor[3][1][0], xmm2);
+
 }
 
 
@@ -173,6 +207,7 @@ void recons_3dir_plus( halfspinor_array hs0,
 
   __m128 xmm9;
   __m128 xmm10;
+  __m128 xmm11;
 
   SSESign signs24 __attribute__((unused)) ALIGN= {{ 0x00000000, 0x80000000, 0x00000000, 0x80000000 }};
   SSESign signs34 __attribute__((unused)) ALIGN= {{ 0x00000000, 0x00000000, 0x80000000, 0x80000000 }};
@@ -259,8 +294,59 @@ void recons_3dir_plus( halfspinor_array hs0,
   xmm7 = _mm_add_ps(xmm4, xmm7);
   xmm8 = _mm_add_ps(xmm5, xmm8);
 
+
   /* Deswizzle and store */
   /* Store top half of result spinor */
+  /* Currently we have:                */
+  /* xmm0  = [ 101 | 100 | 001 | 000 ] */
+  /* xmm1  = [ 111 | 110 | 011 | 010 ] */
+  /* xmm2  = [ 121 | 120 | 021 | 020 ] */
+
+  /* Want to map to                    */
+  /*  R0   = [ 011 | 010 | 001 | 000 ] */
+  /*  R1   = [ 101 | 100 | 021 | 020 ] */
+  /*  R2   = [ 121 | 120 | 111 | 110 ] */
+
+  /* Then store as r0, r1, r2 */
+  /* xmm0 has the correct low two numbers to be R0 */
+  /* xmm2 has the correct low two numbers to be R1 */
+
+  /* Let us get all of xmm2 into xmm3 -> leaves xmm3 to be R1 */
+  xmm9 = _mm_xor_ps(xmm9, xmm9);
+  xmm10 = _mm_xor_ps(xmm10, xmm10);
+  xmm11 = _mm_xor_ps(xmm11, xmm11);
+
+  xmm9 = _mm_add_ps(xmm9, xmm0);
+  xmm9 = _mm_movelh_ps(xmm9, xmm1);
+
+  xmm10 = _mm_add_ps(xmm10, xmm2);
+  xmm10 = _mm_shuffle_ps(xmm10, xmm0, 0xe4);
+
+  xmm11 = _mm_add_ps(xmm11, xmm2);
+  xmm11 = _mm_movehl_ps(xmm11, xmm1);
+
+  xmm0 = _mm_xor_ps(xmm0,xmm0);
+  xmm1 = _mm_xor_ps(xmm1,xmm1);
+  xmm2 = _mm_xor_ps(xmm2,xmm2);
+
+  xmm0 = _mm_add_ps(xmm0,xmm6);
+  xmm0 = _mm_movelh_ps(xmm0,xmm7);
+
+  xmm1 = _mm_add_ps(xmm1, xmm8);
+  xmm1 = _mm_shuffle_ps(xmm1, xmm6, 0xe4);
+  
+  xmm2 = _mm_add_ps(xmm2, xmm8);
+  xmm2 = _mm_movehl_ps(xmm2, xmm7);
+
+  _mm_store_ps((float *)&spinor[0][0][0], xmm9);
+  _mm_store_ps((float *)&spinor[0][2][0], xmm10);
+  _mm_store_ps((float *)&spinor[1][1][0], xmm11);
+
+  _mm_store_ps((float *)&spinor[2][0][0], xmm0);
+  _mm_store_ps((float *)&spinor[2][2][0], xmm1);
+  _mm_store_ps((float *)&spinor[3][1][0], xmm2);
+
+#if 0
   _mm_storel_pi((__m64*)&spinor[0][0][0],xmm0);
   _mm_storel_pi((__m64*)&spinor[0][1][0],xmm1);
   _mm_storel_pi((__m64*)&spinor[0][2][0],xmm2);
@@ -275,7 +361,7 @@ void recons_3dir_plus( halfspinor_array hs0,
   _mm_storeh_pi((__m64*)&spinor[3][0][0],xmm6);
   _mm_storeh_pi((__m64*)&spinor[3][1][0],xmm7);
   _mm_storeh_pi((__m64*)&spinor[3][2][0],xmm8);
-
+#endif
   
 }
 
@@ -298,6 +384,7 @@ void recons_4dir_minus( halfspinor_array hs0,
 
   __m128 xmm9;
   __m128 xmm10;
+  __m128 xmm11;
 
   SSESign signs13 __attribute__((unused)) ALIGN= {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
   SSESign signs12 __attribute__((unused)) ALIGN= {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
@@ -404,6 +491,58 @@ void recons_4dir_minus( halfspinor_array hs0,
 
   /* Deswizzle and store */
   /* Store top half of result spinor */
+  /* Currently we have:                */
+  /* xmm0  = [ 101 | 100 | 001 | 000 ] */
+  /* xmm1  = [ 111 | 110 | 011 | 010 ] */
+  /* xmm2  = [ 121 | 120 | 021 | 020 ] */
+
+  /* Want to map to                    */
+  /*  R0   = [ 011 | 010 | 001 | 000 ] */
+  /*  R1   = [ 101 | 100 | 021 | 020 ] */
+  /*  R2   = [ 121 | 120 | 111 | 110 ] */
+
+  /* Then store as r0, r1, r2 */
+  /* xmm0 has the correct low two numbers to be R0 */
+  /* xmm2 has the correct low two numbers to be R1 */
+
+  /* Let us get all of xmm2 into xmm3 -> leaves xmm3 to be R1 */
+  xmm9 = _mm_xor_ps(xmm9, xmm9);
+  xmm10 = _mm_xor_ps(xmm10, xmm10);
+  xmm11 = _mm_xor_ps(xmm11, xmm11);
+
+  xmm9 = _mm_add_ps(xmm9, xmm0);
+  xmm9 = _mm_movelh_ps(xmm9, xmm1);
+
+  xmm10 = _mm_add_ps(xmm10, xmm2);
+  xmm10 = _mm_shuffle_ps(xmm10, xmm0, 0xe4);
+
+  xmm11 = _mm_add_ps(xmm11, xmm2);
+  xmm11 = _mm_movehl_ps(xmm11, xmm1);
+
+  xmm0 = _mm_xor_ps(xmm0,xmm0);
+  xmm1 = _mm_xor_ps(xmm1,xmm1);
+  xmm2 = _mm_xor_ps(xmm2,xmm2);
+
+  xmm0 = _mm_add_ps(xmm0,xmm6);
+  xmm0 = _mm_movelh_ps(xmm0,xmm7);
+
+  xmm1 = _mm_add_ps(xmm1, xmm8);
+  xmm1 = _mm_shuffle_ps(xmm1, xmm6, 0xe4);
+  
+  xmm2 = _mm_add_ps(xmm2, xmm8);
+  xmm2 = _mm_movehl_ps(xmm2, xmm7);
+
+  _mm_store_ps((float *)&spinor[0][0][0], xmm9);
+  _mm_store_ps((float *)&spinor[0][2][0], xmm10);
+  _mm_store_ps((float *)&spinor[1][1][0], xmm11);
+
+  _mm_store_ps((float *)&spinor[2][0][0], xmm0);
+  _mm_store_ps((float *)&spinor[2][2][0], xmm1);
+  _mm_store_ps((float *)&spinor[3][1][0], xmm2);
+
+#if 0
+  /* Deswizzle and store */
+  /* Store top half of result spinor */
   _mm_storel_pi((__m64*)&spinor[0][0][0],xmm0);
   _mm_storel_pi((__m64*)&spinor[0][1][0],xmm1);
   _mm_storel_pi((__m64*)&spinor[0][2][0],xmm2);
@@ -417,6 +556,7 @@ void recons_4dir_minus( halfspinor_array hs0,
   _mm_storeh_pi((__m64*)&spinor[3][0][0],xmm6);
   _mm_storeh_pi((__m64*)&spinor[3][1][0],xmm7);
   _mm_storeh_pi((__m64*)&spinor[3][2][0],xmm8);
+#endif
 
 
 }
@@ -438,7 +578,8 @@ void recons_3dir_minus( halfspinor_array hs0,
 
   __m128 xmm9;
   __m128 xmm10;
-  
+  __m128 xmm11;
+
   SSESign signs13 __attribute__((unused)) ALIGN= {{ 0x80000000, 0x00000000, 0x80000000, 0x00000000 }};
   SSESign signs12 __attribute__((unused)) ALIGN= {{ 0x80000000, 0x80000000, 0x00000000, 0x00000000 }};
   SSESign signs14 __attribute__((unused)) ALIGN= {{ 0x80000000, 0x00000000, 0x00000000, 0x80000000 }};  
@@ -525,6 +666,42 @@ void recons_3dir_minus( halfspinor_array hs0,
   xmm7 = _mm_add_ps(xmm4, xmm7);
   xmm8 = _mm_add_ps(xmm5, xmm8);
 
+  /* Let us get all of xmm2 into xmm3 -> leaves xmm3 to be R1 */
+  xmm9 = _mm_xor_ps(xmm9, xmm9);
+  xmm10 = _mm_xor_ps(xmm10, xmm10);
+  xmm11 = _mm_xor_ps(xmm11, xmm11);
+
+  xmm9 = _mm_add_ps(xmm9, xmm0);
+  xmm9 = _mm_movelh_ps(xmm9, xmm1);
+
+  xmm10 = _mm_add_ps(xmm10, xmm2);
+  xmm10 = _mm_shuffle_ps(xmm10, xmm0, 0xe4);
+
+  xmm11 = _mm_add_ps(xmm11, xmm2);
+  xmm11 = _mm_movehl_ps(xmm11, xmm1);
+
+  xmm0 = _mm_xor_ps(xmm0,xmm0);
+  xmm1 = _mm_xor_ps(xmm1,xmm1);
+  xmm2 = _mm_xor_ps(xmm2,xmm2);
+
+  xmm0 = _mm_add_ps(xmm0,xmm6);
+  xmm0 = _mm_movelh_ps(xmm0,xmm7);
+
+  xmm1 = _mm_add_ps(xmm1, xmm8);
+  xmm1 = _mm_shuffle_ps(xmm1, xmm6, 0xe4);
+  
+  xmm2 = _mm_add_ps(xmm2, xmm8);
+  xmm2 = _mm_movehl_ps(xmm2, xmm7);
+
+  _mm_store_ps((float *)&spinor[0][0][0], xmm9);
+  _mm_store_ps((float *)&spinor[0][2][0], xmm10);
+  _mm_store_ps((float *)&spinor[1][1][0], xmm11);
+
+  _mm_store_ps((float *)&spinor[2][0][0], xmm0);
+  _mm_store_ps((float *)&spinor[2][2][0], xmm1);
+  _mm_store_ps((float *)&spinor[3][1][0], xmm2);
+
+#if 0
   /* Deswizzle and store */
   _mm_storel_pi((__m64*)&spinor[0][0][0],xmm0);
   _mm_storel_pi((__m64*)&spinor[0][1][0],xmm1);
@@ -539,7 +716,7 @@ void recons_3dir_minus( halfspinor_array hs0,
   _mm_storeh_pi((__m64*)&spinor[3][0][0],xmm6);
   _mm_storeh_pi((__m64*)&spinor[3][1][0],xmm7);
   _mm_storeh_pi((__m64*)&spinor[3][2][0],xmm8);
-
+#endif
 
 }
 

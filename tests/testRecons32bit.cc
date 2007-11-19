@@ -75,8 +75,9 @@ testRecons4DirPlus::run(void)
    recons_4dir_plus(hs0, hs1, hs2, hs3, spinor2);
 
    
-   for(int col=0; col < 3; col++) { 
+
      for(int spin=0; spin < 4; spin++) { 
+       for(int col=0; col < 3; col++) { 
        for(int reim=0; reim < 2; reim++) { 
 	 float diff = spinor1[spin][col][reim] - spinor2[spin][col][reim];
 	 diff /= (float)(4*3*2);
@@ -93,7 +94,6 @@ testRecons4DirPlus::run(void)
        }
      }
    }
-   
 }
 
 void
