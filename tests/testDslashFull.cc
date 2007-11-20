@@ -37,8 +37,9 @@ testDslashFull::run(void)
   multi1d<LatticeColorMatrix> u(4);
 
   for(int mu=0; mu < 4; mu++) { 
-    gaussian(u[mu]);
-    reunit(u[mu]);
+       gaussian(u[mu]);
+       reunit(u[mu]);
+    // u[mu] = 1;
   }
 
   // Make a random source

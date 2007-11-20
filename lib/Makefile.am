@@ -1,4 +1,4 @@
-# $Id: Makefile.am,v 1.11 2007-11-07 16:24:58 bjoo Exp $
+# $Id: Makefile.am,v 1.12 2007-11-20 15:26:18 bjoo Exp $
 #
 # Path for all files used in building the library
 # This file was automatically generated
@@ -47,7 +47,7 @@ endif
 
 if PARSCALAR_SINGLE
 liblevel3_a_SOURCES += shift_tables_parscalar.c \
-	packer_p4_pad.c \
+	packer_nopad.c \
 	sse_su3dslash_32bit_parscalar.c \
 	dispatch_parscalar.c \
 	decomp_32bit_parscalar.c \
@@ -58,7 +58,7 @@ liblevel3_a_SOURCES += shift_tables_parscalar.c \
 	sse_su3dslash_32bit_parscalar_3d.c
 
 if BUILD_QDP_PACKERS
-liblevel3_a_SOURCES += qdp_packer_p4_pad.cc \
+liblevel3_a_SOURCES += qdp_packer_nopad.cc \
 	qdp_packer_3d.cc
 endif
 endif
