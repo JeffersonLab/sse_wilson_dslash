@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.16 2007-11-21 14:48:33 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.17 2007-11-21 16:22:05 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -78,8 +78,7 @@ extern "C" {
     return offset_table[mu + 4*( site + subgrid_vol*type) ];
   }
 
-
-  static int initP=0;
+   static int initP=0;
 
   static int icolor_start[2];    /* starting site for each coloring (cb) */
   static int icolor_end[2];      /* end site for each coloring (cb) */
@@ -123,7 +122,7 @@ to a lattice temporary */
     /************************ loop over all lattice sites *************************/
     for (ix1=low;ix1<high;ix1++) {
 
-      sp1=&spinor_field[ix1]; _mm_prefetch(sp1[0], _MM_HINT_T0);
+      sp1=&spinor_field[ix1]; 
       s3 = chi+ halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
       decomp_gamma0_minus(sp1[0], *s3);
       
@@ -178,20 +177,20 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
   for (ix1=low;ix1<high;ix1++) {
 
     /****************** direction +0 *********************************/
-    sm1=&spinor_field[ix1];_mm_prefetch(*sm1, _MM_HINT_T0);
-    um1=&gauge_field[ix1][0]; _mm_prefetch(*um1, _MM_HINT_T0);
+    sm1=&spinor_field[ix1];
+    um1=&gauge_field[ix1][0];
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);    
     decomp_hvv_gamma0_plus(*sm1,*um1,*s3);
 
-    um1++; _mm_prefetch(*um1, _MM_HINT_T0);
+    um1++;
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);    
     decomp_hvv_gamma1_plus(*sm1,*um1,*s3);
 
-    um1++; _mm_prefetch(*um1, _MM_HINT_T0);
+    um1++;
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);    
     decomp_hvv_gamma2_plus(*sm1,*um1,*s3);
 
-    um1++; _mm_prefetch(*um1, _MM_HINT_T0);
+    um1++;
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);    
     decomp_hvv_gamma3_plus(*sm1,*um1,*s3);
   }
@@ -231,27 +230,25 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
 
   
   /************************ loop over all lattice sites *************************/
-  _mm_prefetch(r12_1, _MM_HINT_T0);
-  _mm_prefetch(r34_1, _MM_HINT_T0);
 
   for (ix1=low;ix1<high;ix1++) {
 
     /****************** direction +0 ********************************/
-    sn1=&spinor_field[ix1];    _mm_prefetch(*sn1, _MM_HINT_T0);
-    up1=&gauge_field[ix1][0];  _mm_prefetch(*up1, _MM_HINT_T0);
+    sn1=&spinor_field[ix1];    
+    up1=&gauge_field[ix1][0]; 
 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
     mvv_recons_gamma0_plus(*s3, *up1, r12_1, r34_1);
 
-    up1++; _mm_prefetch(*up1, _MM_HINT_T0);
+    up1++;
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     mvv_recons_gamma1_plus_add(*s3, *up1, r12_1, r34_1);
 
-    up1++; _mm_prefetch(*up1, _MM_HINT_T0);
+    up1++;
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     mvv_recons_gamma2_plus_add(*s3, *up1, r12_1, r34_1);
 
-    up1++; _mm_prefetch(*up1, _MM_HINT_T0);
+    up1++;
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     mvv_recons_gamma3_plus_add_store(*s3, *up1, r12_1, r34_1,*sn1);
 
@@ -286,10 +283,10 @@ void recons_plus(size_t lo,size_t hi, int id, const void *ptr )
   /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1++) {
 
-    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); _mm_prefetch(*hs0, _MM_HINT_T0);
-    hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1); _mm_prefetch(*hs1, _MM_HINT_T0);
-    hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2); _mm_prefetch(*hs2, _MM_HINT_T0);
-    hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3); _mm_prefetch(*hs3, _MM_HINT_T0);
+    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
+    hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1); 
+    hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2); 
+    hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3); 
 
 
     sn1=&spinor_field[ix1];   
@@ -332,8 +329,8 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
   /************************ loop over all lattice sites *************************/
 
   for (ix1=low;ix1<high;ix1++) {
-    sp1=&spinor_field[ix1]; _mm_prefetch(sp1[0], _MM_HINT_T0);
-
+    sp1=&spinor_field[ix1];
+    
     /************* direction +0 *****************************/
     s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
     decomp_gamma0_plus(sp1[0], *s3);
@@ -384,20 +381,20 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
   for (ix1=low;ix1<high;ix1++) {
 
     /***************** direction +0 *********************************/
-    sm1=&spinor_field[ix1];  _mm_prefetch(*sm1, _MM_HINT_T0);
-    um1=&gauge_field[ix1][0];  _mm_prefetch(*um1, _MM_HINT_T0);
+    sm1=&spinor_field[ix1];  
+    um1=&gauge_field[ix1][0]; 
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
     decomp_hvv_gamma0_minus(*sm1, *um1, *s3);
 
-    um1++; _mm_prefetch(*um1, _MM_HINT_T0);
+    um1++;
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
     decomp_hvv_gamma1_minus(*sm1, *um1, *s3);
 
-    um1++; _mm_prefetch(*um1, _MM_HINT_T0);
+    um1++;
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
     decomp_hvv_gamma2_minus(*sm1, *um1, *s3);
 
-    um1++; _mm_prefetch(*um1, _MM_HINT_T0);
+    um1++;
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
     decomp_hvv_gamma3_minus(*sm1, *um1, *s3);
 
@@ -432,28 +429,26 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
   int  low = icolor_start[cb]+(int)lo;
   int high = icolor_start[cb]+(int)hi;
 
-  _mm_prefetch(r12_1, _MM_HINT_T0);
-  _mm_prefetch(r34_1, _MM_HINT_T0);
 
 /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1++) {
 
     /******************************* direction +0 *********************************/
-    sn1=&spinor_field[ix1];     _mm_prefetch(*sn1, _MM_HINT_T0);
-    up1=&gauge_field[ix1][0];   _mm_prefetch(*up1, _MM_HINT_T0);
+    sn1=&spinor_field[ix1];     
+    up1=&gauge_field[ix1][0];  
 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
     mvv_recons_gamma0_minus(*s3, *up1, r12_1, r34_1);
  
-    up1++;   _mm_prefetch(*up1, _MM_HINT_T0);
+    up1++;  
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     mvv_recons_gamma1_minus_add(*s3, *up1, r12_1, r34_1);
 
-    up1++;   _mm_prefetch(*up1, _MM_HINT_T0);
+    up1++;  
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     mvv_recons_gamma2_minus_add(*s3, *up1, r12_1, r34_1);
 
-    up1++;   _mm_prefetch(*up1, _MM_HINT_T0);
+    up1++;  
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     mvv_recons_gamma3_minus_add_store(*s3, *up1, r12_1, r34_1,*sn1);
     /******************************** end of loop *********************************/
@@ -480,10 +475,10 @@ void recons_minus(size_t lo,size_t hi, int id, const void *ptr )
   
   /************************ loop over all lattice sites ******************/
   for (ix1=low;ix1<high;ix1++) {
-    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0);  _mm_prefetch(*hs0, _MM_HINT_T0);
-    hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1);  _mm_prefetch(*hs1, _MM_HINT_T0);
-    hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2);  _mm_prefetch(*hs2, _MM_HINT_T0);
-    hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3);  _mm_prefetch(*hs3, _MM_HINT_T0);
+    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
+    hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1); 
+    hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2); 
+    hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3); 
     sn1=&spinor_field[ix1];   
     recons_4dir_minus(*hs0, *hs1, *hs2, *hs3, *sn1);
   }
@@ -747,10 +742,6 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		cb,
 		subgrid_vol_cb);
 
-    prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
-    prefetch_single(chi2);
-
-
 
     if (total_comm > 0)
       if (QMP_start(forw_all_mh) != QMP_SUCCESS)
@@ -778,8 +769,6 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 	QMP_abort(1);
       }
 
-    prefetch_su3(u+0+2*(0+3*(0+3*(0+4*(icolor_start[1-cb])))));
-    prefetch_single(chi1);
 
     if (total_comm > 0)
       if (QMP_start(back_all_mh) != QMP_SUCCESS)
@@ -823,8 +812,6 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		cb,
 		subgrid_vol_cb);
 
-    prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
-    prefetch_single(chi2);
 
     if (total_comm > 0)
       if (QMP_start(forw_all_mh) != QMP_SUCCESS)
@@ -840,7 +827,7 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		(my_mat_array)u,
 		cb,
 		subgrid_vol_cb);
-    prefetch_single(chi2);
+
 
     if (total_comm > 0)
       if (QMP_wait(forw_all_mh) != QMP_SUCCESS)
@@ -849,8 +836,6 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 	QMP_abort(1);
       }
 
-    prefetch_su3(u+0+2*(0+3*(0+3*(0+4*(icolor_start[1-cb])))));
-    prefetch_single(chi1);
 
     if (total_comm > 0)
       if (QMP_start(back_all_mh) != QMP_SUCCESS)
@@ -867,7 +852,6 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		1-cb,
 		subgrid_vol_cb);
     
-    prefetch_single(chi2);
 
     if (total_comm > 0)
       if (QMP_wait(back_all_mh) != QMP_SUCCESS)
