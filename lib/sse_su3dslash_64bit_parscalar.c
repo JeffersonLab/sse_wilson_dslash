@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.9 2007-10-26 21:16:52 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.10 2007-12-03 16:36:56 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -92,23 +92,21 @@ static int icolor_end[2];      /* end site for each coloring (cb) */
 void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
-  const int cb = a->cb; 
+  int cb = a->cb; 
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
   
-  int ix1;
-  const int low = icolor_start[cb]+lo; 
-  const int high = icolor_start[cb]+hi;
-  halfspinor_array *s3;
-  spinor_array* s1 ALIGN, *sp ALIGN;
+  int ix1=0;
+  int low = icolor_start[cb]+lo; 
+  int high = icolor_start[cb]+hi;
+  /*  printf("ID: %d low=%d high=%d: DecompPlus\n", id, low, high); */
 
-  const int PREFDIST=4;
-  for (ix1=low;ix1<high;ix1+=1) {
+  halfspinor_array *s3;
+  spinor_array* sp ALIGN;
+
+  for (ix1=low;ix1<high;ix1++) {
 
     sp=&psi[ix1];
-    s1=&psi[ix1+PREFDIST];
-    prefetch_spinor(s1);
-      
     /******************************* direction +0 *********************************/	   
     s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
     decomp_gamma0_minus(*sp, *s3);
@@ -131,66 +129,46 @@ void decomp_plus(size_t lo, size_t hi, int id, const void *ptr)
 void decomp_hvv_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
-  const int cb = a->cb; 
+  int cb = a->cb; 
   u_mat_array (*gauge_field)[4] = a->u;
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
-
-  static int ix1;
-
-  const int low = icolor_start[cb]+lo; 
-  const int high = icolor_start[cb]+hi;
+  int ix1=0;
+  int low = icolor_start[cb]+lo; 
+  int high = icolor_start[cb]+hi;
 
   u_mat_array *um ALIGN;
 
   halfspinor_array *s3 ALIGN;
 
-  spinor_array *s1 ALIGN, *sm ALIGN; 
-   
-  um=&gauge_field[low][0];
+  spinor_array *sm ALIGN; 
 
-  prefetch_su3(um+1);
+  /*  printf("ID: %d low=%d high=%d: DecompHvvPlus\n", id, low, high);*/
 
   for (ix1=low;ix1<high;ix1++) 
   {
+    /* Spinor to project*/
     sm=&psi[ix1];
-     
-    /******************************* direction -0 *********************************/
+
+    /******************************* direction -1 *********************************/
+    um=&gauge_field[ix1][0];
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
     decomp_hvv_gamma0_plus(*sm, *um, *s3);
     
     /******************************* direction -1 *********************************/
     um=&gauge_field[ix1][1];
-    prefetch_su3( &gauge_field[low][2] );
-
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
     decomp_hvv_gamma1_plus(*sm, *um, *s3);
 
     /******************************* direction -2 *********************************/
     um=&gauge_field[ix1][2];
-    prefetch_su3(&gauge_field[low][2]);
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
     decomp_hvv_gamma2_plus(*sm, *um, *s3);
 
     /******************************* direction -3 *********************************/
     um=&gauge_field[ix1][3];
-
-    s1=&psi[ix1+1];
-    prefetch_spinor(s1);
-
-
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
     decomp_hvv_gamma3_plus(*sm, *um, *s3);
-    um=&gauge_field[ix1+1][0];
-
-    if(ix1 < hi) {
-      prefetch_su3(um);
-
-    }
-    else {
-      prefetch_su3(&gauge_field[low][0]);
-    }
-
   }
 }
 
@@ -198,12 +176,12 @@ void decomp_hvv_plus(size_t lo, size_t hi, int id, const void *ptr)
 void mvv_recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
-  const int cb = a->cb; 
+  int cb = a->cb; 
 
-  static int ix1;
+  int ix1=0;
 
-  const int low = icolor_start[cb]+lo; 
-  const int high = icolor_start[cb]+hi;
+  int low = icolor_start[cb]+lo; 
+  int high = icolor_start[cb]+hi;
 
   u_mat_array (*gauge_field)[4] = a->u;
   spinor_array *psi = a->spinor;
@@ -211,41 +189,30 @@ void mvv_recons_plus(size_t lo, size_t hi, int id, const void *ptr)
   u_mat_array *up ALIGN;
   halfspinor_array *s3 ALIGN, *s4 ALIGN;
   spinor_array part_sum ALIGN, *result ALIGN;
+
+  /* printf("ID: %d low=%d high=%d: MvvReconsPlus\n", id, low, high); */
  
-  up=&gauge_field[low][0];
-  prefetch_su3(up+1);
-  s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
 
 
   for (ix1=low;ix1<high;ix1++) {
     result=&psi[ix1];
-	 
-    /******************************* direction +0 *********************************/	
-    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
-    prefetch_spinor(s4);
-    mvv_recons_gamma0_plus(*s3, *up, part_sum);
 
-	   
-    /******************************* direction +1 *********************************/
+    up=&gauge_field[ix1][0];
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
+    mvv_recons_gamma0_plus(*s3, *up, part_sum);    
+
     up=&gauge_field[ix1][1];
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
-    prefetch_spinor(s3);
-    mvv_recons_gamma1_plus_add(*s4, *up, part_sum);
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
+    mvv_recons_gamma1_plus_add(*s3, *up, part_sum);    
 
-
-    /******************************* direction +2 *********************************/
     up=&gauge_field[ix1][2];
-    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
-    prefetch_spinor(s4);
-    mvv_recons_gamma2_plus_add(*s3, *up, part_sum);
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
+    mvv_recons_gamma2_plus_add(*s3, *up, part_sum);    
 
+    up=&gauge_field[ix1][3];
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
+    mvv_recons_gamma3_plus_add_store(*s3, *up, part_sum, *result);    
 
-    /******************************* direction +3 *********************************/     
-    up=&gauge_field[ix1][3];	 
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
-    prefetch_spinor(s3);
-    mvv_recons_gamma3_plus_add_store(*s4, *up, part_sum, *result);
-    up=&gauge_field[ix1+1][0];
   }
 }
 
@@ -256,29 +223,24 @@ void recons_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
 
 
-    const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
-  const int cb = a->cb; 
-  static int ix1;
+  const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
+  int cb = a->cb; 
+  int ix1=0;
 
-  const int low = icolor_start[cb]+lo; 
-  const int high = icolor_start[cb]+hi;
+  int low = icolor_start[cb]+lo; 
+  int high = icolor_start[cb]+hi;
 
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
 
   halfspinor_array *hs0 ALIGN , *hs1 ALIGN, *hs2 ALIGN, *hs3 ALIGN;
-  spinor_array *s1 ALIGN, *rn ALIGN;
+  spinor_array *rn ALIGN;
 
-  const int PREFDIST=3;
-
+  /*  printf("ID: %d low=%d high=%d: ReconsPlus\n", id, low, high); */
   for (ix1=low;ix1<high;ix1++) 
   {
-    rn=&psi[ix1];
-	 
-    s1=&psi[ix1+PREFDIST];
-    prefetch_nta_spinor(s1);
 
-	  
+    rn=&psi[ix1];
 
     /* first spin component of result */
     hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0);
@@ -299,25 +261,22 @@ void decomp_minus(size_t lo, size_t hi, int id, const void *ptr)
    
 
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
-  const int cb = a->cb; 
-  static int ix1;
-  const int low = icolor_start[cb]+lo; 
-  const int high = icolor_start[cb]+hi;
- 
- const int PREFDIST=4; 
+  int cb = a->cb; 
+  int ix1=0;
+  int low = icolor_start[cb]+lo; 
+  int high = icolor_start[cb]+hi;
+
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
 
   halfspinor_array *s3 ALIGN; 
-  spinor_array *s1 ALIGN, *sp ALIGN;
+  spinor_array *sp ALIGN;
  
-
-  for (ix1=low;ix1<high;ix1+=1) {
+  /*  printf("ID: %d low=%d high=%d: DecompMinus\n", id, low, high); */
+  for (ix1=low;ix1<high;ix1++) {
 
     sp=&psi[ix1];
-    s1=&psi[ix1+PREFDIST];
-    prefetch_spinor(s1);
-  
+
     s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
     decomp_gamma0_plus(*sp, *s3);
 
@@ -338,61 +297,39 @@ void decomp_hvv_minus(size_t lo, size_t hi, int id, const void *ptr)
 {
 
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
-  const int cb = a->cb; 
-  static int ix1;
-
-  const int low = icolor_start[cb]+lo; 
-  const int high = icolor_start[cb]+hi;
-
+  int cb = a->cb; 
+  int ix1 = 0;
+  int low = icolor_start[cb]+lo; 
+  int high = icolor_start[cb]+hi;
   u_mat_array (*gauge_field)[4] = a->u;
-
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
 
   u_mat_array *um ALIGN;
   halfspinor_array *s3 ALIGN;
-  spinor_array *s1 ALIGN, *sm ALIGN;
+  spinor_array  *sm ALIGN;
 
+  /* printf("ID: %d low=%d high=%d: DecompHvvMinus\n", id, low, high); */
 
-   
- 
-  um=&gauge_field[low][0];
-  prefetch_su3(um+1);
   for (ix1=low;ix1<high;ix1++) 
   {
     sm=&psi[ix1];
+
+    um=&gauge_field[ix1][0];
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
     decomp_hvv_gamma0_minus(*sm, *um, *s3);	   
 
     um=&gauge_field[ix1][1];
-    prefetch_su3(um+1);
-
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
     decomp_hvv_gamma1_minus(*sm, *um, *s3);	   
 
     um=&gauge_field[ix1][2];
-    prefetch_su3(um+1);
-
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
     decomp_hvv_gamma2_minus(*sm, *um, *s3);	   
-
+    
     um=&gauge_field[ix1][3];
-    prefetch_su3(um+1);
-
-    s1=&psi[ix1+1];
-    prefetch_spinor(s1);
-
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
     decomp_hvv_gamma3_minus(*sm, *um, *s3);	   
-
-    if(ix1 < hi) { 
-      prefetch_su3(&gauge_field[ix1+1][0]);
-    }
-    else {
-      prefetch_su3(&gauge_field[low][0]);
-    }
-
-    um=&gauge_field[ix1+1][0];
   }
 }
 
@@ -402,58 +339,44 @@ void mvv_recons_minus(size_t lo, size_t hi, int id, const void *ptr)
    	
   
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
-  const int cb = a->cb; 
-  static int ix1;
-  const int low = icolor_start[cb]+lo; 
-  const int high = icolor_start[cb]+hi;
+  int cb = a->cb; 
+  int ix1;
+  int low = icolor_start[cb]+lo; 
+  int high = icolor_start[cb]+hi;
   u_mat_array (*gauge_field)[4] = a->u;
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
 
   u_mat_array *up ALIGN;
 
-  halfspinor_array *s3 ALIGN, *s4 ALIGN;
+  halfspinor_array *s3 ALIGN;
 
-  spinor_array rs ALIGN,*rn ALIGN;
+  spinor_array rs ALIGN;
+  spinor_array *rn ALIGN;
 
+  /*  printf("ID: %d low=%d high=%d: MvvReconsMinus\n", id, low, high); */
 
-   
- 
-  up=&gauge_field[low][0];
-  prefetch_su3(up+1);
-  s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
-
-
-  for (ix1=low;ix1<high;ix1++) 
-  {
+  for (ix1=low;ix1<high;ix1++) {
     rn=&psi[ix1];
 
-    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
-    prefetch_spinor(s4);
-
+    up = &gauge_field[ix1][0];
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
     mvv_recons_gamma0_minus(*s3, *up, rs);
 
 
     up = &gauge_field[ix1][1];
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
-    prefetch_spinor(s3);
-    mvv_recons_gamma1_minus_add(*s4, *up, rs);
-	   
-    up = &gauge_field[ix1][2];
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
+    mvv_recons_gamma1_minus_add(*s3, *up, rs);
 
-    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
-    prefetch_spinor(s4);
-    mvv_recons_gamma2_minus_add(*s3, *up, rs);
+
+    up = &gauge_field[ix1][2];
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
+     mvv_recons_gamma2_minus_add(*s3, *up, rs);
 
     up = &gauge_field[ix1][3];
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1+1,0);
-    prefetch_spinor(s3);
-    mvv_recons_gamma3_minus_add_store(*s4, *up, rs,*rn);
+    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
+    mvv_recons_gamma3_minus_add_store(*s3, *up, rs,*rn);
 
-    if( ix1 < high) {
-      up = &gauge_field[ix1+1][0];
-      prefetch_su3(up);
-    }
   }
 
 }
@@ -464,25 +387,23 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 {
   
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
-  const int cb = a->cb; 
-  static int ix1;
+  int cb = a->cb; 
+  int ix1=0;
 
-  const int low = icolor_start[cb]+lo; 
-  const int high = icolor_start[cb]+hi;
+  int low = icolor_start[cb]+lo; 
+  int high = icolor_start[cb]+hi;
 
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
 
-  halfspinor_array *hs0,*hs1,*hs2,*hs3;   
+  halfspinor_array *hs0 ALIGN;
+  halfspinor_array *hs1 ALIGN;
+  halfspinor_array *hs2 ALIGN;
+  halfspinor_array *hs3 ALIGN;   
   spinor_array  *s1 ALIGN,  *rn ALIGN;
 
-  const int PREFDIST=3;
-  for (ix1=low;ix1<high;ix1++)  {
+  for (ix1=low; ix1<high; ix1++)  {
     rn=&psi[ix1];
-    s1=&psi[ix1+PREFDIST];
-    prefetch_nta_spinor(s1);
-
-	  
 
     /* first spin component of result */
     hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0);
@@ -691,16 +612,14 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			cb,
 			getSubgridVolCB());
 
-    prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
-    prefetch_single(chi2);
 
-
-    if (total_comm > 0)
+    if (total_comm > 0) {
       if (QMP_start(forw_all_mh) != QMP_SUCCESS)
       {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
 	QMP_abort(1);
       }
+    }
 
     /*other checkerboard's worth */
     dispatch_to_threads(decomp_hvv_plus,
@@ -717,8 +636,6 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 	QMP_abort(1);
       }
 
-    prefetch_su3(u+0+2*(0+3*(0+3*(0+4*(icolor_start[1-cb])))));
-    prefetch_single(chi1);
    
     if (total_comm > 0)
       if (QMP_start(back_all_mh) != QMP_SUCCESS)
@@ -759,16 +676,14 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			cb,
 			getSubgridVolCB());
     
-    prefetch_su3((u+0+2*(0+3*(0+3*(0+4*(icolor_start[cb]))))));
-    prefetch_single(chi2);
-   
-    if (total_comm > 0)
+      
+    if (total_comm > 0) {
       if (QMP_start(forw_all_mh) != QMP_SUCCESS)
       {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
 	QMP_abort(1);
       }
-	
+    }
 	
     /*other checkerboard's worth */
     dispatch_to_threads(decomp_hvv_minus,
@@ -778,7 +693,6 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			cb,
 			getSubgridVolCB());
     
-    prefetch_single(chi2);
     
     if (total_comm > 0)
       if (QMP_wait(forw_all_mh) != QMP_SUCCESS)
@@ -787,8 +701,6 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 	QMP_abort(1);
       }
 
-    prefetch_su3(u+0+2*(0+3*(0+3*(0+4*(icolor_start[1-cb])))));
-    prefetch_single(chi1);
 
     if (total_comm > 0)
       if (QMP_start(back_all_mh) != QMP_SUCCESS)
@@ -805,7 +717,6 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			1-cb,
 			getSubgridVolCB());
     
-    prefetch_single(chi2);
 
     if (total_comm > 0)
       if (QMP_wait(back_all_mh) != QMP_SUCCESS)

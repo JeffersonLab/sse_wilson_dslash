@@ -36,6 +36,7 @@ void recons_4dir_plus( halfspinor_array hs0,
   xmm1 = _mm_load_pd( &spinor[0][1][0] );
   xmm2 = _mm_load_pd( &spinor[0][2][0] );
 
+  
   xmm0 = _mm_add_pd(xmm0, xmm3);
   xmm1 = _mm_add_pd(xmm1, xmm4);
   xmm2 = _mm_add_pd(xmm2, xmm5);

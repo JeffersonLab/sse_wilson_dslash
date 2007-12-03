@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar_3d.c,v 1.1 2007-10-31 17:34:41 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar_3d.c,v 1.2 2007-12-03 16:36:56 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -130,7 +130,7 @@ void decomp_hvv_3d_plus(size_t lo, size_t hi, int id, const void *ptr)
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
 
-  static int ix1;
+  int ix1=0;
 
   u_mat_array *um ALIGN;
 
@@ -171,7 +171,7 @@ void mvv_recons_3d_plus(size_t lo, size_t hi, int id, const void *ptr)
 {
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
   const int cb = a->cb; 
-  static int ix1;
+  int ix1=0;
 
   u_mat_array (*gauge_field)[4] = a->u;
   spinor_array *psi = a->spinor;
@@ -218,7 +218,7 @@ void recons_3d_plus(size_t lo, size_t hi, int id, const void *ptr)
 
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
   const int cb = a->cb; 
-  static int ix1;
+  int ix1=0;
 
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
@@ -233,7 +233,6 @@ void recons_3d_plus(size_t lo, size_t hi, int id, const void *ptr)
   /************************ loop over all lattice sites *************************/
   for (ix1 =low; ix1 <high ;ix1++) {
 
-    //    int thissite=lookup_site(cb,ix1);
     int thissite = site_table_3d[ ix1 ];
 
     /* first spin component of result */
@@ -255,7 +254,7 @@ void decomp_3d_minus(size_t lo, size_t hi, int id, const void *ptr)
 
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
   const int cb = a->cb; 
-  static int ix1;
+  int ix1=0;
 
   spinor_array *psi = a->spinor;
   halfspinor_array *chi = a->half_spinor;
@@ -291,7 +290,7 @@ void decomp_hvv_3d_minus(size_t lo, size_t hi, int id, const void *ptr)
   
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
   const int cb = a->cb; 
-  static int ix1;
+  int ix1=0;
   
   
   u_mat_array (*gauge_field)[4] = a->u;
@@ -335,7 +334,7 @@ void mvv_recons_3d_minus(size_t lo, size_t hi, int id, const void *ptr)
   
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
   const int cb = a->cb; 
-  static int ix1;
+  int ix1=0;
 
   u_mat_array (*gauge_field)[4] = a->u;
   spinor_array *psi = a->spinor;
@@ -376,7 +375,7 @@ void recons_3d_minus(size_t lo, size_t hi, int id, const void *ptr)
   
   const ThreadWorkerArgs *a =(ThreadWorkerArgs *)ptr; 
   const int cb = a->cb; 
-  static int ix1;
+  int ix1=0;
 
 
   spinor_array *psi = a->spinor;
@@ -671,7 +670,6 @@ void sse_su3dslash_wilson_3d(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, 
 			cb,
 			subgrid_vol_cb_3d);
     
-    prefetch_single(chi2_3d);
     
     if (total_comm_3d > 0)
       if (QMP_wait(forw_all_mh_3d) != QMP_SUCCESS)
@@ -696,7 +694,6 @@ void sse_su3dslash_wilson_3d(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, 
 			1-cb,
 			subgrid_vol_cb_3d);
     
-    prefetch_single(chi2_3d);
 
     if (total_comm_3d > 0)
       if (QMP_wait(back_all_mh_3d) != QMP_SUCCESS)
