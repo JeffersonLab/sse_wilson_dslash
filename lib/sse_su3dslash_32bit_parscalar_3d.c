@@ -508,12 +508,7 @@ void init_sse_su3dslash_3d(const int latt_size[],
 			     void (*getSiteCoords)(int coord[], int node, int linearsite),
 			    
 			     int (*getLinearSiteIndex)(const int coord[]),
-			   int (*nodeNumber)(const int coord[]) ,
-			    const int* site_table0,
-			    const int* site_table1,
-			    int site_table_size 
-
-			   )   // latt_size not used, here for scalar version
+			   int (*nodeNumber)(const int coord[]))
 {
 
 

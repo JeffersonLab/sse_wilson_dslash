@@ -14,10 +14,7 @@
 			       void (*getSiteCoords)(int coord[], int node, int linearsite),
 			    
 			       int (*getLinearSiteIndex)(const int coord[]),
-			       int (*nodeNumber)(const int coord[]),
-			       const int* site_table0,
-			       const int* site_table1,
-			       int site_table_size);
+			       int (*nodeNumber)(const int coord[]));
 
 
     /*! Finalize the SU3 Dslash */

@@ -49,10 +49,7 @@ timeDslash3D::run(void)
   init_sse_su3dslash_3d(Layout::lattSize().slice(),
 			Layout::QDPXX_getSiteCoords,
 			Layout::QDPXX_getLinearSiteIndex,
-			Layout::QDPXX_nodeNumber,
-			rb3[0].siteTable().slice(),
-			rb3[1].siteTable().slice(),
-			rb3[0].siteTable().size());
+			Layout::QDPXX_nodeNumber);
 
   /// Pack the gauge fields
   multi1d<SSEDslash3D::PrimitiveSU3Matrix> packed_gauge;
