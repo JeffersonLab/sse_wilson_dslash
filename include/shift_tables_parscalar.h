@@ -18,8 +18,19 @@ extern "C" {
   // int getSubgridVol();
   int getSubgridVolCB();
   int getSubgridVol3D();
-  void make_shift_tables(int icolor_start[2], int bound[2][4][4]);
-  void make_shift_tables_3d(int bound[2][4][3]);
+  void make_shift_tables(int bound[2][4][4],
+			 void (*getSiteCoords)(int coord[], int node, int linearsite), 
+			 int (*getLinearSiteIndex)(const int coord[]),
+
+			 int (*getNodeNumber)(const int coord[]));
+
+  void make_shift_tables_3d(int bound[2][4][3],
+			    void (*getSiteCoords)(int coord[], int node, int linearsite), 
+			    int (*getLinearSiteIndex)(const int coord[]),
+
+			    int (*getNodeNumber)(const int coord[]));
+
+
   void free_shift_tables(void);
   void free_shift_tables_3d(void);
 

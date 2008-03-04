@@ -30,7 +30,7 @@ testDslash3D::run(void)
   }
   else {
     // Adjust this...
-    small = Double(1.0e-17);
+    small = Double(1.0e-16);
   }
 
   // Make a random gauge field 
@@ -46,7 +46,13 @@ testDslash3D::run(void)
 
   
   // Initialize the wilson dslash
-  init_sse_su3dslash_3d(Layout::lattSize().slice());
+  init_sse_su3dslash_3d(Layout::lattSize().slice(),
+			Layout::QDPXX_getSiteCoords,
+			Layout::QDPXX_getLinearSiteIndex,
+			Layout::QDPXX_nodeNumber,
+			rb3[0].siteTable().slice(),
+			rb3[1].siteTable().slice(),
+			rb3[0].siteTable().size());
 
   /// Pack the gauge fields
   multi1d<SSEDslash3D::PrimitiveSU3Matrix> packed_gauge;

@@ -46,7 +46,10 @@ timeDslash::run(void)
 
   
   // Initialize the wilson dslash
-  init_sse_su3dslash(Layout::lattSize().slice());
+  init_sse_su3dslash(Layout::lattSize().slice(),
+		     Layout::QDPXX_getSiteCoords,
+		     Layout::QDPXX_getLinearSiteIndex,
+		     Layout::QDPXX_nodeNumber);
 
   /// Pack the gauge fields
   multi1d<SSEDslash::PrimitiveSU3Matrix> packed_gauge;

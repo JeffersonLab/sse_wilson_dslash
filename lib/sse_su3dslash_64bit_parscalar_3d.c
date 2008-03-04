@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar_3d.c,v 1.2 2007-12-03 16:36:56 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar_3d.c,v 1.3 2008-03-04 21:50:18 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -70,11 +70,14 @@ extern "C" {
 #include <recons.h>
 #include <mvv_recons_64bit.h>
 
+  static int initP_3d=0;
 
   extern int subgrid_vol_3d;
   extern int subgrid_vol_cb_3d;
+
   extern int* site_table_3d;
   extern int* offset_table_body_3d;
+
   extern int Nd3;
 
 
@@ -85,7 +88,7 @@ extern "C" {
     return offset_table_body_3d[mu + LocalNd3*( site + subgrid_vol_3d*type) ];
   }
 
-static int initP_3d=0;
+
 
 
 
@@ -420,7 +423,11 @@ static QMP_msghandle_t back_all_mh_3d;
 
 
 
-void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here for scalar version
+  void init_sse_su3dslash_3d(const int latt_size[],
+			     void (*getSiteCoords)(int coord[], int node, int linearsite),
+			     
+			     int (*getLinearSiteIndex)(const int coord[]),
+			     int (*nodeNumber)(const int coord[]))   // latt_size not used, here for scalar version
 {
   const int *machine_size = QMP_get_logical_dimensions();
   int bound[2][4][3];
@@ -444,13 +451,10 @@ void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here 
     
 
   /* Check problem size */
-  for(mu=0; mu < 4; mu++) 
-    if ( latt_size[mu] == 1 ) 
-    {
-      QMP_error("This SSE Dslash does not support a problem size = 1. Here the lattice in dimension %d has length %d\n", mu, latt_size[mu]);
-      QMP_abort(1);
-    }
-
+  if ( latt_size[0] == 1 ) {
+    QMP_error("This SSE Dslash does not support a problem size = 1. Here the lattice in dimension %d has length %d\n", 0, latt_size[0]);
+    QMP_abort(1);
+  }
 
   num = latt_size[0] / machine_size[0];
   if ( num % 2 != 0 )
@@ -459,15 +463,14 @@ void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here 
     QMP_abort(1);
   }
 
-
-
-
-    
-  make_shift_tables_3d(bound);
+  make_shift_tables_3d(bound, 
+		       getSiteCoords,
+		       getLinearSiteIndex,
+		       nodeNumber);
 
   /* Allocated space for the floating temps */
   /* Wasteful - allocate 3 times subgrid_vol_cb. Otherwise, need to pack the TAIL{1,2} halfspinor_buffer_offsets */
-  nsize = 2*3*2*sizeof(double)*subgrid_vol_cb_3d*4*Nd3;  /* Note 3x4 half-ferm temps */
+  nsize = 2*3*2*sizeof(double)*3*subgrid_vol_cb_3d*Nd3;  /* Note 3x4 half-ferm temps */
   if ((xchi1_3d = QMP_allocate_aligned_memory(nsize,64,0)) == 0)
   {
     QMP_error("init_wnxtsu3dslash: could not initialize xchi1_3d");

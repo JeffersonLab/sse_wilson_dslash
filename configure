@@ -4190,7 +4190,7 @@ echo "$as_me: Found QDP++ configuration program ${QDPXX_CONFIG}" >&6;}
      { echo "$as_me:$LINENO: checking if QDP++ uses checkerboarded layout" >&5
 echo $ECHO_N "checking if QDP++ uses checkerboarded layout... $ECHO_C" >&6; }
      layout=`${QDPXX_CONFIG} --layout`
-     if test "X${layout}X" == "Xcb2X"; then
+     if test "X${layout}X" == "Xcb2X" -o "X${layout}X" == "Xcb3dX" ; then
 	{ echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
      else

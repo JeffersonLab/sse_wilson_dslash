@@ -46,7 +46,13 @@ timeDslash3D::run(void)
 
   
   // Initialize the wilson dslash
-  init_sse_su3dslash_3d(Layout::lattSize().slice());
+  init_sse_su3dslash_3d(Layout::lattSize().slice(),
+			Layout::QDPXX_getSiteCoords,
+			Layout::QDPXX_getLinearSiteIndex,
+			Layout::QDPXX_nodeNumber,
+			rb3[0].siteTable().slice(),
+			rb3[1].siteTable().slice(),
+			rb3[0].siteTable().size());
 
   /// Pack the gauge fields
   multi1d<SSEDslash3D::PrimitiveSU3Matrix> packed_gauge;
@@ -191,7 +197,7 @@ timeDslash3D::run(void)
     QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << endl;
     QDPIO::cout << "\t " << 1.0e6*time/(double)iters << " u sec/iteration" << endl;    
     // Full 4D dslash is 1390 Mflops. 3D Dslash is 3/4*1390~1042.5 ? */
-    double Mflops = 1043.0f*(double)(iters)*(double)(Layout::vol()/2)/1.0e6;
+    double Mflops = (1043.0f*(double)(iters)*(double)(Layout::vol()/2))/1.0e6;
     double perf = Mflops/time;
     QDPIO::cout << "\t Performance is: " << perf << " Mflops in Total" << endl;
     QDPIO::cout << "\t Performance is: " << perf / (double)Layout::numNodes() << " per MPI Process" << endl;

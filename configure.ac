@@ -134,7 +134,7 @@ if test "X${QDPXX_GIVEN}X" = "XyesX"; then
      AC_MSG_NOTICE([Found QDP++ configuration program ${QDPXX_CONFIG}])
      AC_MSG_CHECKING([if QDP++ uses checkerboarded layout])
      layout=`${QDPXX_CONFIG} --layout`
-     if test "X${layout}X" == "Xcb2X"; then 
+     if test "X${layout}X" == "Xcb2X" -o "X${layout}X" == "Xcb3dX" ; then 
 	AC_MSG_RESULT([yes])
      else
         AC_MSG_RESULT([no])

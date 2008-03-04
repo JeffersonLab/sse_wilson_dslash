@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.17 2007-11-21 16:22:05 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.18 2008-03-04 21:50:18 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -70,6 +70,9 @@ extern "C" {
 #endif
 
   extern int subgrid_vol;
+  extern int subgrid_vol_cb;
+
+  extern int *site_table;    /* Aligned lookup table */
   extern int *offset_table;
 
   static inline 
@@ -78,10 +81,8 @@ extern "C" {
     return offset_table[mu + 4*( site + subgrid_vol*type) ];
   }
 
-   static int initP=0;
+  static int initP=0;
 
-  static int icolor_start[2];    /* starting site for each coloring (cb) */
-  static int icolor_end[2];      /* end site for each coloring (cb) */
 
   /* The gauge field is packed so that:
        gauge_field[site][0]   <-> U(x=site   , dir = 0 ) 
@@ -111,19 +112,24 @@ to a lattice temporary */
     const ThreadWorkerArgs *a = (ThreadWorkerArgs *)ptr;          /* Cast the argument */
     halfspinor_array* chi = a->half_spinor; /* needs to be changed to halfspinor_array and be an array*/
     int cb = a->cb;
-    
+    int low = cb*subgrid_vol_cb + lo;
+    int high = cb*subgrid_vol_cb + hi;
+
+
     halfspinor_array* s3;
-    int  low = icolor_start[cb]+(int)lo;
-    int high = icolor_start[cb]+(int)hi;
+
     
     spinor_array* spinor_field= a->spinor;
     
     
     /************************ loop over all lattice sites *************************/
-    for (ix1=low;ix1<high;ix1++) {
 
-      sp1=&spinor_field[ix1]; 
+    for (ix1=low;ix1<high;ix1++) {
+      int thissite = site_table[ix1];
+
+      sp1=&spinor_field[thissite]; 
       s3 = chi+ halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
+
       decomp_gamma0_minus(sp1[0], *s3);
       
       /********************** direction +1 *********************************/
@@ -169,28 +175,31 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
   halfspinor_array* s4;
 
   int cb = a->cb;
-  int low = icolor_start[cb]+(int)lo;
-  int high = icolor_start[cb]+(int)hi;
+
+  int low = cb*subgrid_vol_cb + lo;
+  int high = cb*subgrid_vol_cb + hi;
 
 
   /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1++) {
 
+    int thissite = site_table[ ix1 ];
+
     /****************** direction +0 *********************************/
-    sm1=&spinor_field[ix1];
-    um1=&gauge_field[ix1][0];
+    sm1=&spinor_field[thissite];
+    um1=&gauge_field[thissite][0];
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);    
     decomp_hvv_gamma0_plus(*sm1,*um1,*s3);
 
-    um1++;
+    um1=&gauge_field[thissite][1];
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);    
     decomp_hvv_gamma1_plus(*sm1,*um1,*s3);
 
-    um1++;
+    um1=&gauge_field[thissite][2];
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);    
     decomp_hvv_gamma2_plus(*sm1,*um1,*s3);
 
-    um1++;
+    um1=&gauge_field[thissite][3];
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);    
     decomp_hvv_gamma3_plus(*sm1,*um1,*s3);
   }
@@ -225,30 +234,28 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
   halfspinor_array* s3;
   halfspinor_array* s4;
 
-  int  low = icolor_start[cb]+(int)lo;
-  int high = icolor_start[cb]+(int)hi;
-
+  int low = cb*subgrid_vol_cb + lo;
+  int high = cb*subgrid_vol_cb + hi;
   
   /************************ loop over all lattice sites *************************/
 
   for (ix1=low;ix1<high;ix1++) {
-
+    int thissite = site_table[ ix1 ];
     /****************** direction +0 ********************************/
-    sn1=&spinor_field[ix1];    
-    up1=&gauge_field[ix1][0]; 
-
+    sn1=&spinor_field[thissite];    
+    up1=&gauge_field[thissite][0]; 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
     mvv_recons_gamma0_plus(*s3, *up1, r12_1, r34_1);
 
-    up1++;
+    up1=&gauge_field[thissite][1]; 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     mvv_recons_gamma1_plus_add(*s3, *up1, r12_1, r34_1);
 
-    up1++;
+    up1=&gauge_field[thissite][2]; 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     mvv_recons_gamma2_plus_add(*s3, *up1, r12_1, r34_1);
 
-    up1++;
+    up1=&gauge_field[thissite][3]; 
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     mvv_recons_gamma3_plus_add_store(*s3, *up1, r12_1, r34_1,*sn1);
 
@@ -275,13 +282,14 @@ void recons_plus(size_t lo,size_t hi, int id, const void *ptr )
  
   halfspinor_array *hs0, *hs1, *hs2,*hs3;
 
-  int low = icolor_start[cb]+(int)lo;
-  int high = icolor_start[cb]+(int)hi;
+  int low = cb*subgrid_vol_cb + lo;
+  int high = cb*subgrid_vol_cb + hi;
   
   const int PREFDIST=4;
 
   /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1++) {
+    int thissite = site_table[ix1];
 
     hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
     hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1); 
@@ -289,7 +297,7 @@ void recons_plus(size_t lo,size_t hi, int id, const void *ptr )
     hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3); 
 
 
-    sn1=&spinor_field[ix1];   
+    sn1=&spinor_field[thissite];   
 
     recons_4dir_plus(*hs0, *hs1, *hs2, *hs3, *sn1);
     
@@ -318,8 +326,9 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
   halfspinor_array* s3;
 
   int cb = a->cb;
-  int  low = icolor_start[cb]+(int)lo;
-  int high = icolor_start[cb]+(int)hi;
+
+  int low = cb*subgrid_vol_cb + lo;
+  int high = cb*subgrid_vol_cb + hi;
 
   spinor_array* spinor_field= a->spinor;
    
@@ -329,7 +338,10 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
   /************************ loop over all lattice sites *************************/
 
   for (ix1=low;ix1<high;ix1++) {
-    sp1=&spinor_field[ix1];
+    int thissite = site_table[ix1];
+
+
+    sp1=&spinor_field[thissite];
     
     /************* direction +0 *****************************/
     s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
@@ -373,28 +385,30 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
   halfspinor_array* s4;
 
 
-  int  low = icolor_start[cb]+(int)lo;
-  int high = icolor_start[cb]+(int)hi;
-
+  int low = cb*subgrid_vol_cb + lo;
+  int high = cb*subgrid_vol_cb + hi;
 
   /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1++) {
+    int thissite = site_table[ix1];
 
     /***************** direction +0 *********************************/
-    sm1=&spinor_field[ix1];  
-    um1=&gauge_field[ix1][0]; 
+    sm1=&spinor_field[thissite];  
+    um1=&gauge_field[thissite][0]; 
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
     decomp_hvv_gamma0_minus(*sm1, *um1, *s3);
 
-    um1++;
+    um1=&gauge_field[thissite][1]; 
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
     decomp_hvv_gamma1_minus(*sm1, *um1, *s3);
 
-    um1++;
+
+    um1=&gauge_field[thissite][2]; 
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
     decomp_hvv_gamma2_minus(*sm1, *um1, *s3);
 
-    um1++;
+
+    um1=&gauge_field[thissite][3]; 
     s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
     decomp_hvv_gamma3_minus(*sm1, *um1, *s3);
 
@@ -426,29 +440,31 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
   halfspinor_array* s4;
   
 
-  int  low = icolor_start[cb]+(int)lo;
-  int high = icolor_start[cb]+(int)hi;
+  int low = cb*subgrid_vol_cb + lo;
+  int high = cb*subgrid_vol_cb + hi;
+
 
 
 /************************ loop over all lattice sites *************************/
   for (ix1=low;ix1<high;ix1++) {
+    int thissite = site_table[ix1];
 
     /******************************* direction +0 *********************************/
-    sn1=&spinor_field[ix1];     
-    up1=&gauge_field[ix1][0];  
+    sn1=&spinor_field[thissite];     
 
+    up1=&gauge_field[thissite][0];  
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
     mvv_recons_gamma0_minus(*s3, *up1, r12_1, r34_1);
  
-    up1++;  
+    up1=&gauge_field[thissite][1];  
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     mvv_recons_gamma1_minus_add(*s3, *up1, r12_1, r34_1);
 
-    up1++;  
+    up1=&gauge_field[thissite][2];  
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     mvv_recons_gamma2_minus_add(*s3, *up1, r12_1, r34_1);
 
-    up1++;  
+    up1=&gauge_field[thissite][3];  
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     mvv_recons_gamma3_minus_add_store(*s3, *up1, r12_1, r34_1,*sn1);
     /******************************** end of loop *********************************/
@@ -470,16 +486,18 @@ void recons_minus(size_t lo,size_t hi, int id, const void *ptr )
 
   halfspinor_array* hs0, *hs1, *hs2, *hs3;
 
-  int low = icolor_start[cb]+(int)lo;
-  int high = icolor_start[cb]+(int)hi;
+  int low = cb*subgrid_vol_cb + lo;
+  int high = cb*subgrid_vol_cb + hi;
   
   /************************ loop over all lattice sites ******************/
   for (ix1=low;ix1<high;ix1++) {
+    int thissite = site_table[ix1];
+
     hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
     hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1); 
     hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2); 
     hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3); 
-    sn1=&spinor_field[ix1];   
+    sn1=&spinor_field[thissite];   
     recons_4dir_minus(*hs0, *hs1, *hs2, *hs3, *sn1);
   }
 }
@@ -507,7 +525,10 @@ static QMP_msghandle_t forw_all_mh;
 static QMP_msghandle_t back_all_mh;
 
 /* Initialize the Dslash */
-void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for scalar version
+  void init_sse_su3dslash(const int latt_size[],
+			  void (*getSiteCoords)(int coord[], int node, int linearsite),
+			  int (*getLinearSiteIndex)(const int coord[]),
+			  int (*nodeNumber)(const int coord[]))   // latt_size not used, here for scalar version
 {
   const int *machine_size = QMP_get_logical_dimensions();
   // const int *subgrid_cb_size = QMP_get_subgrid_dimensions();
@@ -535,13 +556,11 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
     
 
   /* Check problem size */
-  for(mu=0; mu < 4; mu++) {
-    if ( latt_size[mu] == 1 ) {
-      QMP_error("This SSE Dslash does not support a problem size = 1. Here the lattice in dimension %d has length %d\n", mu, latt_size[mu]);
-      QMP_abort(1);
-    }
+  if ( latt_size[0] == 1 ) {
+    QMP_error("This SSE Dslash does not support a problem size = 1. Here the lattice in dimension %d has length %d\n", 0, latt_size[0]);
+    QMP_abort(1);
   }
-
+  
   num = latt_size[0] / machine_size[0];
   if ( num % 2 != 0 )
   {
@@ -551,11 +570,11 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
 
 
   /* Make the shift table  -- this sets the vol and vol_cb so we can call getSugridVolCB() after it */
-  make_shift_tables(icolor_start, bound);
+  make_shift_tables(bound,
+		    getSiteCoords,
+		    getLinearSiteIndex,
+		    nodeNumber);
 
-
-  icolor_end[0] = icolor_start[0] + getSubgridVolCB();
-  icolor_end[1] = icolor_start[1] + getSubgridVolCB();
 
   /* Allocate the halfspinor temporaries */
   /* The halfspinor is really the following:
@@ -572,16 +591,16 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
 	and   half spinor size is 2spin comp * 3 color * 2 floats (=1complex)
 
   */
-  nsize = 2*3*2*sizeof(float)*getSubgridVolCB()*3*4;  /* Note 3x4 half-fermions */
+  nsize = 2*3*2*sizeof(float)*subgrid_vol_cb*3*4;  /* Note 3x4 half-fermions */
 
   /* xchi1 and xchi2 will hold projected spinors memory handles from QMP */
-  if ((xchi1 = QMP_allocate_aligned_memory(nsize,128,0)) == 0)
+  if ((xchi1 = QMP_allocate_aligned_memory(nsize,64,0)) == 0)
   {
     QMP_error("init_wnxtsu3dslash: could not initialize xchi1");
     QMP_abort(1);
   }
 
-  if ((xchi2 = QMP_allocate_aligned_memory(nsize,128,0)) == 0)
+  if ((xchi2 = QMP_allocate_aligned_memory(nsize,64,0)) == 0)
   {
     QMP_error("init_wnxtsu3dslash: could not initialize xchi2");
     QMP_abort(1);
@@ -612,11 +631,11 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
       */	 
 
       /* cb = 0 */
-      forw_msg[num][0] = QMP_declare_msgmem( chi1+getSubgridVolCB()*(1+3*mu),
+      forw_msg[num][0] = QMP_declare_msgmem( chi1+subgrid_vol_cb*(1+3*mu),
 					     bound[0][0][mu]*sizeof(halfspinor_array));
 
       /* cb = 1 */
-      forw_msg[num][1] = QMP_declare_msgmem( chi1+getSubgridVolCB()*(2+3*mu),
+      forw_msg[num][1] = QMP_declare_msgmem( chi1+subgrid_vol_cb*(2+3*mu),
 					     bound[1][0][mu]*sizeof(halfspinor_array));
 
       /* cb = 0: Receive from cb = 1 */
@@ -632,11 +651,11 @@ void init_sse_su3dslash(const int latt_size[])   // latt_size not used, here for
       }
 
       /* cb = 0 */
-      back_msg[num][0] = QMP_declare_msgmem( chi2+getSubgridVolCB()*(1+3*mu),
+      back_msg[num][0] = QMP_declare_msgmem( chi2+subgrid_vol_cb*(1+3*mu),
 					     bound[0][1][mu]*sizeof(halfspinor_array));
 
       /* cb = 1 */
-      back_msg[num][1] = QMP_declare_msgmem( chi2+getSubgridVolCB()*(2+3*mu), 
+      back_msg[num][1] = QMP_declare_msgmem( chi2+subgrid_vol_cb*(2+3*mu), 
 					     bound[1][1][mu]*sizeof(halfspinor_array));
 
       /* cb = 0: Receive from cb=1 */
@@ -724,7 +743,6 @@ void free_sse_su3dslash(void)
 void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 {
   
-  int subgrid_vol_cb = getSubgridVolCB();
 
   if (initP == 0) {
     QMP_error("sse_su3dslash_wilson not initialized");

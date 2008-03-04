@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_scalar.c,v 1.6 2007-11-21 15:44:22 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_scalar.c,v 1.7 2008-03-04 21:50:18 bjoo Exp $
  * 
  * Action of the 32bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -68,14 +68,21 @@ extern "C" {
 
   /* These are needed for the shift tables */
   static int *shift_table;
-  static int icolor_start[2];    /* starting site for each coloring (cb) */
-  static int icolor_end[2];      /* end site for each coloring (cb) */
+  extern int *site_table;
+  extern int total_vol_cb;
+  //  static int icolor_start[2];    /* starting site for each coloring (cb) */
+  //  static int icolor_end[2];      /* end site for each coloring (cb) */
 
 
 
 /***************** start of initialization routine ***************************************/
 
-void init_sse_su3dslash(const int latt_size[])
+  void init_sse_su3dslash(const int latt_size[],
+			  void (*getSiteCoords)(int coord[], int node, int linearsite),
+			    
+			  int (*getLinearSiteIndex)(const int coord[]),
+			  int (*nodeNum)(const int coord[])
+			  )
 {
   int mu;
   int vol_cb=-1;
@@ -89,27 +96,19 @@ void init_sse_su3dslash(const int latt_size[])
 
   
   /* Check problem and subgrid size */
-  for(mu=0; mu < 4; mu++) {
-    if ( latt_size[mu] % 2 != 0 ) {
-      fprintf(stderr,"This SSE Dslash only supports even problem sizes. Here the lattice is odd in dimension %d with length %d\n", mu, latt_size[mu]);
-      exit(1);
-    }
+  if ( latt_size[0] % 2 != 0 ) {
+    fprintf(stderr,"This SSE Dslash only supports even problem sizes. Here the lattice is odd in dimension %d with length %d\n", 0, latt_size[mu]);
+    exit(1);
   }
+  
 
   /* Construct all the shift tables needed */
   /* 4 dimensions * 2 directions { aka FORWARD and BACKWARD } * volume */
     /* shift_table and icolor start are set, latt_size is read */
-  shift_table = make_shift_tables(icolor_start, latt_size);
+  shift_table = make_shift_tables(latt_size,
+				  getSiteCoords,
+				  getLinearSiteIndex);
 
-  vol_cb = getSubgridVolCB();
-  if ( vol_cb <= 0 ) { 
-    fprintf(stderr,"Something is wrong. volcb = %d\n", vol_cb);
-      exit(1);
-  }
-  
-  /* Assume cb-s are contiguous */
-  icolor_end[0] = icolor_start[0] + vol_cb;
-  icolor_end[1] = icolor_start[1] + vol_cb;
 
   /* Set flag to signify initialization */
   initP = 1;
@@ -159,7 +158,7 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 			(spinor_array*)res,
 			(my_mat_array)u,
 			1-cb,
-			getSubgridVolCB());
+			total_vol_cb);
   }
 
   if( isign == -1) 
@@ -169,7 +168,7 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 			(spinor_array*)res,
 			(my_mat_array)u,
 			1-cb,
-			getSubgridVolCB());
+			total_vol_cb);
   }
 }
 
@@ -192,8 +191,10 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
 
   const int cb = a->cb;
 
+#if 0
   const int low  =  icolor_start[cb]+lo;                 /* First site for this thread */
   const int high  = icolor_start[cb]+ hi;                /* Last site for this thread */
+#endif
 
   
 
@@ -215,58 +216,70 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr)
   /* We are doing things in bunches of two sites */
 
   /* Get forward neighbour of low in the x direction */
+  /* Get forward neighbour of low in the x direction */
+  const int low  =  cb*total_vol_cb+lo;                 /* First site for this thread */
+  const int high  = cb*total_vol_cb+hi;                /* Last site for this thread */
+
 
   for (ix1 = low;ix1<high;ix1++) 
   {
-       
+    int thissite = site_table[ ix1 ];
+    int fsite = forward_neighbor(shift_table,ix1,0);
+    int bsite = backward_neighbor(shift_table,ix1,0);
+
     /******************************* direction +0 *********************************/
 
     /* ...(1-isign*gamma(0)) psi(x + \hat{0}) */
 
     /* Prefetch the backward neighbours for the following 1 + isign gamma(0) case */
-    sp1 = &psi[ forward_neighbor(shift_table,ix1,0)  ];
-    up1 = &(gauge_field[ix1][0]);
+    sp1 = &psi[ fsite  ];
+    up1 = &(gauge_field[thissite][0]);
     dslash_plus_dir0_forward(*sp1, *up1, r12_1, r34_1);
 
     /* Now prefetch for the  1 + \gamma_0 U^\dagger case */
-    iy1 =  backward_neighbor(shift_table,ix1,0);
-    sm1 = &psi[ iy1 ];
-    um1 = &(gauge_field[iy1][0]);
+    sm1 = &psi[ bsite ];
+    um1 = &(gauge_field[bsite][0]);
     dslash_plus_dir0_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch gauge field for next direction */
-    up1 = &(gauge_field[ix1][1]);
-    sp1 = &psi[ forward_neighbor(shift_table,ix1,1) ];
+    fsite = forward_neighbor(shift_table,ix1,1);
+    bsite = backward_neighbor(shift_table,ix1,1);
+
+    up1 = &(gauge_field[thissite][1]);
+    sp1 = &psi[ fsite ];
     dslash_plus_dir1_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch spinors for the -1 direction */
-    iy1 = backward_neighbor(shift_table,ix1,1);
-    sm1 = &psi[iy1];
-    um1 = &(gauge_field[iy1][1]);
+    sm1 = &psi[bsite];
+    um1 = &(gauge_field[bsite][1]);
     dslash_plus_dir1_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch forward neighbour for direction 2+ */
-    up1 = &(gauge_field[ix1][2]);
-    sp1 = &psi[forward_neighbor(shift_table,ix1,2)];
+    fsite = forward_neighbor(shift_table,ix1,2);
+    bsite = backward_neighbor(shift_table,ix1,2);
+
+    up1 = &(gauge_field[thissite][2]);
+    sp1 = &psi[fsite];
     dslash_plus_dir2_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch sm1 & sm2 for -ve direction */
-    iy1 = backward_neighbor(shift_table,ix1,2);
-    sm1 = &psi[iy1];
-    um1 = &(gauge_field[iy1][2]);
+    sm1 = &psi[bsite];
+    um1 = &(gauge_field[bsite][2]);
     dslash_plus_dir2_backward_add(*sm1, *um1, r12_1, r34_1);
 
     
     /* Prefetch spinors for direction 3+ */
-    sp1 = &psi[ forward_neighbor(shift_table,ix1,3) ];
-    up1 = &(gauge_field[ix1][3]);
+    fsite = forward_neighbor(shift_table,ix1,3);
+    bsite = backward_neighbor(shift_table,ix1,3);
+    
+    sp1 = &psi[ fsite ];
+    up1 = &(gauge_field[thissite][3]);
     dslash_plus_dir3_forward_add(*sp1, *up1, r12_1, r34_1);
 
 
-    iy1 = backward_neighbor(shift_table,ix1,3);
-    sm1 = &psi[iy1]; 
-    um1 = &(gauge_field[iy1][3]); 
-    sn1 = &res[ix1];  /*we always walk across the result lexicographically */
+    sm1 = &psi[bsite]; 
+    um1 = &(gauge_field[bsite][3]); 
+    sn1 = &res[thissite];  /*we always walk across the result lexicographically */
     dslash_plus_dir3_backward_add_store(*sm1, *um1, r12_1, r34_1, *sn1);
       
   }
@@ -283,8 +296,8 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
 					    iz1 - index of first of next pair (ix+2) */
   const int cb = a->cb;
 
-  const int low  =  icolor_start[cb]+lo;                 /* First site for this thread */
-  const int high  = icolor_start[cb]+ hi;                /* Last site for this thread */
+  //  const int low  =  icolor_start[cb]+lo;                 /* First site for this thread */
+  // const int high  = icolor_start[cb]+ hi;                /* Last site for this thread */
 
   u_mat_array (*gauge_field)[4]  =  a->u;  /* Gauge field */
 
@@ -301,13 +314,18 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
   halfspinor_array r12_1;                         /* site 1 halfspinor top half */
   halfspinor_array r34_1;                         /* site 1 halfspinor bottom half */
   
-
+  /* Get forward neighbour of low in the x direction */
+  const int low  =  cb*total_vol_cb+lo;                 /* First site for this thread */
+  const int high  = cb*total_vol_cb+hi;                /* Last site for this thread */
 
   /************************ loop over all lattice sites *************************/
 
   for (ix1 = low;ix1<high;ix1++) {
-    sp1 = &psi[ forward_neighbor(shift_table,ix1,0)  ];
-    up1 = &(gauge_field[ix1][0]);
+    int thissite = site_table[ ix1 ];
+    int fsite = forward_neighbor(shift_table,ix1,0);
+
+    sp1 = &psi[ fsite  ];
+    up1 = &(gauge_field[thissite][0]);
     dslash_minus_dir0_forward(*sp1, *up1, r12_1, r34_1);
 
     /* Now prefetch for the  1 + \gamma_0 U^\dagger case */
@@ -317,8 +335,9 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     dslash_minus_dir0_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch gauge field for next direction */
-    up1 = &(gauge_field[ix1][1]);
-    sp1 = &psi[ forward_neighbor(shift_table,ix1,1) ];
+    fsite = forward_neighbor(shift_table,ix1,1);
+    up1 = &(gauge_field[thissite][1]);
+    sp1 = &psi[ fsite ];
     dslash_minus_dir1_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch spinors for the -1 direction */
@@ -328,8 +347,9 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
     dslash_minus_dir1_backward_add(*sm1, *um1, r12_1, r34_1);
 
     /* Prefetch forward neighbour for direction 2+ */
-    up1 = &(gauge_field[ix1][2]);
-    sp1 = &psi[forward_neighbor(shift_table,ix1,2)];
+    fsite = forward_neighbor(shift_table,ix1,2);
+    up1 = &(gauge_field[thissite][2]);
+    sp1 = &psi[fsite];
     dslash_minus_dir2_forward_add(*sp1, *up1, r12_1, r34_1);
 
     /* Prefetch sm1 & sm2 for -ve direction */
@@ -340,15 +360,17 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
 
     
     /* Prefetch spinors for direction 3+ */
-    sp1 = &psi[ forward_neighbor(shift_table,ix1,3) ];
-    up1 = &(gauge_field[ix1][3]);
+    fsite = forward_neighbor(shift_table,ix1,3);
+
+    up1 = &(gauge_field[thissite][3]);
+    sp1 = &psi[ fsite  ];
     dslash_minus_dir3_forward_add(*sp1, *up1, r12_1, r34_1);
 
 
     iy1 = backward_neighbor(shift_table,ix1,3);
     sm1 = &psi[iy1]; 
     um1 = &(gauge_field[iy1][3]); 
-    sn1 = &res[ix1];  /*we always walk across the result lexicographically */
+    sn1 = &res[thissite];  /*we always walk across the result lexicographically */
     dslash_minus_dir3_backward_add_store(*sm1, *um1, r12_1, r34_1, *sn1);
 
   }

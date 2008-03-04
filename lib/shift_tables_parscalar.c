@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.8 2007-10-24 19:54:10 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.9 2008-03-04 21:50:17 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -40,15 +40,34 @@ extern "C" {
 #endif
 
 
-  //  typedef int offset[4];
 
+  /* Offset table into the half spinor array */
+  /* Unaligned */
   static int* xoffset_table;
+
+  /* Aligned version */
   int* offset_table;
 
+  /* A struct for the inverse of the shift table - may be eliminated in 
+     future */
+  typedef struct { 
+    int cb;
+    int linearcb;
+  } InvTab4;
 
-/* Max machine size */
+  /* Unaligned Site Table */
+  static int* xsite_table;
+  
+  /* EXPORTED: Aligned Site Table */
+  int* site_table;
+
+
+  /* Max machine size */
   int subgrid_vol = -1;
-  static int subgrid_vol_cb = -1;
+  int subgrid_vol_cb = -1;
+
+  int Nd = 4;
+
 
   /* Number of dimensions */
   static int getNumDim()
@@ -69,7 +88,8 @@ extern "C" {
 	subgrid_size[i] = QMP_get_subgrid_dimensions()[i];
       }
 
-      subgrid_size[0] <<= 1;
+      
+      subgrid_size[0] *= 2;
       
       first = 0;
     }
@@ -99,195 +119,168 @@ extern "C" {
     return tot_size;
   }
 
+  static void crtesn4d(int ipos, const int latt_size[], int coord[] )
+  {
   
-  /* Subgrid volume */
-  int getSubgridVol()
-  {
-    return subgrid_vol;
-  }
-  
+    int Ndim=0; /* Start running x fastest */
+    int i, ix;
 
-  /* Subgrid volume */
-  int getSubgridVolCB()
-  {
-    return subgrid_vol_cb;
-  }
-
-
-  /* Decompose lexicographic site ipos into lattice coordinates */
-  static void crtesn(int coord[], int ipos, int latt_size[])
-  {
-    int i;
-    
-    for(i=0; i < getNumDim(); ++i) {
-      coord[i] = ipos % latt_size[i];
-      ipos /= latt_size[i];
+    /* Calculate the Cartesian coordinates of the VALUE of IPOS where the 
+     * value is defined by
+     *
+     *     for i = 0 to NDIM-1  {
+     *        X_i  <- mod( IPOS, L(i) )
+     *        IPOS <- int( IPOS / L(i) )
+     *     }
+     *
+     * NOTE: here the coord(i) and IPOS have their origin at 0. 
+     */
+    for(i = Ndim; i < Ndim+4; ++i) {
+      ix=i%4;  /* This lets me start with the time direction and then wraparound */
+      
+      coord[ix] = ipos % latt_size[ix];
+      ipos = ipos / latt_size[ix];
     }
+
   }
 
-  /* Calculates the lexicographic site index from the coordinate of a site */
-  static int local_site(int coord[], int latt_size[]) {
+  static int local_site4d(const coord[4], const latt_size[4])
+  {
     int order = 0;
     int mmu;
     
-    for(mmu=getNumDim()-1; mmu >= 1; --mmu) {
+    // In the 4D Case: t+Lt(x + Lx(y + Ly*z)
+    // essentially  starting from i = dim[Nd-2]
+    //  order =  latt_size[i-1]*(coord[i])
+    //   and need to wrap i-1 around to Nd-1 when it gets below 0
+    for(mmu=3; mmu >= 1; --mmu) {
       order = latt_size[mmu-1]*(coord[mmu] + order);
     }
-
-    order += coord[0];
+    
+    order += coord[ 0 ]; /* X is fastest running */
     
     return order;
   }
 
- 
-  /*****************************************************************************************/
-  /*********** These are functions taken from QDP++ and converted to C *****************/
+  static int myLinearSiteIndex4D(const int gcoords[]) 
+  {
+    int mu;
+    int subgrid_cb_nrow[4];
+    int subgrid_cb_coord[4];
+    int cb;
+
+    for(mu=0; mu < 4; mu++) { 
+      subgrid_cb_nrow[mu] = getSubgridSize()[mu];
+    }
+    subgrid_cb_nrow[0] /=2;  /* Checkerboarding */
+
+    cb=0;
+    for(mu=0; mu < Nd; ++mu) { 
+      cb += gcoords[mu];
+    }
+    cb &=1;
+    
+    subgrid_cb_coord[0] = (gcoords[0]/2)% subgrid_cb_nrow[0];
+    for(mu=1; mu < 4; mu++) { 
+      subgrid_cb_coord[mu] = gcoords[mu] % subgrid_cb_nrow[mu];
+    }
+
+    return local_site4d(subgrid_cb_coord, subgrid_cb_nrow) + cb*subgrid_vol_cb;
+  }
+
+  // This is not needed as it can be done transitively:
+  // ie lookup the QDP index and then lookup the coord with that 
+  static void mySiteCoords4D(int gcoords[], int node, int linearsite)
+  {
+    int mu;
+    int subgrid_cb_nrow[4];
+    int tmp_coord[4];
+    int cb,cbb;
+    int* log_coords=QMP_get_logical_coordinates_from(node);
+    int my_node = QMP_get_node_number();
+
+    for(mu=0; mu < 4; mu++) { 
+      subgrid_cb_nrow[mu] = getSubgridSize()[mu];
+    }
+    subgrid_cb_nrow[0] /=2;  /* Checkerboarding */
+
+
+    for(mu=0; mu < 4; mu++) { 
+      gcoords[mu] = log_coords[mu]*getSubgridSize()[mu];
+
+    }
+    
+    cb=linearsite/subgrid_vol_cb;
+
+    crtesn4d(linearsite % subgrid_vol_cb, subgrid_cb_nrow, tmp_coord);
+
+    // Add on position within the node
+    // NOTE: the cb for the x-coord is not yet determined
+    gcoords[0] += 2*tmp_coord[0];
+    for(mu=1; mu < 4; ++mu) {
+      gcoords[mu] += tmp_coord[mu];
+    }
+
+    cbb = cb;
+    for(mu=1; mu < 4; ++mu) {
+      cbb += gcoords[mu];
+    }
+    gcoords[0] += (cbb & 1);
+  }
+
+  /* Offset by 1 in direction dir */
+  static void offs(int temp[], const int coord[], int mu, int isign)
+  {
+    int i;
+    
+    for(i=0; i < getNumDim(); ++i)
+      temp[i] = coord[i];
+    
+    /* translate address to neighbour */
+    temp[mu] = (temp[mu] + isign + 2*getLattSize()[mu]) % getLattSize()[mu];
+  }
   
-
-/* Returns the node number given some logical node coordinate
- * This is not meant to be speedy 
- */
-static int getNodeNumberFrom(const int node_coord[]) 
-{
-  return QMP_get_node_number_from(node_coord);
-}
-
-/* Returns the logical node coordinates given some node number
- * This is not meant to be speedy 
- */
-static void getLogicalCoordFrom(int node_coord[], int node) 
-{
-  int* node_crd = QMP_get_logical_coordinates_from(node);  
-  int i;
-
-  for(i=0; i < getNumDim(); ++i)
-    node_coord[i] = node_crd[i];
-
-  free(node_crd);   
-}
-
-
-/* The linearized site index for the corresponding coordinate
- * This layout is appropriate for a 2 checkerboard (red/black) lattice 
- */
-static int getLinearSiteIndex(const int coord[])
-{
-  int subgrid_vol_cb = getSubgridVol() >> 1;
-  int subgrid_cb_nrow[4];
-  int i, cb, m;
-  int subgrid_cb_coord[4];
-
-  for(i=0; i < getNumDim(); ++i)
-    subgrid_cb_nrow[i] = getSubgridSize()[i];
-  subgrid_cb_nrow[0] >>= 1;
-
-  cb = 0;
-  for(m=0; m < getNumDim(); ++m)
-    cb += coord[m];
-  cb &= 1;
-
-  subgrid_cb_coord[0] = (coord[0] >> 1) % subgrid_cb_nrow[0];
-  for(i=1; i < getNumDim(); ++i)
-    subgrid_cb_coord[i] = coord[i] % subgrid_cb_nrow[i];
+  
+  static int parity(const int coord[])
+  {
+    int m;
+    int sum = 0;
     
-  return local_site(subgrid_cb_coord, subgrid_cb_nrow) + cb*subgrid_vol_cb;
-}
-
-
-/* The node number for the corresponding lattice coordinate
- * 
- * This layout is appropriate for a 2 checkerboard (red/black) lattice,
- * but to find the nodeNumber this function resembles a simple lexicographic 
- * layout
- */
-static int getNodeNumber(const int coord[])
-{
-  int tmp_coord[4];
-  int i;
-
-  for(i=0; i < getNumDim(); ++i)
-    tmp_coord[i] = coord[i] / getSubgridSize()[i];
+    for(m=0; m < 4; ++m)
+      sum += coord[m];
     
-  return getNodeNumberFrom(tmp_coord);
-}
+    return sum & 1;
+  }
+  
+  
+  void make_shift_tables(int bound[2][4][4],
+			 void (*QDP_getSiteCoords)(int coord[], int node, int linearsite), 
+			 int (*QDP_getLinearSiteIndex)(const int coord[]),
 
-/* Reconstruct the lattice coordinate from the node and site number
- * 
- * This is the inverse of the nodeNumber and linearSiteIndex functions.
- * The API requires this function to be here.
- */
-static void getSiteCoords(int coord[], int node, int linearsite)
-{
-  int subgrid_vol_cb = getSubgridVol() >> 1;
-  int subgrid_cb_nrow[4];
-  int i;
-  int cbb, cb, tmp_coord[4];
-
-  for(i=0; i < getNumDim(); ++i)
-    subgrid_cb_nrow[i] = getSubgridSize()[i];
-  subgrid_cb_nrow[0] >>= 1;
-
-  /* Get the base (origins) of the absolute lattice coord */
-  getLogicalCoordFrom(coord, node);
-  for(i=0; i < getNumDim(); ++i)
-    coord[i] *= getSubgridSize()[i];
-    
-  cb = linearsite / subgrid_vol_cb;
-  crtesn(tmp_coord, linearsite % subgrid_vol_cb, subgrid_cb_nrow);
-
-  /* Add on position within the node
-   NOTE: the cb for the x-coord is not yet determined */
-  coord[0] += 2*tmp_coord[0];
-  for(i=1; i < getNumDim(); ++i)
-    coord[i] += tmp_coord[i];
-
-  /*  Determine cb including global node cb */
-  cbb = cb;
-  for(i=1; i < getNumDim(); ++i)
-    cbb += coord[i];
-  coord[0] += (cbb & 1);
-}
-/**************** END of QDP functions ****************/
-/*****************************************************************************************/
-
-
-
-/* Offset by 1 in direction dir */
-static void offs(int temp[], const int coord[], int mu, int isign)
-{
-  int i;
-
-  for(i=0; i < getNumDim(); ++i)
-    temp[i] = coord[i];
-
-  /* translate address to neighbour */
-  temp[mu] = (temp[mu] + isign + 2*getLattSize()[mu]) % getLattSize()[mu];
-}
-
-
-static int parity(const int coord[])
-{
-  int m;
-  int sum = 0;
-
-  for(m=0; m < getNumDim(); ++m)
-    sum += coord[m];
-
-  return sum & 1;
-}
-
-
-void make_shift_tables(int icolor_start[2], int bound[2][4][4])
+			 int (*QDP_getNodeNumber)(const int coord[]))
 { 
-  volatile int type, cb, dir; 
+  volatile int dir,i; 
   const int my_node = QMP_get_node_number();
   int coord[4];
+  int gcoord[4];
+  int gcoord2[4];
+
   int linear;
-  int Nd = getNumDim();
   int **shift_table;
+  int x,y,z,t;
+  int *subgrid_size = getSubgridSize();
+  int mu;
 
-  int i;
+  int cb;
+  const int *node_coord  = QMP_get_logical_coordinates();
+  int p;
+  int site, index;
 
+  InvTab4 *xinvtab;
+  InvTab4 *invtab;
+
+  int qdp_index;
+  int my_index;
 
   /* Setup the subgrid volume for ever after */
   subgrid_vol = 1;
@@ -297,6 +290,145 @@ void make_shift_tables(int icolor_start[2], int bound[2][4][4])
   
   /* Get the checkerboard size for ever after */
   subgrid_vol_cb = subgrid_vol / 2;
+
+  /* Now I want to build the site table */
+  /* I want it cache line aligned? */
+  xsite_table = (int *)malloc(sizeof(int)*subgrid_vol+63L);
+  if(xsite_table == 0x0 ) { 
+    QMP_error("Couldnt allocate site table");
+    QMP_abort(1);
+  }
+
+  site_table = (int *)((((ptrdiff_t)(xsite_table))+63L)&(-64L));
+
+  xinvtab = (InvTab4 *)malloc(sizeof(InvTab4)*subgrid_vol + 63L);
+  if(xinvtab == 0x0 ) { 
+    QMP_error("Couldnt allocate site table");
+    QMP_abort(1);
+  }
+  invtab = (InvTab4 *)((((ptrdiff_t)(xinvtab))+63L)&(-64L));
+
+  /* Inversity of functions check:
+     Check that myLinearSiteIndex3D is in fact the inverse
+     of mySiteCoords3D, and that QDP_getSiteCoords is the
+     inverse of QDP_linearSiteIndex()
+  */
+  for(p=0; p < 2; p++) {
+    for(site=0; site < subgrid_vol_cb; site++) { 
+      
+      /* Linear site index */
+      my_index = site + subgrid_vol_cb*p;
+      QDP_getSiteCoords(gcoord, my_node, my_index);
+      linear=QDP_getLinearSiteIndex(gcoord);
+
+      if( linear != my_index ) { 
+	printf("P%d cb=%d site=%d : QDP_getSiteCoords not inverse of QDP_getLinearSiteIndex(): my_index=%d linear=%d\n", my_node, p,site, my_index,linear);
+      }
+
+      mySiteCoords4D(gcoord, my_node, my_index);
+      linear=myLinearSiteIndex4D(gcoord);
+
+      if( linear != my_index ) { 
+	printf("P%d cb=%d site=%d : mySiteCoords3D not inverse of myLinearSiteIndex3D(): my_index=%d linear=%d\n", my_node, p,site, my_index,linear);
+      }
+    }
+  }
+
+
+  /* Loop through sites - you can choose your path below */
+  /* For now let's go lexicographically */
+  for(p=0; p < 2; p++) { 
+    for(t=0; t < subgrid_size[3]; t++) { 	   
+      for(z=0; z < subgrid_size[2]; z++) {
+	for(y=0; y < subgrid_size[1]; y++) { 
+	  for(x=0; x < subgrid_size[0]/2; x++) {
+	    
+	    coord[0] = 2*x + p;
+	    coord[1] = y;
+	    coord[2] = z; 
+	    coord[3] = t;
+	  
+	    /* Make global */
+	    for(i=0; i < 4; i++) { 
+	      coord[i] += subgrid_size[i]*node_coord[i];
+	    }
+	    
+	    /* Index of coordinate -- NB this is not lexicographic
+	       but takes into account checkerboarding in QDP++ */
+	    qdp_index = QDP_getLinearSiteIndex(coord);
+	    
+	    /* Index of coordinate in my layout. -- NB this is not lexicographic
+	       but takes into account my 3D checkerbaording */
+	    my_index = myLinearSiteIndex4D(coord);
+	    site_table[my_index] = qdp_index;
+
+	    cb=parity(coord);
+	    linear = my_index%subgrid_vol_cb;
+	    
+	    invtab[qdp_index].cb=cb;
+	    invtab[qdp_index].linearcb=linear;
+	  }
+	}
+      }
+    }
+  }
+  
+  /* Site table transitivity check: 
+     for each site, convert to index in cb3d, convert to qdp index
+     convert qdp_index to coordinate
+     convert coordinate to back index in cb3d
+     Check that your cb3d at the end is the same as you 
+     started with */
+  for(p=0; p < 2; p++) { 
+    for(site=0; site < subgrid_vol_cb; site++) {
+      
+      /* My local index */
+      my_index = site + subgrid_vol_cb*p;
+	
+      /* Convert to QDP index */
+      qdp_index = site_table[ my_index ];
+      
+      /* Switch QDP index to coordinates */
+      QDP_getSiteCoords(gcoord, my_node,qdp_index);
+
+      /* Convert back to cb3d index */
+      linear = myLinearSiteIndex4D(gcoord);
+
+      /* Check new cb,cbsite index matches the old cb index */
+      if (linear != my_index) { 
+	printf("P%d The Circle is broken. My index=%d qdp_index=%d coords=%d,%d,%d,%d linear(=my_index?)=%d\n", my_node, my_index, qdp_index, gcoord[0],gcoord[1],gcoord[2],gcoord[3],linear);
+      }
+    }
+  }
+
+
+  /* Consistency check 2: Test mySiteCoords 3D
+     for all 3d cb,cb3index convert to
+     cb3d linear index (my_index)
+     convert to qdp_index (lookup in site table)
+     
+     Now convert qdp_index and my_index both to 
+     coordinates. They should produce the same coordinates
+  */
+  for(p=0; p < 2; p++) { 
+    for(site=0; site < subgrid_vol_cb; site++) {
+      
+      /* My local index */
+      my_index = site + subgrid_vol_cb*p;
+      mySiteCoords4D(gcoord, my_node, my_index);
+
+      qdp_index = site_table[ my_index ];
+      QDP_getSiteCoords(gcoord2, my_node,qdp_index);
+	
+      for(mu=0 ; mu < 4; mu++) { 
+	if( gcoord2[mu] != gcoord[mu] ) {
+	  printf("P%d: my_index=%d qdp_index=%d mySiteCoords=(%d,%d,%d,%d) QDPsiteCoords=(%d,%d,%d,%d)\n", my_node, my_index, qdp_index, gcoord[0], gcoord[1], gcoord[2], gcoord[3], gcoord2[0], gcoord2[1], gcoord2[2], gcoord2[3]);
+	  continue;
+	}
+      }
+      
+    }
+  }
   
   /* Allocate the shift table */
   /* The structure is as follows: There are 4 shift tables in order:
@@ -309,6 +441,7 @@ void make_shift_tables(int icolor_start[2], int bound[2][4][4])
   
   */
  
+  /* This 4 is for the 4 tables: Table 1-4*/
   if ((shift_table = (int **)malloc(4*sizeof(int*))) == 0 ) {
     QMP_error("init_wnxtsu3dslash: could not initialize shift_table");
     QMP_abort(1);
@@ -316,22 +449,17 @@ void make_shift_tables(int icolor_start[2], int bound[2][4][4])
   }
   
   for(i=0; i < 4; i++) { 
-    if ((shift_table[i] = (int *)malloc(Nd*subgrid_vol*sizeof(int))) == 0) {
+    /* This 4 is for the 4 comms dierctions: */
+    if ((shift_table[i] = (int *)malloc(4*subgrid_vol*sizeof(int))) == 0) {
       QMP_error("init_wnxtsu3dslash: could not initialize shift_table");
       QMP_abort(1);
     }
   }
 
-  /* Determine what is the starting site for each color (checkerboard) */
-  getSiteCoords(coord, my_node, 0);   /* try linear=0 */
-  icolor_start[parity(coord)] = 0;
-
-  getSiteCoords(coord, my_node, subgrid_vol_cb);   /* try linear=subgrid_vol_cb */
-  icolor_start[parity(coord)] = subgrid_vol_cb;
-
+ 
   /* Initialize the boundary counters */
   for(cb=0; cb < 2; cb++) {
-    for(dir=0; dir < Nd; dir++) {
+    for(dir=0; dir < 4; dir++) {
       bound[cb][0][dir] = 0;	
       bound[cb][1][dir] = 0;	
       bound[cb][2][dir] = 0;	
@@ -340,112 +468,128 @@ void make_shift_tables(int icolor_start[2], int bound[2][4][4])
   }
 
 
-  /* Loop over directions and sites, building up shift tables */
-  for(dir=0; dir < Nd; dir++) {
- 
-    for(linear=0; linear < subgrid_vol; ++linear) {
-    
-      int fcoord[4], bcoord[4];
-      int fnode, bnode;
-      int blinear, flinear;
+  for(cb=0; cb < 2; cb++) { 
+    for(site=0; site < subgrid_vol_cb; ++site) {
+      
+      index = cb*subgrid_vol_cb + site;
+      
+      /* Fetch site from site table */
+      qdp_index = site_table[index];
+      
+      /* Get its coords */
+      QDP_getSiteCoords(coord, my_node, qdp_index);
+      
+      /* Loop over directions building up shift tables */
+      for(dir=0; dir < 4; dir++) {
+	
+	int fcoord[4], bcoord[4];
+	int fnode, bnode;
+	int blinear, flinear;
+	
+	/* Backwards displacement*/
+	offs(bcoord, coord, dir, -1);
+	bnode   = QDP_getNodeNumber(bcoord);
+	blinear = QDP_getLinearSiteIndex(bcoord);
 
-      /* Get the global site coords from the node and linear index */
-      getSiteCoords(coord, my_node, linear);
-      cb = parity(coord);   /* global cb of the coord site */
+	/* Forward displacement */
+	offs(fcoord, coord, dir, +1);
+	fnode   = QDP_getNodeNumber(fcoord);
+	flinear = QDP_getLinearSiteIndex(fcoord);
 
-      /* Backwards displacement*/
-      offs(bcoord, coord, dir, -1);
-      bnode   = getNodeNumber(bcoord);
-      blinear = getLinearSiteIndex(bcoord);
-
-      /* Forward displacement */
-      offs(fcoord, coord, dir, +1);
-      fnode   = getNodeNumber(fcoord);
-      flinear = getLinearSiteIndex(fcoord);
-
-      /* Scatter:  decomp_{plus,minus} */
-      /* Operation: a^F(shift(x,type=0),dir) <- decomp(psi(x),dir) */ 
-      /* Send backwards - also called a receive from forward */
-      if (bnode != my_node) {
-	/* append to tail 1, note in table */ 
-
-	shift_table[DECOMP_SCATTER][dir+Nd*linear] 
-	  = subgrid_vol_cb + bound[1-cb][DECOMP_SCATTER][dir];
-
-	bound[1-cb][DECOMP_SCATTER][dir]++;
-      }
-      else {
-	shift_table[DECOMP_SCATTER][dir+Nd*linear] = blinear % subgrid_vol_cb;
-      }
-
-      /* Scatter:  decomp_hvv_{plus,minus} */
-      /* Operation:  a^B(shift(x,type=1),dir) <- U^dag(x,dir)*decomp(psi(x),dir) */
-      /* Send forwards - also called a receive from backward */
-      if (fnode != my_node) {
-	/* Append to tail 1 */
-	shift_table[DECOMP_HVV_SCATTER][dir+Nd*linear] 
-	  = subgrid_vol_cb + bound[1-cb][DECOMP_HVV_SCATTER][dir];
-
-	bound[1-cb][DECOMP_HVV_SCATTER][dir]++;
-
-      }
-      else {
-	shift_table[DECOMP_HVV_SCATTER][dir+Nd*linear] 
-	  = flinear % subgrid_vol_cb;
-      }
-
-      /* Gather:  mvv_recons_{plus,minus} */
-      /* Operation:  chi(x) <-  \sum_dir U(x,dir)*a^F(shift(x,type=2),dir) */
-      /* Receive from forward */
-      if (fnode != my_node) {
-	/* grab from tail at the right spot - the place where it has been
-	   scattered. RECONS_MVV_GATHER is always the complement of a 
-	   DECOMP_SCATTER */ 
-
-	shift_table[RECONS_MVV_GATHER][dir+Nd*linear] =
-	  2*subgrid_vol_cb + (bound[cb][RECONS_MVV_GATHER][dir]);
-
-	bound[cb][RECONS_MVV_GATHER][dir]++;
-
-      }
-      else {
-	shift_table[RECONS_MVV_GATHER][dir+Nd*linear] = 
-	  linear % subgrid_vol_cb;
-      }
-
-
-      /* Gather:  recons_{plus,minus} */
-      /* Operation:  chi(x) +=  \sum_dir recons(a^B(shift(x,type=3),dir),dir) */
-      /* Receive from backward */
-      if (bnode != my_node) {
-	/* grab from tail 2 at the right spot - the place where it has been
-	   scattered. RECONS_GATHER is always the complement of a 
-	   DECOMP_HVV_SCATTER */ 
-
-	shift_table[RECONS_GATHER][dir+Nd*linear] = 
-	  2*subgrid_vol_cb + bound[cb][RECONS_GATHER][dir];
-
-	bound[cb][RECONS_GATHER][dir]++;
-      }
-      else {
-	shift_table[RECONS_GATHER][dir+Nd*linear] = linear % subgrid_vol_cb;
-      }
-
-    } 
+	/* Scatter:  decomp_{plus,minus} */
+	/* Operation: a^F(shift(x,type=0),dir) <- decomp(psi(x),dir) */ 
+	/* Send backwards - also called a receive from forward */
+	if (bnode != my_node) {      
+	  /* Offnode */
+	  /* Append to Tail 1, increase boundary count */
+	  shift_table[DECOMP_SCATTER][dir+4*index] 
+	    = subgrid_vol_cb + bound[1-cb][DECOMP_SCATTER][dir];
+	  
+	  bound[1-cb][DECOMP_SCATTER][dir]++;
+	  
+	}
+	else {                                           
+	  /* On node. Note the linear part of its (cb3, linear) bit,
+	     using a reverse lookup */
+	  shift_table[DECOMP_SCATTER][dir+4*index] = 
+	    invtab[blinear].linearcb;
+	}
+	
+	
+	/* Scatter:  decomp_hvv_{plus,minus} */
+	/* Operation:  a^B(shift(x,type=1),dir) <- U^dag(x,dir)*decomp(psi(x),dir) */
+	/* Send forwards - also called a receive from backward */
+	if (fnode != my_node) {
+	  /* Offnode */
+	  /* Append to Tail 1, increase boundary count */
+	  shift_table[DECOMP_HVV_SCATTER][dir+4*index]           
+	    = subgrid_vol_cb + bound[1-cb][DECOMP_HVV_SCATTER][dir];
+	  
+	  bound[1-cb][DECOMP_HVV_SCATTER][dir]++;                  
+	  
+	}
+	else {
+	  /* On node. Note the linear part of its (cb3, linear) bit,
+	     using a reverse lookup */
+	  shift_table[DECOMP_HVV_SCATTER][dir+4*index]           /* Onnode */
+	    = invtab[flinear].linearcb ;
+	}
+	
+	
+	/* Gather:  mvv_recons_{plus,minus} */
+	/* Operation:  chi(x) <-  \sum_dir U(x,dir)*a^F(shift(x,type=2),dir) */
+	/* Receive from forward */
+	if (fnode != my_node) {
+	  /* Offnode */
+	  /* Append to Tail 2, increase boundary count */
+	  
+	  shift_table[RECONS_MVV_GATHER][dir+4*index] =
+	    2*subgrid_vol_cb + (bound[cb][RECONS_MVV_GATHER][dir]);
+	  
+	  bound[cb][RECONS_MVV_GATHER][dir]++;
+	  
+	}
+	else {
+	  /* On node. Note the linear part of its (cb3, linear) bit,
+	     using a reverse lookup. Note this is a recons post shift,
+	     so the linear coordinate to invert is mine rather than the neighbours */
+	  shift_table[RECONS_MVV_GATHER][dir+4*index] =
+	    invtab[qdp_index].linearcb ;
+	}
+      
+	/* Gather:  recons_{plus,minus} */
+	/* Operation:  chi(x) +=  \sum_dir recons(a^B(shift(x,type=3),dir),dir) */
+	/* Receive from backward */
+	if (bnode != my_node) {
+	  
+	  shift_table[RECONS_GATHER][dir+4*index] = 
+	    2*subgrid_vol_cb + bound[cb][RECONS_GATHER][dir];
+	  
+	  bound[cb][RECONS_GATHER][dir]++;
+	}
+	else {
+	  /* On node. Note the linear part of its (cb3, linear) bit,
+	     using a reverse lookup. Note this is a recons post shift,
+	     so the linear coordinate to invert is mine rather than the neighbours */
+	  
+	  shift_table[RECONS_GATHER][dir+4*index] = 
+	    invtab[qdp_index].linearcb ;
+	}
+      } 
+    }
   }
-
 
   /* Sanity check - make sure the sending and receiving counters match */
   for(cb=0; cb < 2; cb++) {
-    for(dir=0; dir < Nd; dir++) {
+    for(dir=0; dir < 4; dir++) {
 
       /* Sanity 1: Must have same number of boundary sites on each cb for 
 	 a given operation */
       for(i = 0; i < 4; i++) { 
-	if (bound[1-cb][0][dir] != bound[cb][0][dir]) {
+	if (bound[1-cb][i][dir] != bound[cb][i][dir]) {
 	  
 	  QMP_error("SSE Wilson dslash - make_shift_tables: type 0 diff. cb send/recv counts do not match: %d %d",
-		    bound[1-cb][0][dir],bound[cb][0][dir]);
+		    bound[1-cb][i][dir],bound[cb][i][dir]);
 	  QMP_abort(1);
 	}
       }
@@ -454,29 +598,46 @@ void make_shift_tables(int icolor_start[2], int bound[2][4][4])
     }
   }
 
-  /*
-  offset_table = (offset **)malloc(4*sizeof(offset*));
-  if( offset_table == 0 ) {
-    QMP_error("init_wnxtsu3dslash: could not initialize offset_table");
-    QMP_abort(1);
-  }
+  /* Now I want to make the offset table into the half spinor temporaries */
+  /* The half spinor temporaries will look like this:
+       
+     dir=0 [ Body Half Spinors ][ Tail 1 Half Spinors ][ Tail 2 Half Spinors ]
+     dir=1 [ Body Half Spinors ][ Tail 1 Half Spinors ][ Tail 2 Half Spinors ]
+     ...
+     
+     And each of these blocks of half spinors will be sized to vol_cb
+     sites (ie half volume only).  The shift_table() for a given site and
+     direction indexes into one of these lines. So the offset table essentially
+     delineates which line one picks, by adding an offset of 
+     3*subgrid_vol_cb*dir 
+     To the shift. The result from offset table, can be used directly as a
+     pointer displacement on the temporaries.
+       
   */
 
   /* 4 dims, 4 types, rest of the magic is to align the thingie */
-  xoffset_table = (int *)malloc(4*4*subgrid_vol*sizeof(int)+31);
+  xoffset_table = (int *)malloc(4*4*subgrid_vol*sizeof(int)+63L);
   if( xoffset_table == 0 ) {
     QMP_error("init_wnxtsu3dslash: could not initialize offset_table[i]");
     QMP_abort(1);
   }
   /* This is the bit what aligns straight from AMD Manual */
-  offset_table = (int *)((((ptrdiff_t)(xoffset_table)) + 31L) & (-32L));
+  offset_table = (int *)((((ptrdiff_t)(xoffset_table)) + 63L) & (-64L));
 
-  for(linear=0; linear < subgrid_vol; linear++) { 
-    for(type=0; type < 4; type++) {
-      for(dir=0; dir < 4; dir++) { 
-	offset_table[ dir + 4*( linear + subgrid_vol*type ) ] = shift_table[type][dir+4*linear] +3*subgrid_vol_cb*dir;
-
-      }
+  for(site=0; site < subgrid_vol; site++) { 
+    for(dir=0; dir < Nd; dir++) { 
+      offset_table[ dir + 4*( site + subgrid_vol*DECOMP_SCATTER ) ] = 
+	shift_table[DECOMP_SCATTER][dir+4*site ]+3*subgrid_vol_cb*dir;
+      
+      offset_table[ dir + 4*( site + subgrid_vol*DECOMP_HVV_SCATTER ) ] = 
+	shift_table[DECOMP_HVV_SCATTER][dir+4*site ]+3*subgrid_vol_cb*dir;
+      
+      offset_table[ dir + 4*( site + subgrid_vol*RECONS_MVV_GATHER ) ] = 
+	shift_table[RECONS_MVV_GATHER][dir+4*site ]+3*subgrid_vol_cb*dir;
+      
+      offset_table[ dir + 4*( site + subgrid_vol*RECONS_GATHER ) ] = 
+	shift_table[RECONS_GATHER][dir+4*site ]+3*subgrid_vol_cb*dir;
+      
     }
   }
 
@@ -487,21 +648,17 @@ void make_shift_tables(int icolor_start[2], int bound[2][4][4])
   }
   free( shift_table );
 
-} 
+  free( xinvtab );
+  
+  } 
 
 
 void free_shift_tables(void) 
 {
-  int i;
   free( xoffset_table );
+  free( xsite_table );
 }
 
-#if 0
-int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu)
-{
-  return offset_table[mu + 4*( site + subgrid_vol*type) ];
-}
-#endif
 
 #ifdef __cplusplus
 }

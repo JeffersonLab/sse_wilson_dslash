@@ -10,7 +10,15 @@
     /* The C Function declarations */
     /*! Initialize the SU3 Dslash */
     /*! \param latt_size  An integer array speficying the size of the lattice */
-    void init_sse_su3dslash_3d(const int* latt_size);
+    void init_sse_su3dslash_3d(const int* latt_size,
+			       void (*getSiteCoords)(int coord[], int node, int linearsite),
+			    
+			       int (*getLinearSiteIndex)(const int coord[]),
+			       int (*nodeNumber)(const int coord[]),
+			       const int* site_table0,
+			       const int* site_table1,
+			       int site_table_size);
+
 
     /*! Finalize the SU3 Dslash */
     void free_sse_su3dslash_3d(void);
@@ -19,7 +27,7 @@
     /*! \param u  Pointer to the packed gauge field. 
         \param psi Pointer to the source vectors first element (regardless of cb)
 	\param chi Pointer to the result vectors first element (regardless of cb)
-	\param isign -1 for applying Dslash Dagger +1 for applying Dslash 
+	\param isign -1 for applying3 Dslash Dagger +1 for applying Dslash 
 	
 	\param cb  The checkerboard index of the source vector.
 

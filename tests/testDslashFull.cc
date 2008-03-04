@@ -14,6 +14,7 @@ using namespace QDP;
 
 #include "sse_dslash.h"
 #include "sse_dslash_qdp_packer.h"
+#include <sse_align.h>  /* Alignment stuff to ensure 16 byte alignments */
 
 using namespace Assertions;
 using namespace std;
@@ -30,7 +31,7 @@ testDslashFull::run(void)
   }
   else {
     // Adjust this...
-    small = Double(1.0e-17);
+    small = Double(1.0e-16);
   }
 
   // Make a random gauge field 
@@ -47,10 +48,13 @@ testDslashFull::run(void)
 
   
   // Initialize the wilson dslash
-  init_sse_su3dslash(Layout::lattSize().slice());
+  init_sse_su3dslash(Layout::lattSize().slice(),
+		     Layout::QDPXX_getSiteCoords,
+		     Layout::QDPXX_getLinearSiteIndex,
+		     Layout::QDPXX_nodeNumber);
 
   /// Pack the gauge fields
-  multi1d<SSEDslash::PrimitiveSU3Matrix> packed_gauge;
+  multi1d<SSEDslash::PrimitiveSU3Matrix> packed_gauge ALIGN;
   packed_gauge.resize( 4 * Layout::sitesOnNode() );
   SSEDslash::qdp_pack_gauge(u, packed_gauge);
  

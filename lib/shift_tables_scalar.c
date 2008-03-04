@@ -1,4 +1,4 @@
-/* $Id: shift_tables_scalar.c,v 1.3 2007-09-21 17:19:48 bjoo Exp $
+/* $Id: shift_tables_scalar.c,v 1.4 2008-03-04 21:50:18 bjoo Exp $
 
 /* Set the offset tables used by the 32-bit and 64-bit single node dslash */
 
@@ -13,6 +13,7 @@
 /* is  soffsets(i,dir,cb,mu) and NOT  i + soffset(..)    */
   
 #include <shift_tables_scalar.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,31 +25,34 @@ extern "C" {
 #include <string.h>
 
 
-  /* Number of dimensions */
-  static int getNumDim()
-  {
-    return (int)(4);
-  }
+  static int Nd=4;
+  static int* xsite_table;
+  int* site_table;
 
+  typedef struct { 
+    int cb4;
+    int linearcb4;
+  } InvTab4;
 
-/* Total problem size */
+  /* Total problem size */
   static int tot_size[4];
   static int total_vol = -1;
-  static int total_vol_cb = -1;
+  int total_vol_cb = -1;
 
   static void setLattSize(const int size[])
   {
     int i;
-    for(i=0; i < getNumDim(); ++i) {
+    for(i=0; i < 4; ++i) {
       tot_size[i] = size[i];
     }
     total_vol = size[0];
-    for(i=1; i < getNumDim(); ++i) {
+    for(i=1; i < 4; ++i) {
       total_vol *= size[i];
     }
 
     total_vol_cb = total_vol / 2;
   }
+
 
   static int* getLattSize()
   {
@@ -56,14 +60,14 @@ extern "C" {
   }
 
 
-
+#if 0
 
 /* Decompose lexicographic site ipos into lattice coordinates */
 static void crtesn(int coord[], int ipos, int latt_size[])
 {
   int i;
 
-  for(i=0; i < getNumDim(); ++i)
+  for(i=0; i < 4; ++i)
   {
     coord[i] = ipos % latt_size[i];
     ipos /= latt_size[i];
@@ -76,13 +80,14 @@ static int local_site(int coord[], int latt_size[])
   int order = 0;
   int mmu;
 
-  for(mmu=getNumDim()-1; mmu >= 1; --mmu)
+  for(mmu=4-1; mmu >= 1; --mmu)
     order = latt_size[mmu-1]*(coord[mmu] + order);
 
   order += coord[0];
 
   return order;
 }
+
 
  
 /*****************************************************************************************
@@ -99,7 +104,7 @@ static void getSiteCoords(int coord[], int node, int linearsite) // ignore node
   int vol_cb = getSubgridVolCB();
   int cb_nrow[4];
 
-  for(m=0; m < getNumDim(); ++m)
+  for(m=0; m < 4; ++m)
     cb_nrow[m] = getLattSize()[m];
   cb_nrow[0] /= 2;
   
@@ -107,7 +112,7 @@ static void getSiteCoords(int coord[], int node, int linearsite) // ignore node
   crtesn(coord, linearsite % vol_cb, cb_nrow);
 
   cbb = cb;
-  for(m=1; m < getNumDim(); ++m)
+  for(m=1; m < 4; ++m)
     cbb += coord[m];
   cbb = (cbb % 2);
 
@@ -124,16 +129,16 @@ int getLinearSiteIndex(const int coord[])
   int cb_coord[4];
   int cb, m;
 
-  for(m=0; m < getNumDim(); ++m)
+  for(m=0; m < 4; ++m)
     cb_nrow[m] = getLattSize()[m];
   cb_nrow[0] /= 2;
   
-  for(m=0; m < getNumDim(); ++m)
+  for(m=0; m < 4; ++m)
     cb_coord[m] = coord[m];
   cb_coord[0] /= 2;    // Number of checkerboards
     
   cb = 0;
-  for(m=0; m < getNumDim(); ++m)
+  for(m=0; m < 4; ++m)
     cb += coord[m];
 
   cb = ( cb % 2 ); 
@@ -143,8 +148,9 @@ int getLinearSiteIndex(const int coord[])
 
 
 /**************** END of QDP functions ****************/
-/*****************************************************************************************
+  
 
+#endif
 
 
 /* Offset by 1 in direction dir */
@@ -152,7 +158,7 @@ static void offs(int temp[], const int coord[], int mu, int isign)
 {
   int i;
 
-  for(i=0; i < getNumDim(); ++i)
+  for(i=0; i < 4; ++i)
     temp[i] = coord[i];
 
   /* translate address to neighbour */
@@ -165,7 +171,7 @@ static int parity(const int coord[])
   int m;
   int sum = 0;
 
-  for(m=0; m < getNumDim(); ++m)
+  for(m=0; m < 4; ++m)
     sum += coord[m];
 
   return sum % 2;
@@ -173,7 +179,11 @@ static int parity(const int coord[])
 
 
  
-int* make_shift_tables(int icolor_start[2], const int nrow[])
+  int* make_shift_tables(const int nrow[],
+			 void (*getSiteCoords)(int coord[], int node, int linearsite),
+			 
+			 int (*getLinearSiteIndex)(const int coord[]))
+  
 { 
   int dir; 
   int coord[4];
@@ -183,17 +193,68 @@ int* make_shift_tables(int icolor_start[2], const int nrow[])
   int forward =1;
   int *shift_table;
 
+  InvTab4 *xinvtab;
+  InvTab4 *invtab;
+
+  int x,y,z,t;
+  int cboffsets[2] = {0,0};
+  int cb;
+  int lexico;
+  int site;
+
+  int p;
+
   /* Set the lattice size, get total volume and checkerboarded volume */
   setLattSize(nrow);
 
   /* Determine what is the starting site for each color (checkerboard) */
-  icolor_start[0] = 0;
-  icolor_start[1] = total_vol_cb;
+  // icolor_start[0] = 0;
+  //icolor_start[1] = total_vol_cb;
 
   /* Allocate the shift table */
   if ((shift_table = (int *)malloc(4*total_vol*2*sizeof(int))) == 0) {
     fprintf(stderr,"init_sse_su3dslash: could not initialize shift_table\n");
     exit(1);
+  }
+
+  /* Allocate the site table and the shift table */
+  /* Now I want to build the site table */
+  /* I want it cache line aligned? */
+  xsite_table = (int *)malloc(sizeof(int)*total_vol+63);
+  if(xsite_table == 0x0 ) { 
+    fprintf(stderr,"Couldnt allocate site table\n");
+    exit(1);
+  }
+  site_table = (int *)((((ptrdiff_t)(xsite_table))+63L)&(-64L));
+
+  /* Loop through sites - you can choose your path below */
+  /* This is my local running */
+  for(p=0; p < 2; p++) { 
+    for(t=0; t < nrow[3]; t++) { 
+      for(z=0; z < nrow[2]; z++) {
+	for(y=0; y < nrow[1]; y++) { 
+	  for(x=0; x < nrow[0]/2; x++) {
+	    
+
+	    coord[0] = 2*x+p;
+	    coord[1] = y;
+	    coord[2] = z; 
+	    coord[3] = t;
+	    
+	    /* Get the site and N-parity of the chosen victim */
+	    lexico = getLinearSiteIndex(coord); /* get the lexico index */
+	    cb = parity(coord);
+	    
+	    /* Add lexico site into site_table, for current cb3 and linear */
+	    /* Map (cb3, linear) -> lexico */
+	    site_table[ cb*total_vol_cb + cboffsets[cb] ] = lexico;
+
+	    /* Next linear site in this checkerboarding */
+	    cboffsets[cb]++;
+	  }
+	}
+      }
+    }
   }
 
   /* Get the offsets needed for neighbour comm. */
@@ -206,17 +267,14 @@ int* make_shift_tables(int icolor_start[2], const int nrow[])
   /* is  shift_table(i,dir,cb,mu) and NOT  i + soffset(..)    */
   
   /* Loop over directions and sites, building up shift tables */
-  for(dir=0; dir < Nd; dir++) {
+  for(site = 0; site < total_vol; ++site) { 
+    int fcoord[4], bcoord[4];
+    int blinear, flinear;
+    int ipos;
 
-    /* Loop through the sites linearly */
-    for(linear=0; linear < total_vol; ++linear)
-    {
-      int fcoord[4], bcoord[4];
-      int blinear, flinear;
-      int ipos;
-
-      /* Get the global site coords from the node and linear index */
-      getSiteCoords(coord, 0, linear); 
+    int lexico = site_table[ site ];
+    getSiteCoords(coord, 0, lexico); 
+    for(dir=0; dir < 4; dir++) {
 
       /* Backwards displacement*/
       offs(bcoord, coord, dir, -1);
@@ -228,8 +286,8 @@ int* make_shift_tables(int icolor_start[2], const int nrow[])
 
 
       /* Gather */
-      shift_table[dir+Nd*linear ] = blinear;
-      shift_table[dir+Nd*(linear+total_vol)] = flinear;
+      shift_table[dir+Nd*site ] = blinear;
+      shift_table[dir+Nd*(site+total_vol)] = flinear;
     }
   }
 
@@ -237,15 +295,16 @@ int* make_shift_tables(int icolor_start[2], const int nrow[])
 } 
 
 int forward_neighbor(int *shift_table, int mysite, int mymu) {
-  return shift_table[mymu + 4*(mysite + total_vol*(1))];
+  return shift_table[mymu + 4*(mysite + total_vol)];
 }
 
 int backward_neighbor(int *shift_table, int mysite, int mymu) {
-  return shift_table[mymu + 4*(mysite + total_vol*(0))];
+  return shift_table[mymu + 4*mysite];
 }
 
 void free_shift_tables(int **table) {
   free(*table);
+  free(xsite_table);
 }
 
 /* Total volume */

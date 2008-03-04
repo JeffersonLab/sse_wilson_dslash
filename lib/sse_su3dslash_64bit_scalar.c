@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_scalar.c,v 1.5 2007-10-02 20:40:21 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_scalar.c,v 1.6 2008-03-04 21:50:18 bjoo Exp $
  * 
  * Action of the 64bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -72,20 +72,19 @@ extern "C" {
   
   static int initP = 0;          /* Reference count */
   static int *shift_table;       /* Shift Table */
+  extern int *site_table;
+  extern int total_vol_cb;
 
-  /** ---------------- This may need to change somehow for noncontiguous subsets ----------- **/
-  static int icolor_start[2];    /* starting site for each coloring (cb) */
-  static int icolor_end[2];      /* end site for each coloring (cb) */
-
-
-
-static int init=0;
 static spinor_array rs __attribute__ ((aligned (16)));
 
 
 
 /***************** start of initialization routine ***************************************/
-void init_sse_su3dslash(const int latt_size[])
+  void init_sse_su3dslash(const int latt_size[],
+			  void (*getSiteCoords)(int coord[], int node, int linearsite),
+			 
+			  int (*getLinearSiteIndex)(const int coord[]),
+			  int (*nodeNumber)(const int coord[]))
 {
   int mu, vol_cb;
   const int Nd=4;
@@ -100,26 +99,16 @@ void init_sse_su3dslash(const int latt_size[])
 //  printf("init_sse_su3dslash: enter\n");
 
   /* Check problem and subgrid size */
-  for(mu=0; mu < Nd; mu++) 
-    if ( latt_size[mu] & 1 != 0 )
-    {
-      fprintf(stderr,"This SSE Dslash only supports even problem sizes. Here the lattice is odd in dimension %d with length %d\n", mu, latt_size[mu]);
+  if ( latt_size[0] & 1 != 0 ) {
+    
+      fprintf(stderr,"This SSE Dslash only supports even problem sizes. Here the lattice is odd in dimension %d with length %d\n", 0, latt_size[mu]);
       exit(1);
-    }
-
-  /* If make_shift_tables cannot allocate, it will barf */
-  shift_table = make_shift_tables(icolor_start, latt_size);
-  vol_cb = getSubgridVolCB();
-
-  /* Check that TotalVolCB has been set. If not it will be minus 1 */
-  if ( vol_cb <= 0 ) { 
-    fprintf(stderr, "Something is wrong... vol_cb =%d\n", vol_cb);
-    exit(1);
   }
 
-  /* This will need to change somehow */
-  icolor_end[0] = icolor_start[0] + vol_cb;
-  icolor_end[1] = icolor_start[1] + vol_cb;
+  /* If make_shift_tables cannot allocate, it will barf */
+  shift_table = make_shift_tables(latt_size,
+				  getSiteCoords, 
+				  getLinearSiteIndex);
 
   initP = 1;
 
@@ -187,8 +176,13 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
 
   const ThreadWorkerArgs *a = (const ThreadWorkerArgs*)ptr;                /* Downcast argument */
   int cb = a->cb;
+
+#if 0
   const int low = icolor_start[cb] + lo;                                /* Start site */
   const int high = icolor_start[cb] + hi;                               /* End site + 1 */
+#endif
+  const int low = cb*total_vol_cb+lo;
+  const int high = cb*total_vol_cb+hi;
 
   u_mat_array (*gauge_field)[4] ALIGN = a->u;        /* My gauge field */
   spinor_array *psi = a->psi;                        /* Source */
@@ -198,6 +192,9 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
   spinor_array *s,*sp,*sm,*rn;                       /* Pointer to BACKWARD neighbour */
 
   spinor_array temp;
+  int thissite;
+
+  thissite=site_table[low];
 
   /* This is like a prefetch 
      - we peel it off the loop */
@@ -205,15 +202,15 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
   /* Get 4 spinor from forward direction */
   sp=&psi[forward_neighbor(shift_table,low,0) ];
 
+
   /* Get Gauge Field */
-  up=&(gauge_field[low][0]);
+  up=&(gauge_field[thissite][0]);
    
   /************************ loop over all lattice sites *************************/
   for (ix=low;ix<high;ix++) 
   {
-
     /******************************* direction +0 *********************************/
-    rn=&res[ix];
+    rn=&res[thissite];
 
     /******************************   Direction 0  ********************* */
     /* Prefetch back spinor for next dir: -0 */
@@ -234,7 +231,7 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
     /* And gauge field */
     sp=&psi[ forward_neighbor(shift_table,ix,1) ];
     prefetch_spinor(sp);
-    up =&(gauge_field[ix][1]);
+    up =&(gauge_field[thissite][1]);
     prefetch_su3(up);
 
     dslash_plus_dir0_backward_add(*sm,*um,*rn);
@@ -259,7 +256,7 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
     iy=forward_neighbor(shift_table,ix,2);
     sp=&psi[iy];
     prefetch_spinor(sp);
-    up = &(gauge_field[ix][2]);
+    up = &(gauge_field[thissite][2]);
     prefetch_su3(up);     
 
 
@@ -284,7 +281,7 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
     iy=forward_neighbor(shift_table,ix,3);
     sp=&psi[iy];
     prefetch_spinor(sp);
-    up = &(gauge_field[ix][3]);
+    up = &(gauge_field[thissite][3]);
     prefetch_su3(up);
 
     dslash_plus_dir2_backward_add(*sm,*um,*rn);
@@ -303,7 +300,7 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
 
     /* Next site */
     iz=ix+1;
-
+    thissite = site_table[iz];
     if (iz == high) { /* If we're on the last site, prefetch first site to avoid */
       iz=0;           /* Running beyond array bounds */
     }
@@ -313,7 +310,7 @@ void D_psi_fun_plus(size_t lo, size_t hi, int id, const void *ptr)
     iy=forward_neighbor(shift_table,iz,0);
     sp=&psi[iy];
     prefetch_spinor(sp);
-    up=&(gauge_field[iz][0]);
+    up=&(gauge_field[thissite][0]);
     prefetch_su3(up);
 
 
@@ -334,8 +331,10 @@ void D_psi_fun_minus(size_t lo, size_t hi, int id, const void *ptr )
   const ThreadWorkerArgs *a = (const ThreadWorkerArgs*)ptr;    /* Cast the void args pointer */
   const int cb = a->cb;
 
+#if 0
   const int low = icolor_start[cb] + lo;                     /* First site */
   const int high = icolor_start[cb] + hi;                    /* Last site+1 */
+#endif
 
   u_mat_array (*gauge_field)[4] ALIGN = a->u; /* Gauge field */
   spinor_array *psi = a->psi;                 /* Source spinor */
@@ -344,15 +343,22 @@ void D_psi_fun_minus(size_t lo, size_t hi, int id, const void *ptr )
   spinor_array *sp,*sm,*rn;                   /* spinor pointers sp sm are the 
 						 neighbours, rn is the result */
 
+  /* Get forward neighbour of low in the x direction */
+  const int low  =  cb*total_vol_cb+lo;                 /* First site for this thread */
+  const int high  = cb*total_vol_cb+hi;                /* Last site for this thread */
+  int thissite;
+
+  thissite=site_table[low];
+
   /* 'peel this off' to allow prefetching */
   iy=forward_neighbor(shift_table,low,0);
   sp=&psi[iy];
-  up=&(gauge_field[low][0]);
+  up=&(gauge_field[thissite][0]);
    
 /************************ loop over all lattice sites *************************/
    
   for (ix=low;ix<high;ix++) {
-    rn=&res[ix]; /* Pouinter to result */
+    rn=&res[thissite]; /* Pouinter to result */
 
 
     /* Prefetch back spinor and gauge field */
@@ -369,7 +375,7 @@ void D_psi_fun_minus(size_t lo, size_t hi, int id, const void *ptr )
     iy=forward_neighbor(shift_table,ix,1);
     sp=&psi[iy];
     prefetch_spinor(sp);
-    up = &(gauge_field[ix][1]);
+    up = &(gauge_field[thissite][1]);
     prefetch_su3(up);
 
     dslash_minus_dir0_backward_add(*sm,*um,*rn);    
@@ -390,7 +396,7 @@ void D_psi_fun_minus(size_t lo, size_t hi, int id, const void *ptr )
     iy=forward_neighbor(shift_table,ix,2);
     sp=&psi[iy];
     prefetch_spinor(sp);
-    up =&(gauge_field[ix][2]);
+    up =&(gauge_field[thissite][2]);
     prefetch_su3(up);
 
     dslash_minus_dir1_backward_add(*sm,*um,*rn);    
@@ -414,7 +420,7 @@ void D_psi_fun_minus(size_t lo, size_t hi, int id, const void *ptr )
     prefetch_spinor(sp);
 
     /* Prefetch gauge field for nex dir: 3+ */
-    up = &(gauge_field[ix][3]);
+    up = &(gauge_field[thissite][3]);
     prefetch_su3(up);
 
     dslash_minus_dir2_backward_add(*sm,*um,*rn);    
@@ -438,13 +444,14 @@ void D_psi_fun_minus(size_t lo, size_t hi, int id, const void *ptr )
 		       avoid running past the array bounds */
       iz=0;
     }
+    thissite = site_table[iz];
 
     /* Prefetch the spinor and gauge field for next site, dir 0+ */
     iy=forward_neighbor(shift_table,iz,0);
     sp=&psi[iy];
     prefetch_spinor(sp);
     /* Prefetch the gauge field for next site dir  0+ */
-    up=&(gauge_field[iz][0]);
+    up=&(gauge_field[thissite][0]);
     prefetch_su3(up);
 
     dslash_minus_dir3_backward_add_store(*sm,*um,*rn);    

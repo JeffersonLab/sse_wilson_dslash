@@ -32,6 +32,7 @@ extern "C" {
   extern int *offset_table_body_3d;  /* Aligned offset table */
 
   extern int Nd3;
+
   static inline 
   int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu)
   {
@@ -50,7 +51,6 @@ to a lattice temporary */
 
   void decomp_3d_plus(size_t lo,size_t hi, int id, const void *ptr) /*need to fix decomp_minus */
   {
-
     int ix1;                           /* Site index - iz1 used at loop end */
     spinor_array* sp1 ALIGN;                /* Spinor under consideration */
        
@@ -58,16 +58,20 @@ to a lattice temporary */
     halfspinor_array* chi = a->half_spinor; /* needs to be changed to halfspinor_array and be an array*/
     spinor_array* spinor_field = a->spinor;
     int cb = a->cb;
-    
+
+
     halfspinor_array* s3;
 
-    int low = cb*subgrid_vol_cb_3d + lo;
-    int high = cb*subgrid_vol_cb_3d + hi;
+    int low;
+    int high;
+
+    low = cb*subgrid_vol_cb_3d + lo;
+    high = cb*subgrid_vol_cb_3d + hi;
 
     
     /************************ loop over all lattice sites *************************/
     for (ix1 = low; ix1 < high ; ix1++) {
-
+      
       int thissite = site_table_3d[ix1];
 
       sp1=&spinor_field[ thissite ];
@@ -75,14 +79,17 @@ to a lattice temporary */
       /******************************* direction +0 *********************************/
       /* first of two sites */
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER, ix1, 0);
+
       decomp_gamma0_minus(sp1[0], *s3);
 
       /******************************* direction +1 *********************************/
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER, ix1, 1);
+
       decomp_gamma1_minus(sp1[0], *s3);
       
       /******************************* direction +2 *********************************/
       s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER, ix1, 2);
+
       decomp_gamma2_minus(sp1[0], *s3);
 
       //      s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER, ix1, 3);
@@ -118,8 +125,13 @@ to a lattice temporary */
 
     halfspinor_array* s3;
 
-    int low = cb*subgrid_vol_cb_3d + lo;
-    int high = cb*subgrid_vol_cb_3d + hi;
+    int low;
+    int high;
+
+
+    low = cb*subgrid_vol_cb_3d + lo;
+    high = cb*subgrid_vol_cb_3d + hi;
+
 
     
     /************************ loop over all lattice sites *************************/
@@ -164,7 +176,10 @@ void mvv_recons_3d_plus(size_t lo,size_t hi, int id, const void *ptr)
 {
 
   int ix1;
+  int low;
+  int high;
 
+    
   u_mat_array* up1 ALIGN;
   spinor_array* sn1 ALIGN;
   halfspinor_array r12_1 ALIGN, r34_1 ALIGN;
@@ -177,19 +192,20 @@ void mvv_recons_3d_plus(size_t lo,size_t hi, int id, const void *ptr)
   int cb = a->cb;
 
   halfspinor_array* s3;
+  
 
-  int low = cb*subgrid_vol_cb_3d + lo;
-  int high = cb*subgrid_vol_cb_3d + hi;
-  
-  
+  low = cb*subgrid_vol_cb_3d + lo;
+  high = cb*subgrid_vol_cb_3d + hi;
+
   /************************ loop over all lattice sites *************************/
   for (ix1 =low; ix1 <high ;ix1++) {
 
     //    int thissite = lookup_site(cb,ix1);
     int thissite = site_table_3d[ ix1 ];
-
+  
     up1=&gauge_field[thissite][0];
     s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER, ix1, 0);
+    
     mvv_recons_gamma0_plus(*s3, *up1, r12_1, r34_1);
 
 
@@ -236,9 +252,11 @@ void recons_3d_plus(size_t lo,size_t hi, int id, const void *ptr )
 
  
   halfspinor_array *hs0, *hs1, *hs2;  
+  int low;
+  int high;
 
-  int low = cb*subgrid_vol_cb_3d + lo;
-  int high = cb*subgrid_vol_cb_3d + hi;
+  low = cb*subgrid_vol_cb_3d + lo;
+  high = cb*subgrid_vol_cb_3d + hi;
   
   
   /************************ loop over all lattice sites *************************/
@@ -279,7 +297,6 @@ void decomp_3d_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fi
   int cb = a->cb;
   spinor_array* spinor_field= a->spinor;
    
-
   /************************ loop over all lattice sites *************************/
   int low = cb*subgrid_vol_cb_3d + lo;
   int high = cb*subgrid_vol_cb_3d + hi;
@@ -487,7 +504,16 @@ static QMP_msghandle_t forw_all_mh_3d;
 static QMP_msghandle_t back_all_mh_3d;
 
 /* Initialize the Dslash */
-void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here for scalar version
+void init_sse_su3dslash_3d(const int latt_size[],
+			     void (*getSiteCoords)(int coord[], int node, int linearsite),
+			    
+			     int (*getLinearSiteIndex)(const int coord[]),
+			   int (*nodeNumber)(const int coord[]) ,
+			    const int* site_table0,
+			    const int* site_table1,
+			    int site_table_size 
+
+			   )   // latt_size not used, here for scalar version
 {
 
 
@@ -521,12 +547,11 @@ void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here 
     
   }
   /* Check problem size */
-  for(mu=0; mu < 4; mu++) {
-    if ( latt_size[mu] == 1 ) {
-      QMP_error("This SSE Dslash does not support a problem size = 1. Here the lattice in dimension %d has length %d\n", mu, latt_size[mu]);
-      QMP_abort(1);
-    }
+  if ( latt_size[0] == 1 ) {
+    QMP_error("This SSE Dslash does not support a problem size = 1. Here the lattice in dimension %d has length %d\n", 0, latt_size[0]);
+    QMP_abort(1);
   }
+  
 
   num = latt_size[0] / machine_size[0];
   if ( num % 2 != 0 )
@@ -537,7 +562,11 @@ void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here 
 
 
   /* Make the shift table  -- this sets the vol and vol_cb so we can call getSugridVolCB() after it */
-  make_shift_tables_3d(bound);
+  make_shift_tables_3d(bound,
+		       getSiteCoords,
+		       getLinearSiteIndex,
+		       nodeNumber);
+
 
   /* Is Icolor relevant here? I think we'll need to deal with explicit indices */
   /*
@@ -560,6 +589,11 @@ void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here 
 	and   half spinor size is 2spin comp * 3 color * 2 floats (=1complex)
 
   */
+  
+  /* 2x3x2xsizeof(float) = halfspinor. (Result of decomp)
+     3 buffers per direction (body, send, receive 
+     3 directions
+  */
   nsize = 2*3*2*sizeof(float)*3*subgrid_vol_cb_3d*Nd3;  /* Note 3x3 half-fermions */
 
  
@@ -573,15 +607,19 @@ void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here 
     QMP_abort(1);
   }
 
-  if ((xchi2_3d = QMP_allocate_aligned_memory(nsize,64,0)) == 0)
+
+  if((xchi2_3d = QMP_allocate_aligned_memory(nsize,64,0)) == 0)
   {
     QMP_error("init_wnxtsu3dslash: could not initialize xchi2");
     QMP_abort(1);
   }
 
+
   /* Unwrap the half spinor pointers from the QMP Structures. BTW: This 2 step technique susks so bad! */
   chi1_3d = (halfspinor_array*)QMP_get_memory_pointer(xchi1_3d);
+
   chi2_3d = (halfspinor_array*)QMP_get_memory_pointer(xchi2_3d); 
+
 
   /* Loop over all communicating directions and build up the two message
    * handles. If there is no communications, the message handles will not
@@ -593,9 +631,9 @@ void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here 
   for(mu=0; mu < Nd3; ++mu) {
 
     if(machine_size[mu] > 1) { /* If the machine is not a scalar  in this dimensio */
-    
+
       if (bound[0][0][mu] == 0) { /* Consistency: Check the boundary in this direction is 0 */
- 	QMP_error("init_sse_dslash: type 0 message size is 0");
+ 	QMP_error("init_sse_dslash: type 0 message size is 0 %d %d", mu, bound[0][0][mu]);
 	QMP_abort(1);
       }
 
@@ -620,7 +658,7 @@ void init_sse_su3dslash_3d(const int latt_size[])   // latt_size not used, here 
 	
       if (bound[0][1][mu] == 0)
       {
-	QMP_error("init_sse_dslash: type 0 message size is 0");
+	QMP_error("init_sse_dslash: type 1 message size is 0, %d, %d",mu, bound[0][1][mu]);
 	QMP_abort(1);
       }
 

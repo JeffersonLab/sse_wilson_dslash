@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_scalar_3d.c,v 1.1 2007-11-01 14:33:07 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_scalar_3d.c,v 1.2 2008-03-04 21:50:18 bjoo Exp $
  * 
  * Action of the 64bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -78,13 +78,17 @@ extern "C" {
 
 
 /***************** start of initialization routine ***************************************/
-void init_sse_su3dslash_3d(const int latt_size[])
+  void init_sse_su3dslash_3d(const int latt_size[],
+			     void (*getSiteCoords)(int coord[], int node, int linearsite),
+			 
+			     int (*getLinearSiteIndex)(const int coord[]),
+			     int (*nodeNumber)(const int coord[]))
 {
   int mu;
 
   /* If we are already initialised, then increase the refcount and return */
-  if (initP_3d > 0) 
-  {
+  if (initP_3d > 0) {
+
     initP_3d++;
     return;
   }
@@ -92,15 +96,15 @@ void init_sse_su3dslash_3d(const int latt_size[])
 //  printf("init_sse_su3dslash: enter\n");
 
   /* Check problem and subgrid size */
-  for(mu=0; mu < 4; mu++) 
-    if ( latt_size[mu] & 1 != 0 )
-    {
-      fprintf(stderr,"This SSE Dslash only supports even problem sizes. Here the lattice is odd in dimension %d with length %d\n", mu, latt_size[mu]);
-      exit(1);
-    }
+  if ( latt_size[0] & 1 != 0 ) {
+    fprintf(stderr,"This SSE Dslash only supports even problem sizes in dimension 0. Here the lattice is odd in dimension %d with length %d\n", 0, latt_size[mu]);
+    exit(1);
+  }
 
   /* If make_shift_tables cannot allocate, it will barf */
-  shift_table = make_shift_tables_3d(latt_size);
+  shift_table = make_shift_tables_3d(latt_size,
+				     getSiteCoords,
+				     getLinearSiteIndex);
 
   /* Set init _flag */
   initP_3d = 1;

@@ -1,4 +1,4 @@
-/* $Id: shift_tables_scalar_3d.c,v 1.2 2007-11-01 15:33:39 bjoo Exp $
+/* $Id: shift_tables_scalar_3d.c,v 1.3 2008-03-04 21:50:18 bjoo Exp $
 
 /* Set the offset tables used by the 32-bit and 64-bit single node dslash */
 
@@ -70,7 +70,7 @@ extern "C" {
   }
 
 
-
+#if 0
 
   /* Decompose lexicographic site ipos into lattice coordinates */
   static void crtesn(int coord[], int ipos, int latt_size[])
@@ -155,6 +155,7 @@ extern "C" {
     return local_site(cb_coord, cb_nrow) + cb*vol_cb;
   }
   
+#endif
   
   /**************** END of QDP functions ****************/
   
@@ -185,121 +186,126 @@ extern "C" {
 
 
  
-int* make_shift_tables_3d(const int nrow[])
-{ 
-  int dir; 
-  int coord[4];
-  int linear;
-  int backward=0;
-  int forward =1;
-  int *shift_table;
+  int* make_shift_tables_3d(const int nrow[],
+			    void (*getSiteCoords)(int coord[], int node, int linearsite),
+			    
+			    int (*getLinearSiteIndex)(const int coord[]))
+  { 
+    int dir; 
+    int coord[4];
+    int linear;
+    int backward=0;
+    int forward =1;
+    int *shift_table;
+    
+    InvTab *xinvtab;
+    InvTab *invtab;
+    
+    int x,y,z,t;
+    int cboffsets[2] = {0,0};
+    int cb3;
+    int lexico;
+    int site;
+    int p;
+    
+    /* Set the lattice size, get total volume and checkerboarded volume */
+    setLattSize(nrow);
+    
 
-  InvTab *xinvtab;
-  InvTab *invtab;
-
-  int x,y,z,t;
-  int cboffsets[2] = {0,0};
-  int cb3;
-  int lexico;
-  int site;
-
-  /* Set the lattice size, get total volume and checkerboarded volume */
-  setLattSize(nrow);
-
-
-  /* Allocate the shift table */
-  /* Nd3 directions
-     total vol sites
-     2 types (FWD, BKWD)
-  */
-  if ((shift_table = (int *)malloc(Nd3*total_vol_3d*2*sizeof(int))) == 0) {
-    fprintf(stderr,"init_sse_su3dslash: could not initialize shift_table\n");
-    exit(1);
-  }
-
-  /* Allocate the site table and the shift table */
+    /* Allocate the shift table */
+    /* Nd3 directions
+       total vol sites
+       2 types (FWD, BKWD)
+    */
+    if ((shift_table = (int *)malloc(Nd3*total_vol_3d*2*sizeof(int))) == 0) {
+      fprintf(stderr,"init_sse_su3dslash: could not initialize shift_table\n");
+      exit(1);
+    }
+    
+    /* Allocate the site table and the shift table */
     /* Now I want to build the site table */
-  /* I want it cache line aligned? */
-  xsite_table_3d = (int *)malloc(sizeof(int)*total_vol_3d+63);
-  if(xsite_table_3d == 0x0 ) { 
-    fprintf(stderr,"Couldnt allocate site table\n");
-    exit(1);
-  }
-  site_table_3d = (int *)((((ptrdiff_t)(xsite_table_3d))+63L)&(-64L));
-
-
- /* Loop through sites - you can choose your path below */
-  /* For now let's go lexicographically */ 
-  for(t=0; t < nrow[3]; t++) { 
-    for(z=0; z < nrow[2]; z++) {
-      for(y=0; y < nrow[1]; y++) { 
-	for(x=0; x < nrow[0]; x++) {
-
-
-	  coord[0] = x;
-	  coord[1] = y;
-	  coord[2] = z; 
-	  coord[3] = t;
-
-	  /* Get the site and N-parity of the chosen victim */
-	  lexico = getLinearSiteIndex(coord); /* get the lexico index */
-	  cb3 = parity(coord); /* Get cb3 index */
-
-	  /* Add lexico site into site_table, for current cb3 and linear */
-	  /* Map (cb3, linear) -> lexico */
-	  site_table_3d[ cb3*total_vol_3d_cb + cboffsets[cb3] ] = lexico;
-
-	  /* Next linear site in this checkerboarding */
-	  cboffsets[cb3]++;
+    /* I want it cache line aligned? */
+    xsite_table_3d = (int *)malloc(sizeof(int)*total_vol_3d+63);
+    if(xsite_table_3d == 0x0 ) { 
+      fprintf(stderr,"Couldnt allocate site table\n");
+      exit(1);
+    }
+    site_table_3d = (int *)((((ptrdiff_t)(xsite_table_3d))+63L)&(-64L));
+    
+    
+    /* Loop through sites - you can choose your path below */
+    /* I want time fastest -- should be correspondance with QDP++ when
+       that is appropriately checkered */
+    for(p=0; p < 2; p++) { 
+      for(z=0; z < nrow[2]; z++) {
+	for(y=0; y < nrow[1]; y++) { 
+	  for(x=0; x < nrow[0]/2; x++) {
+	    for(t=0; t < nrow[3]; t++) { 
+	    
+	      coord[0] = 2*x+p;
+	      coord[1] = y;
+	      coord[2] = z; 
+	      coord[3] = t;
+	      
+	      /* Get the site and N-parity of the chosen victim */
+	      lexico = getLinearSiteIndex(coord); /* get the lexico index */
+	      cb3 = parity(coord); /* Get cb3 index */
+	    
+	      /* Add lexico site into site_table, for current cb3 and linear */
+	      /* Map (cb3, linear) -> lexico */
+	      site_table_3d[ cb3*total_vol_3d_cb + cboffsets[cb3] ] = lexico;
+	      
+	      /* Next linear site in this checkerboarding */
+	      cboffsets[cb3]++;
+	    }
+	  }
 	}
       }
     }
-  }
-
-
-  /* Get the offsets needed for neighbour comm. */
-  /* soffsets(position,direction,isign,cb)   */ 
-  /*  where  isign    = +1 : plus direction */
-  /*                  =  0 : negative direction */
-  /*         cb       =  0 : even lattice (includes origin) */
-  /*                  = +1 : odd lattice (does not include origin) */
-  /* the offsets cotain the current site, i.e the neighbour for site i  */
-  /* is  shift_table(i,dir,cb,mu) and NOT  i + soffset(..)    */
-  
-  /* Loop over directions and sites, building up shift tables */
-
-
+    
+    /* Get the offsets needed for neighbour comm. */
+    /* soffsets(position,direction,isign,cb)   */ 
+    /*  where  isign    = +1 : plus direction */
+    /*                  =  0 : negative direction */
+    /*         cb       =  0 : even lattice (includes origin) */
+    /*                  = +1 : odd lattice (does not include origin) */
+    /* the offsets cotain the current site, i.e the neighbour for site i  */
+    /* is  shift_table(i,dir,cb,mu) and NOT  i + soffset(..)    */
+    
+    /* Loop over directions and sites, building up shift tables */
+    
+    
     /* Loop through the sites linearly */
     for(site=0; site < total_vol_3d; ++site) {
+      
+      int fcoord[4], bcoord[4];
+      int blinear, flinear;
+      int ipos;
+      
+      int lexico = site_table_3d[ site ];
+      
+      /* Get the global site coords from the node and linear index */
+      getSiteCoords(coord, 0, lexico); 
+      for(dir=0; dir < Nd3; dir++) {	
 	
-	int fcoord[4], bcoord[4];
-	int blinear, flinear;
-	int ipos;
-
-	int lexico = site_table_3d[ site ];
-
-	/* Get the global site coords from the node and linear index */
-	getSiteCoords(coord, 0, lexico); 
-	for(dir=0; dir < Nd3; dir++) {	
-
-	  /* Backwards displacement*/
-	  offs(bcoord, coord, dir, -1);
-
-	  blinear = getLinearSiteIndex(bcoord);
-
-	  /* Forward displacement */
-	  offs(fcoord, coord, dir, +1);
-	  flinear = getLinearSiteIndex(fcoord);
-
-	  /* Gather */
-	  shift_table[dir+Nd3*site ] = blinear; /* Linear index for psi, gauge */
-	  shift_table[dir+Nd3*(site+total_vol_3d)] = flinear; /* Linear index, psi or gauge */
-	}
+	/* Backwards displacement*/
+	offs(bcoord, coord, dir, -1);
+	
+	blinear = getLinearSiteIndex(bcoord);
+	
+	/* Forward displacement */
+	offs(fcoord, coord, dir, +1);
+	flinear = getLinearSiteIndex(fcoord);
+	
+	/* Gather */
+	shift_table[dir+Nd3*site ] = blinear; /* Linear index for psi, gauge */
+	shift_table[dir+Nd3*(site+total_vol_3d)] = flinear; /* Linear index, psi or gauge */
+      }
     }
-  
-
-  return shift_table;
-} 
+    
+    
+    return shift_table;
+  } 
 
 int forward_neighbor_3d(int *shift_table, int mysite, int mymu) {
   return shift_table[mymu + Nd3*(mysite + total_vol_3d)];
