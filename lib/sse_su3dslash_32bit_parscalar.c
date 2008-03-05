@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.18 2008-03-04 21:50:18 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.19 2008-03-05 19:45:12 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -554,17 +554,21 @@ static QMP_msghandle_t back_all_mh;
     QMP_abort(1);
   }
     
-
-  /* Check problem size */
-  if ( latt_size[0] == 1 ) {
-    QMP_error("This SSE Dslash does not support a problem size = 1. Here the lattice in dimension %d has length %d\n", 0, latt_size[0]);
-    QMP_abort(1);
+  /* Check problem size - 4D  */
+  for(mu=0; mu < 4; mu++)  {
+    if ( latt_size[mu] % 2 != 0 ) {
+      fprintf(stderr,"This is a Dslash with checkerboarding in 4 dimensions. Each GLOBAL dimension must be even. In addition LOCAL dimension 0 (x) has to be even ,  Your lattice does not meet the GLOBAL requirement latt_size[%d]=%d\n", 
+	      mu, latt_size[mu]);
+      
+      exit(1);
+    }
   }
   
   num = latt_size[0] / machine_size[0];
   if ( num % 2 != 0 )
-  {
-    QMP_error("This SSE Dslash does not work for odd x-sublattice. Here the sublattice is odd in dimension 0 with length %d\n", num);
+    {
+      fprintf(stderr,"This is a Dslash with checkerboarding in 4 dimensions. Each GLOBAL dimension must be even. In addition LOCAL dimension 0 (x) has to be even ,  Your lattice does not meet the LOCAL requirement sublattice_size[0]=%d\n", 
+	      num);
     QMP_abort(1);
   }
 

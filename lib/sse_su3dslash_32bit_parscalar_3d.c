@@ -535,23 +535,21 @@ void init_sse_su3dslash_3d(const int latt_size[],
     QMP_abort(1);
   }
     
-  /* Check that 4th dim is local */
-  if( machine_size[3] != 1 ) { 
-    QMP_error("3D Dslash needs dim 3 (= time) to be local ");
-    QMP_abort(1);
-    
-  }
-  /* Check problem size */
-  if ( latt_size[0] == 1 ) {
-    QMP_error("This SSE Dslash does not support a problem size = 1. Here the lattice in dimension %d has length %d\n", 0, latt_size[0]);
-    QMP_abort(1);
+  /* Check problem size - 3D  */
+  for(mu=0; mu < 3; mu++)  {
+    if ( latt_size[mu] % 2 != 0 ) {
+      fprintf(stderr,"This is a Dslash with checkerboarding in 3 dimensions. GLOBAL dimensions 0,1,2 (corresponding to x,y,z) must be even. In addition LOCAL dimension 0 (x) has to be even.  Your lattice does not meet the GLOBAL requirement: latt_size[%d]=%d\n", 
+	      mu, latt_size[mu]);
+      
+      exit(1);
+    }
   }
   
-
   num = latt_size[0] / machine_size[0];
   if ( num % 2 != 0 )
-  {
-    QMP_error("This SSE Dslash does not work for odd x-sublattice. Here the sublattice is odd in dimension 0 with length %d\n", num);
+    {
+      fprintf(stderr,"This is a Dslash with checkerboarding in 3 dimensions. GLOBAL dimensions 0,1,2 (corresponding to x,y,z) must be even. In addition LOCAL dimension 0 (x) has to be even. Your lattice does not meet the LOCAL requirement: sublattice_size[0]=%d\n", 
+	      num);
     QMP_abort(1);
   }
 

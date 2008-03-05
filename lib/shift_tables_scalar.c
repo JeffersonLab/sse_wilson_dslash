@@ -1,4 +1,4 @@
-/* $Id: shift_tables_scalar.c,v 1.4 2008-03-04 21:50:18 bjoo Exp $
+/* $Id: shift_tables_scalar.c,v 1.5 2008-03-05 19:45:12 bjoo Exp $
 
 /* Set the offset tables used by the 32-bit and 64-bit single node dslash */
 
@@ -29,10 +29,6 @@ extern "C" {
   static int* xsite_table;
   int* site_table;
 
-  typedef struct { 
-    int cb4;
-    int linearcb4;
-  } InvTab4;
 
   /* Total problem size */
   static int tot_size[4];
@@ -60,129 +56,142 @@ extern "C" {
   }
 
 
-#if 0
-
-/* Decompose lexicographic site ipos into lattice coordinates */
-static void crtesn(int coord[], int ipos, int latt_size[])
-{
-  int i;
-
-  for(i=0; i < 4; ++i)
+  /* Decompose lexicographic site ipos into lattice coordinates */
+  static void crtesn4d(int ipos, const int latt_size[], int coord[] )
   {
-    coord[i] = ipos % latt_size[i];
-    ipos /= latt_size[i];
+  
+    int Ndim=0; /* Start running x fastest */
+    int i, ix;
+
+    /* Calculate the Cartesian coordinates of the VALUE of IPOS where the 
+     * value is defined by
+     *
+     *     for i = 0 to NDIM-1  {
+     *        X_i  <- mod( IPOS, L(i) )
+     *        IPOS <- int( IPOS / L(i) )
+     *     }
+     *
+     * NOTE: here the coord(i) and IPOS have their origin at 0. 
+     */
+    for(i = Ndim; i < Ndim+4; ++i) {
+      ix=i%4;  /* This lets me start with the time direction and then wraparound */
+      
+      coord[ix] = ipos % latt_size[ix];
+      ipos = ipos / latt_size[ix];
+    }
+
   }
-}
 
-/* Calculates the lexicographic site index from the coordinate of a site */
-static int local_site(int coord[], int latt_size[])
-{
-  int order = 0;
-  int mmu;
+  /* Calculates the lexicographic site index from the coordinate of a site */
+  static int local_site4d(int coord[], int latt_size[])
+  {
+    int order = 0;
+    int mmu;
+    
+    for(mmu=4-1; mmu >= 1; --mmu) {
+      order = latt_size[mmu-1]*(coord[mmu] + order);
+    }
+    order += coord[0];
+    
+    return order;
+  }
 
-  for(mmu=4-1; mmu >= 1; --mmu)
-    order = latt_size[mmu-1]*(coord[mmu] + order);
+  static int myLinearSiteIndex4D(const int gcoords[]) 
+  {
+    int mu;
+    int subgrid_cb_nrow[4];
+    int subgrid_cb_coord[4];
+    int cb;
 
-  order += coord[0];
+    for(mu=0; mu < 4; mu++) { 
+      subgrid_cb_nrow[mu] = getLattSize()[mu];
+    }
+    subgrid_cb_nrow[0] /=2;  /* Checkerboarding */
 
-  return order;
-}
+    cb=0;
+    for(mu=0; mu < Nd; ++mu) { 
+      cb += gcoords[mu];
+    }
+    cb &=1;
+    
+    subgrid_cb_coord[0] = (gcoords[0]/2)% subgrid_cb_nrow[0];
+    for(mu=1; mu < 4; mu++) { 
+      subgrid_cb_coord[mu] = gcoords[mu] % subgrid_cb_nrow[mu];
+    }
 
+    return local_site4d(subgrid_cb_coord, subgrid_cb_nrow) + cb*total_vol_cb;
+  }
+
+  // This is not needed as it can be done transitively:
+  // ie lookup the QDP index and then lookup the coord with that 
+  static void mySiteCoords4D(int gcoords[], int node, int linearsite)
+  {
+    int mu;
+    int subgrid_cb_nrow[4];
+    int tmp_coord[4];
+    int cb,cbb;
+
+    for(mu=0; mu < 4; mu++) { 
+      subgrid_cb_nrow[mu] = getLattSize()[mu];
+    }
+    subgrid_cb_nrow[0] /=2;  /* Checkerboarding */
+
+    /* Base coordinate single processor: 0,0,0,0 always */
+    for(mu=0; mu < 4; mu++) { 
+      gcoords[mu] = 0;
+    }
+    
+    cb=linearsite/total_vol_cb;
+
+    crtesn4d(linearsite % total_vol_cb, subgrid_cb_nrow, tmp_coord);
+
+    // Add on position within the node
+    // NOTE: the cb for the x-coord is not yet determined
+    gcoords[0] += 2*tmp_coord[0];
+    for(mu=1; mu < 4; ++mu) {
+      gcoords[mu] += tmp_coord[mu];
+    }
+
+    cbb = cb;
+    for(mu=1; mu < 4; ++mu) {
+      cbb += gcoords[mu];
+    }
+    gcoords[0] += (cbb & 1);
+  }
 
  
-/*****************************************************************************************
-/*********** These are functions taken from QDP++ and converted to C *****************/
 
-//! Reconstruct the lattice coordinate from the node and site number
-/*! 
- * This is the inverse of the nodeNumber and linearSiteIndex functions.
- * The API requires this function to be here.
- */
-static void getSiteCoords(int coord[], int node, int linearsite) // ignore node
-{
-  int cb, cbb, m;
-  int vol_cb = getSubgridVolCB();
-  int cb_nrow[4];
-
-  for(m=0; m < 4; ++m)
-    cb_nrow[m] = getLattSize()[m];
-  cb_nrow[0] /= 2;
-  
-  cb = linearsite / vol_cb;
-  crtesn(coord, linearsite % vol_cb, cb_nrow);
-
-  cbb = cb;
-  for(m=1; m < 4; ++m)
-    cbb += coord[m];
-  cbb = (cbb % 2);
-
-  coord[0] = 2*coord[0] + cbb;
-}
-
-
-//! The linearized site index for the corresponding coordinate
-/*! This layout is appropriate for a 2 checkerboard (red/black) lattice */
-int getLinearSiteIndex(const int coord[])
-{
-  int vol_cb = getSubgridVolCB();
-  int cb_nrow[4];
-  int cb_coord[4];
-  int cb, m;
-
-  for(m=0; m < 4; ++m)
-    cb_nrow[m] = getLattSize()[m];
-  cb_nrow[0] /= 2;
-  
-  for(m=0; m < 4; ++m)
-    cb_coord[m] = coord[m];
-  cb_coord[0] /= 2;    // Number of checkerboards
+  /* Offset by 1 in direction dir */
+  static void offs(int temp[], const int coord[], int mu, int isign)
+  {
+    int i;
     
-  cb = 0;
-  for(m=0; m < 4; ++m)
-    cb += coord[m];
+    for(i=0; i < 4; ++i) {
+      temp[i] = coord[i];
+    }
 
-  cb = ( cb % 2 ); 
+    /* translate address to neighbour */
+    temp[mu] = (temp[mu] + isign + 2*getLattSize()[mu]) % getLattSize()[mu];
+  }
 
-  return local_site(cb_coord, cb_nrow) + cb*vol_cb;
-}
-
-
-/**************** END of QDP functions ****************/
-  
-
-#endif
-
-
-/* Offset by 1 in direction dir */
-static void offs(int temp[], const int coord[], int mu, int isign)
-{
-  int i;
-
-  for(i=0; i < 4; ++i)
-    temp[i] = coord[i];
-
-  /* translate address to neighbour */
-  temp[mu] = (temp[mu] + isign + 2*getLattSize()[mu]) % getLattSize()[mu];
-}
-
-/* This is a 4D parity */
-static int parity(const int coord[])
-{
-  int m;
-  int sum = 0;
-
-  for(m=0; m < 4; ++m)
-    sum += coord[m];
-
-  return sum % 2;
-}
+  /* This is a 4D parity */
+  static int parity(const int coord[])
+  {
+    int m;
+    int sum = 0;
+    
+    for(m=0; m < 4; ++m) {
+      sum += coord[m];
+    }
+    return sum % 2;
+  }
 
 
  
   int* make_shift_tables(const int nrow[],
-			 void (*getSiteCoords)(int coord[], int node, int linearsite),
+			 void (*QDP_getSiteCoords)(int coord[], int node, int linearsite),
 			 
-			 int (*getLinearSiteIndex)(const int coord[]))
+			 int (*QDP_getLinearSiteIndex)(const int coord[]))
   
 { 
   int dir; 
@@ -193,15 +202,12 @@ static int parity(const int coord[])
   int forward =1;
   int *shift_table;
 
-  InvTab4 *xinvtab;
-  InvTab4 *invtab;
-
   int x,y,z,t;
-  int cboffsets[2] = {0,0};
   int cb;
-  int lexico;
   int site;
 
+  int qdp_index; 
+  int my_index;
   int p;
 
   /* Set the lattice size, get total volume and checkerboarded volume */
@@ -228,13 +234,14 @@ static int parity(const int coord[])
   site_table = (int *)((((ptrdiff_t)(xsite_table))+63L)&(-64L));
 
   /* Loop through sites - you can choose your path below */
-  /* This is my local running */
-  for(p=0; p < 2; p++) { 
+  /* This is the ordering for QDP++ in CB2 mode. - In this mode
+     the site tables of QDP rb2 subset and mine should match */
+  
+  for(p=0; p < 2; p++) { 	    
     for(t=0; t < nrow[3]; t++) { 
       for(z=0; z < nrow[2]; z++) {
-	for(y=0; y < nrow[1]; y++) { 
+	for(y=0; y < nrow[1]; y++) {     
 	  for(x=0; x < nrow[0]/2; x++) {
-	    
 
 	    coord[0] = 2*x+p;
 	    coord[1] = y;
@@ -242,15 +249,13 @@ static int parity(const int coord[])
 	    coord[3] = t;
 	    
 	    /* Get the site and N-parity of the chosen victim */
-	    lexico = getLinearSiteIndex(coord); /* get the lexico index */
-	    cb = parity(coord);
+	    qdp_index = QDP_getLinearSiteIndex(coord); /* get the lexico index */
+	    my_index = myLinearSiteIndex4D(coord);
 	    
 	    /* Add lexico site into site_table, for current cb3 and linear */
 	    /* Map (cb3, linear) -> lexico */
-	    site_table[ cb*total_vol_cb + cboffsets[cb] ] = lexico;
+	    site_table[ my_index ] = qdp_index;
 
-	    /* Next linear site in this checkerboarding */
-	    cboffsets[cb]++;
 	  }
 	}
       }
@@ -267,27 +272,32 @@ static int parity(const int coord[])
   /* is  shift_table(i,dir,cb,mu) and NOT  i + soffset(..)    */
   
   /* Loop over directions and sites, building up shift tables */
-  for(site = 0; site < total_vol; ++site) { 
-    int fcoord[4], bcoord[4];
-    int blinear, flinear;
-    int ipos;
+  for(cb=0; cb < 2; cb++) {
+    for(site = 0; site < total_vol_cb; ++site) { 
+      int fcoord[4], bcoord[4];
+      int blinear, flinear;
+      
+      my_index = cb*total_vol_cb + site;
+      
+      qdp_index = site_table[ my_index ];
 
-    int lexico = site_table[ site ];
-    getSiteCoords(coord, 0, lexico); 
-    for(dir=0; dir < 4; dir++) {
+      QDP_getSiteCoords(coord, 0, qdp_index); 
 
-      /* Backwards displacement*/
-      offs(bcoord, coord, dir, -1);
-      blinear = getLinearSiteIndex(bcoord);
+      for(dir=0; dir < 4; dir++) {
 
-      /* Forward displacement */
-      offs(fcoord, coord, dir, +1);
-      flinear = getLinearSiteIndex(fcoord);
+	/* Backwards displacement*/
+	offs(bcoord, coord, dir, -1);
+	blinear = QDP_getLinearSiteIndex(bcoord);
+
+	/* Forward displacement */
+	offs(fcoord, coord, dir, +1);
+	flinear = QDP_getLinearSiteIndex(fcoord);
 
 
-      /* Gather */
-      shift_table[dir+Nd*site ] = blinear;
-      shift_table[dir+Nd*(site+total_vol)] = flinear;
+	/* Gather */
+	shift_table[dir+Nd*my_index ] = blinear;
+	shift_table[dir+Nd*(my_index+total_vol)] = flinear;
+      }
     }
   }
 

@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.9 2008-03-04 21:50:17 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.10 2008-03-05 19:45:12 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -336,7 +336,8 @@ extern "C" {
 
 
   /* Loop through sites - you can choose your path below */
-  /* For now let's go lexicographically */
+  /* This is a checkerboarded order which is identical hopefully
+     to QDP++'s rb2 subset when QDP++ is in a CB2 layout */
   for(p=0; p < 2; p++) { 
     for(t=0; t < subgrid_size[3]; t++) { 	   
       for(z=0; z < subgrid_size[2]; z++) {

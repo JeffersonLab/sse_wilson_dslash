@@ -26,7 +26,7 @@ testDslash3D::run(void)
   // What we consider to be small enough...
   Double small;
   if ( sizeof(SSEREAL) == 4 ) { 
-    small = Double(5.0e-9);
+    small = Double(1.0e-7);
   }
   else {
     // Adjust this...

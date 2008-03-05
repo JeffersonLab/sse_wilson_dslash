@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_scalar.c,v 1.7 2008-03-04 21:50:18 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_scalar.c,v 1.8 2008-03-05 19:45:12 bjoo Exp $
  * 
  * Action of the 32bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -95,12 +95,15 @@ extern "C" {
   }
 
   
-  /* Check problem and subgrid size */
-  if ( latt_size[0] % 2 != 0 ) {
-    fprintf(stderr,"This SSE Dslash only supports even problem sizes. Here the lattice is odd in dimension %d with length %d\n", 0, latt_size[mu]);
-    exit(1);
+  /* Check problem size - 4D  */
+  for(mu=0; mu < 4; mu++)  {
+    if ( latt_size[mu] % 2 != 0 ) {
+      fprintf(stderr,"This is a Dslash with checkerboarding in 4 dimensions. Each GLOBAL dimension must be even,  Your lattice is not like this: latt_size[%d]=%d\n", 
+	      mu, latt_size[mu]);
+      
+      exit(1);
+    }
   }
-  
 
   /* Construct all the shift tables needed */
   /* 4 dimensions * 2 directions { aka FORWARD and BACKWARD } * volume */

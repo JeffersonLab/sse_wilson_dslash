@@ -1,4 +1,4 @@
-/* $Id: shift_tables_scalar_3d.c,v 1.3 2008-03-04 21:50:18 bjoo Exp $
+/* $Id: shift_tables_scalar_3d.c,v 1.4 2008-03-05 19:45:12 bjoo Exp $
 
 /* Set the offset tables used by the 32-bit and 64-bit single node dslash */
 
@@ -69,96 +69,114 @@ extern "C" {
     return tot_size_3d;
   }
 
-
-#if 0
-
-  /* Decompose lexicographic site ipos into lattice coordinates */
-  static void crtesn(int coord[], int ipos, int latt_size[])
+  static void crtesn3d(int ipos, const int latt_size[], int coord[] )
   {
-    int i;
-    
-    for(i=0; i < getNumDim(); ++i)
-      {
-	coord[i] = ipos % latt_size[i];
-	ipos /= latt_size[i];
-      }
+  
+    int Ndim=3;
+    int i, ix;
+
+    /* Calculate the Cartesian coordinates of the VALUE of IPOS where the 
+     * value is defined by
+     *
+     *     for i = 0 to NDIM-1  {
+     *        X_i  <- mod( IPOS, L(i) )
+     *        IPOS <- int( IPOS / L(i) )
+     *     }
+     *
+     * NOTE: here the coord(i) and IPOS have their origin at 0. 
+     */
+    for(i = Ndim; i < Ndim+4; ++i) {
+      ix=i%4;  /* This lets me start with the time direction and then wraparound */
+      
+      coord[ix] = ipos % latt_size[ix];
+      ipos = ipos / latt_size[ix];
+    }
+
   }
 
-  /* Calculates the lexicographic site index from the coordinate of a site */
-  static int local_site(int coord[], int latt_size[])
+  static int local_site(const coord[4], const latt_size[4])
   {
     int order = 0;
     int mmu;
     
-    for(mmu=getNumDim()-1; mmu >= 1; --mmu)
-      order = latt_size[mmu-1]*(coord[mmu] + order);
+    // In the 4D Case: t+Lt(x + Lx(y + Ly*z)
+    // essentially  starting from i = dim[Nd-2]
+    //  order =  latt_size[i-1]*(coord[i])
+    //   and need to wrap i-1 around to Nd-1 when it gets below 0
+    for(mmu=2; mmu >= 0; --mmu) {
+      int wrapmu = (mmu-1) % 4;
+      if ( wrapmu < 0 ) wrapmu += 4;
+      order = latt_size[wrapmu]*(coord[mmu] + order);
+    }
     
-    order += coord[0];
+    order += coord[ 3 ]; /* T is fastest running */
     
     return order;
   }
-  
-  
-  /*****************************************************************************************
-/*********** These are functions taken from QDP++ and converted to C *****************/
-  
-  //! Reconstruct the lattice coordinate from the node and site number
-  /*! 
-   * This is the inverse of the nodeNumber and linearSiteIndex functions.
-   * The API requires this function to be here.
-   */
-  static void getSiteCoords(int coord[], int node, int linearsite) // ignore node
+
+  static int myLinearSiteIndex3D(const int gcoords[]) 
   {
-    int cb, cbb, m;
-    int vol_cb = total_vol_3d_cb;
-    int cb_nrow[4];
+    int mu;
+    int subgrid_cb_nrow[4];
+    int subgrid_cb_coord[4];
+    int cb3;
+
+    for(mu=0; mu < 4; mu++) { 
+      subgrid_cb_nrow[mu] = getLattSize()[mu];
+    }
+    subgrid_cb_nrow[0] /=2;  /* Checkerboarding */
+
+    cb3=0;
+    for(mu=0; mu < Nd3; ++mu) { 
+      cb3 += gcoords[mu];
+    }
+    cb3 &=1;
     
-    for(m=0; m < getNumDim(); ++m)
-      cb_nrow[m] = getLattSize()[m];
-    cb_nrow[0] /= 2;
-    
-    cb = linearsite / vol_cb;
-    crtesn(coord, linearsite % vol_cb, cb_nrow);
-    
-    cbb = cb;
-    for(m=1; m < getNumDim(); ++m)
-      cbb += coord[m];
-    cbb = (cbb % 2);
-    
-    coord[0] = 2*coord[0] + cbb;
+    subgrid_cb_coord[0] = (gcoords[0]/2)% subgrid_cb_nrow[0];
+    for(mu=1; mu < 4; mu++) { 
+      subgrid_cb_coord[mu] = gcoords[mu] % subgrid_cb_nrow[mu];
+    }
+
+    return local_site(subgrid_cb_coord, subgrid_cb_nrow) + cb3*total_vol_3d_cb;
   }
-  
-  
-  //! The linearized site index for the corresponding coordinate
-  /*! This layout is appropriate for a 2 checkerboard (red/black) lattice */
-  static int getLinearSiteIndex(const int coord[])
+
+  // This is not needed as it can be done transitively:
+  // ie lookup the QDP index and then lookup the coord with that 
+  static void mySiteCoords3D(int gcoords[], int node, int linearsite)
   {
-    int vol_cb = total_vol_3d_cb;
-    int cb_nrow[4];
-    int cb_coord[4];
-    int cb, m;
+    int mu;
+    int subgrid_cb_nrow[4];
+    int tmp_coord[4];
+    int cb3,cbb3;
+    int my_node = QMP_get_node_number();
+
+    for(mu=0; mu < 4; mu++) { 
+      subgrid_cb_nrow[mu] = getLattSize()[mu];
+    }
+    subgrid_cb_nrow[0] /=2;  /* Checkerboarding */
+
+    /* Single processor -- all coords 0 */
+    for(mu=0; mu < 4; mu++) { 
+      gcoords[mu] = 0;
+    }
     
-    for(m=0; m < getNumDim(); ++m)
-      cb_nrow[m] = getLattSize()[m];
-    cb_nrow[0] /= 2;
-    
-    for(m=0; m < getNumDim(); ++m)
-      cb_coord[m] = coord[m];
-    cb_coord[0] /= 2;    // Number of checkerboards
-    
-    cb = 0;
-    for(m=0; m < getNumDim(); ++m)
-      cb += coord[m];
-    
-    cb = ( cb % 2 ); 
-    
-    return local_site(cb_coord, cb_nrow) + cb*vol_cb;
+    cb3=linearsite/total_vol_3d_cb;
+
+    crtesn3d(linearsite % total_vol_3d_cb, subgrid_cb_nrow, tmp_coord);
+
+    // Add on position within the node
+    // NOTE: the cb for the x-coord is not yet determined
+    gcoords[0] += 2*tmp_coord[0];
+    for(mu=1; mu < 4; ++mu) {
+      gcoords[mu] += tmp_coord[mu];
+    }
+
+    cbb3 = cb3;
+    for(mu=1; mu < 3; ++mu) {
+      cbb3 += gcoords[mu];
+    }
+    gcoords[0] += (cbb3 & 1);
   }
-  
-#endif
-  
-  /**************** END of QDP functions ****************/
-  
 
   /* Offset by 1 in direction dir */
   static void offs(int temp[], const int coord[], int mu, int isign)
@@ -187,9 +205,9 @@ extern "C" {
 
  
   int* make_shift_tables_3d(const int nrow[],
-			    void (*getSiteCoords)(int coord[], int node, int linearsite),
+			    void (*QDP_getSiteCoords)(int coord[], int node, int linearsite),
 			    
-			    int (*getLinearSiteIndex)(const int coord[]))
+			    int (*QDP_getLinearSiteIndex)(const int coord[]))
   { 
     int dir; 
     int coord[4];
@@ -198,15 +216,13 @@ extern "C" {
     int forward =1;
     int *shift_table;
     
-    InvTab *xinvtab;
-    InvTab *invtab;
-    
     int x,y,z,t;
-    int cboffsets[2] = {0,0};
     int cb3;
-    int lexico;
+    
     int site;
     int p;
+    int qdp_index; 
+    int my_index;
     
     /* Set the lattice size, get total volume and checkerboarded volume */
     setLattSize(nrow);
@@ -234,8 +250,9 @@ extern "C" {
     
     
     /* Loop through sites - you can choose your path below */
-    /* I want time fastest -- should be correspondance with QDP++ when
-       that is appropriately checkered */
+    /* The ordering below is checkerboarded in x, time fastest 
+       which should match exactly rb3 in QDP++ when compiled in cb3d mode */
+
     for(p=0; p < 2; p++) { 
       for(z=0; z < nrow[2]; z++) {
 	for(y=0; y < nrow[1]; y++) { 
@@ -248,15 +265,12 @@ extern "C" {
 	      coord[3] = t;
 	      
 	      /* Get the site and N-parity of the chosen victim */
-	      lexico = getLinearSiteIndex(coord); /* get the lexico index */
-	      cb3 = parity(coord); /* Get cb3 index */
-	    
-	      /* Add lexico site into site_table, for current cb3 and linear */
-	      /* Map (cb3, linear) -> lexico */
-	      site_table_3d[ cb3*total_vol_3d_cb + cboffsets[cb3] ] = lexico;
-	      
-	      /* Next linear site in this checkerboarding */
-	      cboffsets[cb3]++;
+	      qdp_index = QDP_getLinearSiteIndex(coord); /* get the lexico index */
+	      my_index = myLinearSiteIndex3D(coord);
+
+	      site_table_3d[my_index]=qdp_index;
+
+	     
 	    }
 	  }
 	}
@@ -276,30 +290,33 @@ extern "C" {
     
     
     /* Loop through the sites linearly */
-    for(site=0; site < total_vol_3d; ++site) {
-      
-      int fcoord[4], bcoord[4];
-      int blinear, flinear;
-      int ipos;
-      
-      int lexico = site_table_3d[ site ];
-      
-      /* Get the global site coords from the node and linear index */
-      getSiteCoords(coord, 0, lexico); 
-      for(dir=0; dir < Nd3; dir++) {	
+    for(cb3=0; cb3 < 2; cb3++) { 
+      for(site=0; site < total_vol_3d_cb; ++site) {
 	
-	/* Backwards displacement*/
-	offs(bcoord, coord, dir, -1);
+	int fcoord[4], bcoord[4];
+	int blinear, flinear;
+	int ipos;
 	
-	blinear = getLinearSiteIndex(bcoord);
+	my_index = cb3*total_vol_3d_cb + site;
+	qdp_index = site_table_3d[ my_index ];
 	
-	/* Forward displacement */
-	offs(fcoord, coord, dir, +1);
-	flinear = getLinearSiteIndex(fcoord);
-	
-	/* Gather */
-	shift_table[dir+Nd3*site ] = blinear; /* Linear index for psi, gauge */
-	shift_table[dir+Nd3*(site+total_vol_3d)] = flinear; /* Linear index, psi or gauge */
+	/* Get the global site coords from the node and linear index */
+	QDP_getSiteCoords(coord, 0, qdp_index); 
+	for(dir=0; dir < Nd3; dir++) {	
+	  
+	  /* Backwards displacement*/
+	  offs(bcoord, coord, dir, -1);
+	  
+	  blinear = QDP_getLinearSiteIndex(bcoord);
+	  
+	  /* Forward displacement */
+	  offs(fcoord, coord, dir, +1);
+	  flinear = QDP_getLinearSiteIndex(fcoord);
+	  
+	  /* Gather */
+	  shift_table[dir+Nd3*my_index ] = blinear; /* Linear index for psi, gauge */
+	  shift_table[dir+Nd3*(my_index+total_vol_3d)] = flinear; /* Linear index, psi or gauge */
+	}
       }
     }
     

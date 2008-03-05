@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_scalar.c,v 1.6 2008-03-04 21:50:18 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_scalar.c,v 1.7 2008-03-05 19:45:13 bjoo Exp $
  * 
  * Action of the 64bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -96,13 +96,14 @@ static spinor_array rs __attribute__ ((aligned (16)));
     return;
   }
 
-//  printf("init_sse_su3dslash: enter\n");
-
-  /* Check problem and subgrid size */
-  if ( latt_size[0] & 1 != 0 ) {
-    
-      fprintf(stderr,"This SSE Dslash only supports even problem sizes. Here the lattice is odd in dimension %d with length %d\n", 0, latt_size[mu]);
+  /* Check problem size - 4D  */
+  for(mu=0; mu < 4; mu++)  {
+    if ( latt_size[mu] % 2 != 0 ) {
+      fprintf(stderr,"This is a Dslash with checkerboarding in 4 dimensions. Each GLOBAL dimension must be even,  Your lattice is not like this: latt_size[%d]=%d\n", 
+	      mu, latt_size[mu]);
+      
       exit(1);
+    }
   }
 
   /* If make_shift_tables cannot allocate, it will barf */

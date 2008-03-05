@@ -344,7 +344,10 @@ extern "C" {
     }
 
 
-    /* Loop through the sites in some order */
+    /* Loop through the sites in some order.
+       This is an ordering that should coincide with QDP++'s rb3
+       subset, when QDP++ is compiled in cb3d order */
+
     for(p=0; p < 2; p++) { 	      
       for(z=0; z < subgrid_size[2]; z++) { 
 	for(y=0; y < subgrid_size[1]; y++) { 
