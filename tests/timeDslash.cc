@@ -144,6 +144,32 @@ timeDslash::run(void)
   double perf = Mflops/time;
   QDPIO::cout << "\t Performance is: " << perf << " Mflops in Total" << endl;
   QDPIO::cout << "\t Performance is: " << perf / (double)Layout::numNodes() << " per MPI Process" << endl;
+  QDPIO::cout << endl;
+  QDPIO::cout << "\t Timing with " << iters << " counts" << endl;
+
+  swatch.reset();
+  swatch.start();
+  
+  for(int i=0; i < iters; ++i) {
+       sse_su3dslash_wilson((SSEREAL *)&(packed_gauge[0]),
+			   (SSEREAL *)&(psi.elem(0).elem(0).elem(0).real()),
+			   (SSEREAL *)&(chi.elem(0).elem(0).elem(0).real()),
+			   -1, 0);
+
+  }
+  swatch.stop();
+  time=swatch.getTimeInSeconds();
+
+  // Average time over nodes
+  Internal::globalSum(time);
+  time /= (double)Layout::numNodes();
+
+  QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << endl;
+  QDPIO::cout << "\t " << 1.0e6*time/(double)iters << " u sec/iteration" << endl;    
+  Mflops = 1390.0f*(double)(iters)*(double)(Layout::vol()/2)/1.0e6;
+  perf = Mflops/time;
+  QDPIO::cout << "\t Performance is: " << perf << " Mflops in Total" << endl;
+  QDPIO::cout << "\t Performance is: " << perf / (double)Layout::numNodes() << " per MPI Process" << endl;
 
   // Finalize the Dslash
   free_sse_su3dslash();

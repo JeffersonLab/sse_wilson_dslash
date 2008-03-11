@@ -32,9 +32,11 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 check_PROGRAMS = t_dslash$(EXEEXT) t_dslash_3d$(EXEEXT) \
-	$(am__EXEEXT_1) time_dslash$(EXEEXT) time_dslash_3d$(EXEEXT)
+	$(am__EXEEXT_1) time_dslash$(EXEEXT) time_dslash_3d$(EXEEXT) \
+	$(am__EXEEXT_2)
 @BUILD_SITE_TESTS_TRUE@am__append_1 = t_site_ops
 @RUN_TESTS_TRUE@am__append_2 = $(check_PROGRAMS)
+@PARSCALAR_SINGLE_TRUE@am__append_3 = time_decomp
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -46,6 +48,7 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/include/sse_config_internal.h
 CONFIG_CLEAN_FILES =
 @BUILD_SITE_TESTS_TRUE@am__EXEEXT_1 = t_site_ops$(EXEEXT)
+@PARSCALAR_SINGLE_TRUE@am__EXEEXT_2 = time_decomp$(EXEEXT)
 am__objects_1 = dslashm_w.$(OBJEXT) reunit.$(OBJEXT)
 am_t_dslash_OBJECTS = $(am__objects_1) testDslashFull.$(OBJEXT) \
 	t_dslash.$(OBJEXT)
@@ -85,6 +88,14 @@ am__t_site_ops_SOURCES_DIST = unittest.h dslashm_w.h dslashm_w.cc \
 @PARSCALAR_DOUBLE_TRUE@	testRecons64bit.$(OBJEXT)
 t_site_ops_OBJECTS = $(am_t_site_ops_OBJECTS)
 t_site_ops_LDADD = $(LDADD)
+am__time_decomp_SOURCES_DIST = unittest.h dslashm_w.h dslashm_w.cc \
+	reunit.h reunit.cc timeDecomp.h timeDecomp.cc time_decomp.cc
+@PARSCALAR_SINGLE_TRUE@am_time_decomp_OBJECTS = $(am__objects_1) \
+@PARSCALAR_SINGLE_TRUE@	timeDecomp.$(OBJEXT) \
+@PARSCALAR_SINGLE_TRUE@	time_decomp.$(OBJEXT)
+time_decomp_OBJECTS = $(am_time_decomp_OBJECTS)
+time_decomp_LDADD = $(LDADD)
+time_decomp_DEPENDENCIES =
 am_time_dslash_OBJECTS = $(am__objects_1) timeDslash.$(OBJEXT) \
 	time_dslash.$(OBJEXT)
 time_dslash_OBJECTS = $(am_time_dslash_OBJECTS)
@@ -106,11 +117,11 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(t_dslash_SOURCES) $(t_dslash_3d_SOURCES) \
-	$(t_site_ops_SOURCES) $(time_dslash_SOURCES) \
-	$(time_dslash_3d_SOURCES)
+	$(t_site_ops_SOURCES) $(time_decomp_SOURCES) \
+	$(time_dslash_SOURCES) $(time_dslash_3d_SOURCES)
 DIST_SOURCES = $(t_dslash_SOURCES) $(t_dslash_3d_SOURCES) \
-	$(am__t_site_ops_SOURCES_DIST) $(time_dslash_SOURCES) \
-	$(time_dslash_3d_SOURCES)
+	$(am__t_site_ops_SOURCES_DIST) $(am__time_decomp_SOURCES_DIST) \
+	$(time_dslash_SOURCES) $(time_dslash_3d_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -291,6 +302,11 @@ time_dslash_3d_SOURCES = $(FRAMEWORK_3D_SRCS) \
 @SCALAR_SINGLE_TRUE@	sse32.h \
 @SCALAR_SINGLE_TRUE@	testSiteDslash32bit.cc
 
+@PARSCALAR_SINGLE_TRUE@time_decomp_SOURCES = $(FRAMEWORK_SRCS) \
+@PARSCALAR_SINGLE_TRUE@	timeDecomp.h \
+@PARSCALAR_SINGLE_TRUE@	timeDecomp.cc \
+@PARSCALAR_SINGLE_TRUE@	time_decomp.cc
+
 t_dslash_DEPENDENCIES = build_lib
 t_dslash_3d_DEPENDENCIES = build_lib
 t_site_ops_DEPENDENCIES = build_lib
@@ -341,6 +357,9 @@ t_dslash_3d$(EXEEXT): $(t_dslash_3d_OBJECTS) $(t_dslash_3d_DEPENDENCIES)
 t_site_ops$(EXEEXT): $(t_site_ops_OBJECTS) $(t_site_ops_DEPENDENCIES) 
 	@rm -f t_site_ops$(EXEEXT)
 	$(CXXLINK) $(t_site_ops_OBJECTS) $(t_site_ops_LDADD) $(LIBS)
+time_decomp$(EXEEXT): $(time_decomp_OBJECTS) $(time_decomp_DEPENDENCIES) 
+	@rm -f time_decomp$(EXEEXT)
+	$(CXXLINK) $(time_decomp_OBJECTS) $(time_decomp_LDADD) $(LIBS)
 time_dslash$(EXEEXT): $(time_dslash_OBJECTS) $(time_dslash_DEPENDENCIES) 
 	@rm -f time_dslash$(EXEEXT)
 	$(CXXLINK) $(time_dslash_OBJECTS) $(time_dslash_LDADD) $(LIBS)
@@ -373,8 +392,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testRecons64bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testSiteDslash32bit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testSiteDslash64bit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timeDecomp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timeDslash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timeDslash3D.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/time_decomp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/time_dslash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/time_dslash_3d.Po@am__quote@
 

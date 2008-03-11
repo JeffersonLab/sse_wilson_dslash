@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.10 2008-03-05 19:45:12 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.11 2008-03-11 19:45:34 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -503,10 +503,21 @@ extern "C" {
 	if (bnode != my_node) {      
 	  /* Offnode */
 	  /* Append to Tail 1, increase boundary count */
+#if 1
+	  /* This is the correct code */
 	  shift_table[DECOMP_SCATTER][dir+4*index] 
 	    = subgrid_vol_cb + bound[1-cb][DECOMP_SCATTER][dir];
 	  
 	  bound[1-cb][DECOMP_SCATTER][dir]++;
+#else
+	  /* Fake it -- don't point into the scatter array. 
+	     Let the site be local -- but count the boundary.
+	     THIS IS ONLY TEST CODE!!!! DISABLE IN PRODUCTION !!!! */
+	  shift_table[DECOMP_SCATTER][dir+4*index] = 
+	    invtab[blinear].linearcb;
+
+	  bound[1-cb][DECOMP_SCATTER][dir]++;
+#endif
 	  
 	}
 	else {                                           
@@ -523,11 +534,20 @@ extern "C" {
 	if (fnode != my_node) {
 	  /* Offnode */
 	  /* Append to Tail 1, increase boundary count */
+#if 1
 	  shift_table[DECOMP_HVV_SCATTER][dir+4*index]           
 	    = subgrid_vol_cb + bound[1-cb][DECOMP_HVV_SCATTER][dir];
 	  
 	  bound[1-cb][DECOMP_HVV_SCATTER][dir]++;                  
-	  
+#else
+	  /* Fake it -- don't point into the scatter array. 
+	     Let the site be local -- but count the boundary.
+	     THIS IS ONLY TEST CODE!!!! DISABLE IN PRODUCTION !!!! */
+	  shift_table[DECOMP_HVV_SCATTER][dir+4*index]           /* Onnode */
+	    = invtab[flinear].linearcb ;
+
+	  bound[1-cb][DECOMP_HVV_SCATTER][dir]++;                  
+#endif  
 	}
 	else {
 	  /* On node. Note the linear part of its (cb3, linear) bit,
@@ -543,12 +563,22 @@ extern "C" {
 	if (fnode != my_node) {
 	  /* Offnode */
 	  /* Append to Tail 2, increase boundary count */
-	  
+
+#if 1
 	  shift_table[RECONS_MVV_GATHER][dir+4*index] =
 	    2*subgrid_vol_cb + (bound[cb][RECONS_MVV_GATHER][dir]);
 	  
 	  bound[cb][RECONS_MVV_GATHER][dir]++;
-	  
+#else 
+	  /* Fake it -- don't point into the scatter array. 
+	     Let the site be local -- but count the boundary.
+	     THIS IS ONLY TEST CODE!!!! DISABLE IN PRODUCTION !!!! */
+
+	  shift_table[RECONS_MVV_GATHER][dir+4*index] =
+	    invtab[qdp_index].linearcb ;
+
+	  bound[cb][RECONS_MVV_GATHER][dir]++;
+#endif  
 	}
 	else {
 	  /* On node. Note the linear part of its (cb3, linear) bit,
@@ -562,11 +592,18 @@ extern "C" {
 	/* Operation:  chi(x) +=  \sum_dir recons(a^B(shift(x,type=3),dir),dir) */
 	/* Receive from backward */
 	if (bnode != my_node) {
-	  
+
+#if 1	  
 	  shift_table[RECONS_GATHER][dir+4*index] = 
 	    2*subgrid_vol_cb + bound[cb][RECONS_GATHER][dir];
 	  
 	  bound[cb][RECONS_GATHER][dir]++;
+#else
+	  shift_table[RECONS_GATHER][dir+4*index] = 
+	    invtab[qdp_index].linearcb ;
+
+	  bound[cb][RECONS_GATHER][dir]++;
+#endif
 	}
 	else {
 	  /* On node. Note the linear part of its (cb3, linear) bit,

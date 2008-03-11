@@ -46,6 +46,7 @@ time_dslash_SOURCES = $(FRAMEWORK_SRCS) \
 	timeDslash.cc \
 	time_dslash.cc
 
+
 time_dslash_3d_SOURCES = $(FRAMEWORK_3D_SRCS) \
 	timeDslash3D.h \
 	timeDslash3D.cc \
@@ -70,6 +71,14 @@ endif
 
 
 if PARSCALAR_SINGLE
+
+check_PROGRAMS += time_decomp
+
+time_decomp_SOURCES = $(FRAMEWORK_SRCS) \
+	timeDecomp.h \
+	timeDecomp.cc \
+	time_decomp.cc
+
 t_site_ops_SOURCES = $(FRAMEWORK_SRCS) \
 	t_site_ops_parscalar.cc \
 	sse32.h \

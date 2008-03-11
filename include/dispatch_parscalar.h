@@ -1,6 +1,10 @@
 #ifndef DISPATCH_PARSCALAR_H
 #define DISPATCH_PARSCALAR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdlib.h> /* For size_t */
 #include <sse_config.h> /* For info about the precision */
 
