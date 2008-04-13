@@ -63,6 +63,16 @@ AC_ARG_WITH(qmt,
    [ qmt_enabled="no" ]
 )
 
+dnl Use OpenMP threading
+AC_ARG_ENABLE(openmp,
+   AC_HELP_STRING(
+    [--enable-openmp],
+    [Enable building of OpenMP dispatcher. Pass flags necessary for OpenMP on CFLAGS]
+   ),
+   [ omp_enabled="yes" ],
+   [ omp_enabled="no" ]
+)
+
 dnl with QDP -- QDP will override everything else
 dnl since a parallel QDP will know its architecture
 dnl precition and have all the flags for QMP set already
@@ -141,11 +151,11 @@ if test "X${QDPXX_GIVEN}X" = "XyesX"; then
 	AC_MSG_ERROR([This Dslash Operator only works for checkerboarded QDP++. Sorry])
      fi
 
-     AC_SUBST(CC, ${CC})
-     AC_MSG_NOTICE([QDP++ C compiler: ${CC}])
+dnl     AC_SUBST(CC, ${CC})
+dnl     AC_MSG_NOTICE([QDP++ C compiler: ${CC}])
 
-     AC_SUBST(CXX,"`${QDPXX_CONFIG} --cxx`")
-     AC_MSG_NOTICE([QDP++ C++ compiler: ${CXX}])
+dnl   AC_SUBST(CXX,"`${QDPXX_CONFIG} --cxx`")
+dnl     AC_MSG_NOTICE([QDP++ C++ compiler: ${CXX}])
 
      AC_SUBST(SSEXX_AUX_CFLAGS, "`${QDPXX_CONFIG} --cxxflags`")
      AC_MSG_NOTICE([QDP++ compile flags: ${SSEXX_AUX_CFLAGS}])
@@ -324,6 +334,11 @@ dnl QMT Threads stuff
 if test "X${qmt_enabled}X" == "XyesX"; 
 then
 	AC_MSG_NOTICE([Configuring QMT Threading])
+	if test "X${omp_enabled}X" == "XyesX";
+	then 
+	  AC_MSG_ERROR([Cannot have OpenMP and QMT threading defined simultaneously])
+	fi
+
 	AC_DEFINE([DSLASH_USE_QMT_THREADS], [1], [ Use QMT Threads library ])
 	AC_SUBST(QMT_CFLAGS, "-I${QMT_HOME}/include")
 	AC_SUBST(QMT_LDFLAGS, "-L${QMT_HOME}/lib")
@@ -335,6 +350,17 @@ else
 
 fi
 AM_CONDITIONAL(BUILD_QMT, [test "x${qmt_enabled}x" = "xyesx" ])
+
+if test "X${omp_enabled}X" == "XyesX";
+then
+	AC_MSG_NOTICE([Configuring OpenMP Threading])
+	if test "X${qmt_enabled}X" == "XyesX";
+        then 
+          AC_MSG_ERROR([Cannot have OpenMP and QMT threading defined simultaneously])
+	fi
+	  
+	AC_DEFINE([DSLASH_USE_OMP_THREADS], [1], [ Use OpenMP Threads ])
+fi
 
 
 dnl dnl produce output

@@ -1299,6 +1299,8 @@ Optional Features:
   --enable-precision=<precision>
                           Build Assembler for <precision> precision. Possible
                           values are single and double (default is single)
+  --enable-openmp         Enable building of OpenMP dispatcher. Pass flags
+                          necessary for OpenMP on CFLAGS
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -4030,6 +4032,15 @@ else
 fi
 
 
+# Check whether --enable-openmp was given.
+if test "${enable_openmp+set}" = set; then
+  enableval=$enable_openmp;  omp_enabled="yes"
+else
+   omp_enabled="no"
+
+fi
+
+
 
 # Check whether --with-qdp was given.
 if test "${with_qdp+set}" = set; then
@@ -4201,15 +4212,7 @@ echo "$as_me: error: This Dslash Operator only works for checkerboarded QDP++. S
    { (exit 1); exit 1; }; }
      fi
 
-     CC=${CC}
 
-     { echo "$as_me:$LINENO: QDP++ C compiler: ${CC}" >&5
-echo "$as_me: QDP++ C compiler: ${CC}" >&6;}
-
-     CXX="`${QDPXX_CONFIG} --cxx`"
-
-     { echo "$as_me:$LINENO: QDP++ C++ compiler: ${CXX}" >&5
-echo "$as_me: QDP++ C++ compiler: ${CXX}" >&6;}
 
      SSEXX_AUX_CFLAGS="`${QDPXX_CONFIG} --cxxflags`"
 
@@ -5074,6 +5077,13 @@ if test "X${qmt_enabled}X" == "XyesX";
 then
 	{ echo "$as_me:$LINENO: Configuring QMT Threading" >&5
 echo "$as_me: Configuring QMT Threading" >&6;}
+	if test "X${omp_enabled}X" == "XyesX";
+	then
+	  { { echo "$as_me:$LINENO: error: Cannot have OpenMP and QMT threading defined simultaneously" >&5
+echo "$as_me: error: Cannot have OpenMP and QMT threading defined simultaneously" >&2;}
+   { (exit 1); exit 1; }; }
+	fi
+
 
 cat >>confdefs.h <<\_ACEOF
 #define DSLASH_USE_QMT_THREADS 1
@@ -5102,6 +5112,24 @@ else
   BUILD_QMT_FALSE=
 fi
 
+
+if test "X${omp_enabled}X" == "XyesX";
+then
+	{ echo "$as_me:$LINENO: Configuring OpenMP Threading" >&5
+echo "$as_me: Configuring OpenMP Threading" >&6;}
+	if test "X${qmt_enabled}X" == "XyesX";
+        then
+          { { echo "$as_me:$LINENO: error: Cannot have OpenMP and QMT threading defined simultaneously" >&5
+echo "$as_me: error: Cannot have OpenMP and QMT threading defined simultaneously" >&2;}
+   { (exit 1); exit 1; }; }
+	fi
+
+
+cat >>confdefs.h <<\_ACEOF
+#define DSLASH_USE_OMP_THREADS 1
+_ACEOF
+
+fi
 
 
 ac_config_files="$ac_config_files Makefile"

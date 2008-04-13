@@ -1,5 +1,8 @@
 /* include/sse_config_internal.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Use OpenMP Threads */
+#undef DSLASH_USE_OMP_THREADS
+
 /* Use QMT Threads library */
 #undef DSLASH_USE_QMT_THREADS
 

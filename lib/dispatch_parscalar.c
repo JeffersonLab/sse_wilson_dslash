@@ -27,6 +27,49 @@ void dispatch_to_threads(void (*func)(size_t, size_t,int, const void *),
 }
 
 #else
+
+#ifdef DSLASH_USE_OMP_THREADS
+#warning Using OpenMP dispatch
+#include <omp.h>
+
+  /* OpenMP dispatch */
+void dispatch_to_threads(void (*func)(size_t, size_t, int, const void*),
+			 spinor_array* the_spinor,
+			 halfspinor_array* the_halfspinor, 
+			 my_mat_array u,
+			 int cb,
+			 int n_sites)
+{
+  ThreadWorkerArgs a;
+  
+  int threads_num;
+  int chucksize;
+  int myId;
+  int low;
+  int high;
+
+  a.spinor = the_spinor;
+  a.half_spinor = the_halfspinor;
+  a.u = u;
+  a.cb = cb; 
+  //(*func)(0, n_sites, 0, &a);
+
+  #pragma omp parallel shared(func, n_sites, a) \
+      private(threads_num, chucksize, myId, low, high) default(none)
+    {
+
+      threads_num = omp_get_num_threads();
+      chucksize = n_sites/threads_num;
+      myId = omp_get_thread_num();
+      low = chucksize * myId;
+      high = chucksize * (myId+1);
+      (*func)(low, high, myId, &a);
+    }
+  
+}
+
+#else
+
   /* Unthreaded dispatch. We call the function directly. The 'low i
 ndex'
      is the first site, and the 'thread' should do all the sites */
@@ -47,7 +90,7 @@ void dispatch_to_threads(void (*func)(size_t, size_t, int, const void*),
 }
 
 #endif
-
+#endif
 
 
 
