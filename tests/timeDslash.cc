@@ -4,6 +4,11 @@
 #include "qdp.h"
 using namespace QDP;
 
+#undef PAT
+#ifdef PAT
+#include <pat_api.h>
+#endif
+
 #ifndef DSLASH_M_W_H
 #include "dslashm_w.h"
 #endif
@@ -109,11 +114,12 @@ timeDslash::run(void)
     }
   }
 #endif
+  QMP_barrier();
 
   StopWatch swatch;
-  double n_secs = 5;
-  int iters=1;
   double time=0;
+  double n_secs = 60;
+  int iters=1;
   QDPIO::cout << endl << "\t Calibrating for " << n_secs << " seconds " << endl;
   do {
     swatch.reset();
@@ -141,9 +147,15 @@ timeDslash::run(void)
   QDPIO::cout << endl;
   QDPIO::cout << "\t Timing with " << iters << " counts" << endl;
 
+
   swatch.reset();
+  QMP_barrier();
   swatch.start();
-  
+
+#ifdef PAT
+  int ierr;
+  ierr=PAT_region_begin(19, "DslashLoop");
+#endif
   for(int i=0; i < iters; ++i) {
        sse_su3dslash_wilson((SSEREAL *)&(packed_gauge[0]),
 			   (SSEREAL *)&(psi.elem(0).elem(0).elem(0).real()),
@@ -151,6 +163,10 @@ timeDslash::run(void)
 			   1, 0);
 
   }
+#ifdef PAT
+  ierr=PAT_region_end(19);
+#endif
+
   swatch.stop();
   time=swatch.getTimeInSeconds();
 
@@ -168,6 +184,7 @@ timeDslash::run(void)
   QDPIO::cout << "\t Timing with " << iters << " counts" << endl;
 
   swatch.reset();
+  QMP_barrier();
   swatch.start();
   
   for(int i=0; i < iters; ++i) {
