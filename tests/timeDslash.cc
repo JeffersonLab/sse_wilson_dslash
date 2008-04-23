@@ -1,6 +1,7 @@
 #include "unittest.h"
 #include "timeDslash.h"
 
+#include <qmp.h>
 #include "qdp.h"
 using namespace QDP;
 

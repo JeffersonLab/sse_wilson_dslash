@@ -1,6 +1,7 @@
 #include "unittest.h"
 #include "timeDslash3D.h"
 
+#include <qmp.h>
 #include "qdp.h"
 using namespace QDP;
 
@@ -22,6 +23,12 @@ using namespace std;
 #include <omp.h>
 #endif
 
+/* Cray PAT Performance Analysis tool */
+#define PAT  1
+#ifdef PAT
+#include <pat_api.h>
+#endif
+
 void
 timeDslash3D::run(void) 
 {
@@ -30,13 +37,14 @@ timeDslash3D::run(void)
 #ifdef DSLASH_USE_OMP_THREADS
   int threads_num;
   int myId;
-
+  if ( Layout::nodeNumber() == 0 ) { 
 #pragma omp parallel private(threads_num, myId) default(none)
-  {
-    threads_num = omp_get_num_threads();
-    myId = omp_get_thread_num();
-    if ( myId == 0 ) { 
-      printf("\nRunning with %d OpenMP threads\n", threads_num);
+    {
+      threads_num = omp_get_num_threads();
+      myId = omp_get_thread_num();
+      if ( myId == 0 ) { 
+	printf("\nRunning with %d OpenMP threads\n", threads_num);
+      }
     }
   }
 #endif
@@ -78,96 +86,14 @@ timeDslash3D::run(void)
   SSEDslash3D::qdp_pack_gauge_3d(u, packed_gauge);
  
   QDPIO::cout << endl;
+  StopWatch swatch;
+  double time=0;
+  int iters=131000;
+  double n_secs=40;
+
 #if 0
-  // Go through the test cases -- apply SSE dslash versus, QDP Dslash 
-  for(int isign=1; isign >= -1; isign -=2) {
-    for(int cb=0; cb < 2; cb++) { 
-      int source_cb = 1 - cb;
-      int target_cb = cb;
-      chi = zero;
-      chi2 = zero;
-
-      // Apply SSE Dslash
-      sse_su3dslash_wilson_3d((SSEREAL *)&(packed_gauge[0]),
-			      (SSEREAL *)&(psi.elem(0).elem(0).elem(0).real()),
-			      (SSEREAL *)&(chi.elem(0).elem(0).elem(0).real()),
-			      isign, source_cb);
-      
-      // Apply QDP Dslash
-      dslash_3d(chi2,u,psi, isign, target_cb);
-      
-      // Check the difference per number in chi vector
-      LatticeFermion diff = chi2 -chi;
-
-      Double diff_norm = sqrt( norm2( diff ) ) 
-	/ ( Real(4*3*2*Layout::vol()) / Real(2));
-	
-      QDPIO::cout << "\t cb = " << source_cb << "  isign = " << isign << "  diff_norm = " << diff_norm << endl;      
-      // Assert things are OK...
-      assertion( toBool( diff_norm < small ) );
-
-    }
-  }
-
-  // Time the QDP++ Dslash
   {
-      StopWatch swatch;
-      double n_secs = 10;
-      int iters=1;
-      double time=0;
-      
-      QDPIO::cout << endl << "\t Calibrating QDP_Dslash for " << n_secs << " seconds " << endl;
-    do {
-      swatch.reset();
-      swatch.start();
-      for(int i=0; i < iters; i++) { 
-	// Apply QDP Dslash
-	dslash_3d(chi,u,psi, 1, 0);
-      }
-      swatch.stop();
-      time=swatch.getTimeInSeconds();
-
-      // Average time over nodes
-      Internal::globalSum(time);
-      time /= (double)Layout::numNodes();
-
-      if (time < n_secs) {
-	iters *=2;
-	QDPIO::cout << "." << flush;
-      }
-    }
-    while ( time < (double)n_secs );
-      
-    QDPIO::cout << endl;
-    QDPIO::cout << "\t Timing with " << iters << " counts" << endl;
-
-    swatch.reset();
-    swatch.start();
-  
-    for(int i=0; i < iters; ++i) {
-      dslash_3d(chi,u,psi, 1, 0);    
-    }
-    swatch.stop();
-    time=swatch.getTimeInSeconds();
-
-    // Average time over nodes
-    Internal::globalSum(time);
-    time /= (double)Layout::numNodes();
-    
-    QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << endl;
-    QDPIO::cout << "\t " << 1.0e6*time/(double)iters << " u sec/iteration" << endl;
-    // Full 4D dslash is 1390 Mflops. 3D Dslash is 3/4*1390~1042.5 ? */
-    double Mflops = 1043.0f*(double)(iters)*(double)(Layout::vol()/2)/1.0e6;
-    double perf = Mflops/time;
-    QDPIO::cout << "\t QDP Dslash Performance is: " << perf << " Mflops in Total" << endl;
-    QDPIO::cout << "\t QDP Dslash Performance is: " << perf / (double)Layout::numNodes() << " per MPI Process" << endl;
-  }
-#endif 
-  {
-    StopWatch swatch;
-    double n_secs = 5;
-    int iters=1;
-    double time=0;
+    iters=1;
     QDPIO::cout << endl << "\t Calibrating for " << n_secs << " seconds " << endl;
     do {
       swatch.reset();
@@ -194,10 +120,18 @@ timeDslash3D::run(void)
     
     QDPIO::cout << endl;
     QDPIO::cout << "\t Timing with " << iters << " counts" << endl;
-    
+   }
+#endif 
+   {
     swatch.reset();
+    QMP_barrier();
+
+#ifdef PAT
+    int ierr;
+    ierr=PAT_region_begin(21, "DslashLoop3d");
+#endif
     swatch.start();
-    
+
     for(int i=0; i < iters; ++i) {
       sse_su3dslash_wilson_3d((SSEREAL *)&(packed_gauge[0]),
 			      (SSEREAL *)&(psi.elem(0).elem(0).elem(0).real()),
@@ -206,6 +140,9 @@ timeDslash3D::run(void)
       
     }
     swatch.stop();
+#ifdef PAT
+  ierr=PAT_region_end(21);
+#endif
     time=swatch.getTimeInSeconds();
     
     // Average time over nodes
