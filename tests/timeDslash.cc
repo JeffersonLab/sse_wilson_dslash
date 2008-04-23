@@ -1,7 +1,6 @@
 #include "unittest.h"
 #include "timeDslash.h"
 
-#include <qmp.h>
 #include "qdp.h"
 using namespace QDP;
 
@@ -115,7 +114,8 @@ timeDslash::run(void)
     }
   }
 #endif
-  QMP_barrier();
+  double dummy=5;
+  Internal::globalSum(dummy);
 
   StopWatch swatch;
   double time=0;
@@ -150,7 +150,7 @@ timeDslash::run(void)
 
 
   swatch.reset();
-  QMP_barrier();
+  Internal::globalSum(dummy);
   swatch.start();
 
 #ifdef PAT
@@ -185,7 +185,7 @@ timeDslash::run(void)
   QDPIO::cout << "\t Timing with " << iters << " counts" << endl;
 
   swatch.reset();
-  QMP_barrier();
+  Internal::globalSum(dummy);
   swatch.start();
   
   for(int i=0; i < iters; ++i) {

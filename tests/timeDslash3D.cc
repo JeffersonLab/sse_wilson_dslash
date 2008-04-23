@@ -1,7 +1,6 @@
 #include "unittest.h"
 #include "timeDslash3D.h"
 
-#include <qmp.h>
 #include "qdp.h"
 using namespace QDP;
 
@@ -24,7 +23,7 @@ using namespace std;
 #endif
 
 /* Cray PAT Performance Analysis tool */
-#define PAT  1
+#undef PAT  
 #ifdef PAT
 #include <pat_api.h>
 #endif
@@ -124,7 +123,8 @@ timeDslash3D::run(void)
 #endif 
    {
     swatch.reset();
-    QMP_barrier();
+    double dummy=5;
+    Internal::globalSum(dummy);
 
 #ifdef PAT
     int ierr;
