@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_scalar.c,v 1.8 2008-03-05 19:45:12 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_scalar.c,v 1.9 2008-05-12 14:50:10 bjoo Exp $
  * 
  * Action of the 32bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -76,6 +76,10 @@ extern "C" {
 
 
 /***************** start of initialization routine ***************************************/
+  void sse_su3dslash_prepost_receives(void)
+  {
+    /* NOP ON SCALAR ARCHITECTURES */
+  }
 
   void init_sse_su3dslash(const int latt_size[],
 			  void (*getSiteCoords)(int coord[], int node, int linearsite),
@@ -379,6 +383,9 @@ void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr)
   }
 
 }
+
+
+
 
 #ifdef __cplusplus
 }

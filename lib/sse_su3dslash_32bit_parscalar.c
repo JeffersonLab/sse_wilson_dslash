@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.21 2008-04-21 19:13:35 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.22 2008-05-12 14:50:10 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -84,6 +84,8 @@ extern "C" {
   static int initP=0;
 
 
+
+  
   /* The gauge field is packed so that:
        gauge_field[site][0]   <-> U(x=site   , dir = 0 ) 
        gauge_field[site][1]   <-> U(x=site+1 , dir = 0 )
@@ -848,6 +850,8 @@ static QMP_msghandle_t forw_all_mh_recv;
 
 static QMP_msghandle_t back_all_mh_send;
 static QMP_msghandle_t back_all_mh_recv;
+static int recvPostedP=0;
+
 
 
 /* Initialize the Dslash */
@@ -1080,6 +1084,25 @@ void free_sse_su3dslash(void)
 
 /***************** end of initialization routine ***************************************/
 
+void sse_su3dslash_prepost_receives(void) 
+{
+  /* Prepost all receives */
+  if (total_comm > 0 && recvPostedP==0) {
+
+    if (QMP_start(forw_all_mh_recv) != QMP_SUCCESS) {
+      QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
+      QMP_abort(1);
+    }
+    
+    if (QMP_start(back_all_mh_recv) != QMP_SUCCESS) {
+      QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
+      QMP_abort(1);
+    }
+  
+    recvPostedP=1;
+  }
+
+}
 
 void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 {
@@ -1093,19 +1116,7 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
   if(isign==1) 
   {
 
-
-    /* Prepost all receives */
-    if (total_comm > 0) {
-      if (QMP_start(forw_all_mh_recv) != QMP_SUCCESS) {
-	QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
-	QMP_abort(1);
-      }
-
-      if (QMP_start(back_all_mh_recv) != QMP_SUCCESS) {
-	QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
-	QMP_abort(1);
-      }
-    }
+    sse_su3dslash_prepost_receives();
 
     dispatch_to_threads(decomp_plus,
 		(spinor_array*)psi,
@@ -1188,25 +1199,14 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		(my_mat_array)u,	
 		1-cb,
 		subgrid_vol_cb);
+
+
   }		
 
   if(isign==-1) 
   {
 
-    /* Prepost all receives */
-    if (total_comm > 0) {
-      if (QMP_start(forw_all_mh_recv) != QMP_SUCCESS) {
-	QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
-	QMP_abort(1);
-      }
-
-      /* Prepost back receive */
-      if (QMP_start(back_all_mh_recv) != QMP_SUCCESS) {
-	QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
-	QMP_abort(1);
-      }
-    }
-
+    sse_su3dslash_prepost_receives();
 
 
     dispatch_to_threads(decomp_minus,
@@ -1289,6 +1289,9 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		1-cb,
 		subgrid_vol_cb);
   }		
+
+  /* Clear this for next iteration */
+  recvPostedP = 0;
 }
 
 #ifdef __cplusplus

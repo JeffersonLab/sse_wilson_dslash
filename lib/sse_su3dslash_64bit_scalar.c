@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_scalar.c,v 1.7 2008-03-05 19:45:13 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_scalar.c,v 1.8 2008-05-12 14:50:10 bjoo Exp $
  * 
  * Action of the 64bit single-node Wilson-Dirac operator D_w on a given spinor field
  *
@@ -142,6 +142,9 @@ void D_psi_fun_plus(size_t lo,size_t hi, int id, const void *ptr);
 void D_psi_fun_minus(size_t lo,size_t hi, int id, const void *ptr);
 
 
+void sse_su3dslash_prepost_receives(void) 
+{
+}
 
 /* External routine */
 void sse_su3dslash_wilson(double *u, double *psi, double *res, int isign, int cb)

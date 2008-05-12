@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.12 2008-03-05 19:45:13 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.13 2008-05-12 14:50:10 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -436,10 +436,18 @@ static halfspinor_array* chi2;
 static int total_comm = 0;
 static QMP_msgmem_t forw_msg[4][2];
 static QMP_msgmem_t back_msg[4][2];
-static QMP_msghandle_t forw_mh[4][2];
-static QMP_msghandle_t back_mh[4][2];
-static QMP_msghandle_t forw_all_mh;
-static QMP_msghandle_t back_all_mh;
+static QMP_msghandle_t forw_mh_send[4];
+static QMP_msghandle_t forw_mh_recv[4];
+static QMP_msghandle_t back_mh_send[4];
+static QMP_msghandle_t back_mh_recv[4];
+
+static QMP_msghandle_t forw_all_mh_send;
+static QMP_msghandle_t forw_all_mh_recv;
+
+static QMP_msghandle_t back_all_mh_send;
+static QMP_msghandle_t back_all_mh_recv;
+
+static int recvPostedP=0;
 
 
 
@@ -537,8 +545,8 @@ static QMP_msghandle_t back_all_mh;
 
       forw_msg[num][0] = QMP_declare_msgmem(chi1+subgrid_vol_cb*(1+3*mu), bound[0][0][mu]*sizeof(halfspinor_array));
       forw_msg[num][1] = QMP_declare_msgmem(chi1+subgrid_vol_cb*(2+3*mu), bound[0][0][mu]*sizeof(halfspinor_array));
-      forw_mh[num][0]  = QMP_declare_receive_relative(forw_msg[num][1], mu, +1, 0);
-      forw_mh[num][1]  = QMP_declare_send_relative(forw_msg[num][0], mu, -1, 0);
+      forw_mh_recv[num]  = QMP_declare_receive_relative(forw_msg[num][1], mu, +1, 0);
+      forw_mh_send[num]  = QMP_declare_send_relative(forw_msg[num][0], mu, -1, 0);
 	
       if (bound[0][1][mu] == 0)
       {
@@ -548,16 +556,18 @@ static QMP_msghandle_t back_all_mh;
 
       back_msg[num][0] = QMP_declare_msgmem(chi2+subgrid_vol_cb*(1+3*mu), bound[0][1][mu]*sizeof(halfspinor_array));
       back_msg[num][1] = QMP_declare_msgmem(chi2+subgrid_vol_cb*(2+3*mu), bound[0][1][mu]*sizeof(halfspinor_array));
-      back_mh[num][0]  = QMP_declare_receive_relative(back_msg[num][1], mu, -1, 0);
-      back_mh[num][1]  = QMP_declare_send_relative(back_msg[num][0], mu, +1, 0);
+      back_mh_recv[num]  = QMP_declare_receive_relative(back_msg[num][1], mu, -1, 0);
+      back_mh_send[num]  = QMP_declare_send_relative(back_msg[num][0], mu, +1, 0);
 	
       num++;
     }
   }
 
   if (num > 0) {
-    forw_all_mh = QMP_declare_multiple(&(forw_mh[0][0]), 2*num);
-    back_all_mh = QMP_declare_multiple(&(back_mh[0][0]), 2*num);
+    forw_all_mh_send = QMP_declare_multiple(&(forw_mh_send[0]), num);
+    forw_all_mh_recv = QMP_declare_multiple(&(forw_mh_recv[0]), num);
+    back_all_mh_send = QMP_declare_multiple(&(back_mh_send[0]), num);
+    back_all_mh_recv = QMP_declare_multiple(&(back_mh_recv[0]), num);
   }
   
   total_comm = num;
@@ -587,8 +597,11 @@ void free_sse_su3dslash(void)
     
     if (total_comm > 0) {
       
-      QMP_free_msghandle(forw_all_mh);
-      QMP_free_msghandle(back_all_mh);
+      QMP_free_msghandle(forw_all_mh_send);
+      QMP_free_msghandle(forw_all_mh_recv);
+
+      QMP_free_msghandle(back_all_mh_send);
+      QMP_free_msghandle(back_all_mh_recv);
   
       num = 0;
       
@@ -610,6 +623,25 @@ void free_sse_su3dslash(void)
   }
 }
 
+void sse_su3dslash_prepost_receives(void) 
+{
+  /* Prepost all receives */
+  if (total_comm > 0 && recvPostedP==0) {
+
+    if (QMP_start(forw_all_mh_recv) != QMP_SUCCESS) {
+      QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
+      QMP_abort(1);
+    }
+    
+    if (QMP_start(back_all_mh_recv) != QMP_SUCCESS) {
+      QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
+      QMP_abort(1);
+    }
+  
+    recvPostedP=1;
+  }
+
+}
 
 void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int cb)
 {
@@ -620,7 +652,9 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
   }
 
   if(isign==1) 
-  {
+  { 
+    sse_su3dslash_prepost_receives();
+
     dispatch_to_threads(decomp_plus,
 			(spinor_array*)psi,
 			chi1,
@@ -630,7 +664,7 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 
 
     if (total_comm > 0) {
-      if (QMP_start(forw_all_mh) != QMP_SUCCESS)
+      if (QMP_start(forw_all_mh_send) != QMP_SUCCESS)
       {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
 	QMP_abort(1);
@@ -645,20 +679,24 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			cb,
 			subgrid_vol_cb);
 	
-    if (total_comm > 0)
-      if (QMP_wait(forw_all_mh) != QMP_SUCCESS)
+    if (total_comm > 0) {
+      if (QMP_wait(forw_all_mh_send) != QMP_SUCCESS)
       {
 	QMP_error("sse_su3dslash_wilson: QMP_wait failed in forward direction");
 	QMP_abort(1);
       }
+      
+      /* Finish all forward receives */
+      if (QMP_wait(forw_all_mh_recv) != QMP_SUCCESS) {
+	QMP_error("sse_su3dslash_wilson: QMP_wait failed in forward direction");
+	QMP_abort(1);
+      }
 
-   
-    if (total_comm > 0)
-      if (QMP_start(back_all_mh) != QMP_SUCCESS)
-      {
+      if (QMP_start(back_all_mh_send) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
 	QMP_abort(1);
       }
+    }
 
     dispatch_to_threads(mvv_recons_plus,
 			(spinor_array*)res,
@@ -667,13 +705,22 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			1-cb,
 			subgrid_vol_cb);
 	
-    if (total_comm > 0)
-      if (QMP_wait(back_all_mh) != QMP_SUCCESS)
-      {
+
+    /* Wait for back comms to complete */
+    if (total_comm > 0) {
+      
+      if (QMP_wait(back_all_mh_send) != QMP_SUCCESS) {
 	QMP_error("wnxtsu3dslash: QMP_wait failed in backward direction");
 	QMP_abort(1);
       }
 
+
+      if (QMP_wait(back_all_mh_recv) != QMP_SUCCESS) {
+	QMP_error("wnxtsu3dslash: QMP_wait failed in backward direction");
+	QMP_abort(1);
+      }
+
+    }
 
     dispatch_to_threads(recons_plus,
 			(spinor_array*)res, 
@@ -685,6 +732,8 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
   
   if(isign==-1) 
   {
+    sse_su3dslash_prepost_receives();
+
     dispatch_to_threads(decomp_minus,
 			(spinor_array*)psi,
 			chi1,
@@ -694,7 +743,7 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
     
       
     if (total_comm > 0) {
-      if (QMP_start(forw_all_mh) != QMP_SUCCESS)
+      if (QMP_start(forw_all_mh_send) != QMP_SUCCESS)
       {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
 	QMP_abort(1);
@@ -709,21 +758,26 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			cb,
 			subgrid_vol_cb);
     
-    
-    if (total_comm > 0)
-      if (QMP_wait(forw_all_mh) != QMP_SUCCESS)
-      {
+
+    /* Finish forward comms */
+    if (total_comm > 0) {
+      if (QMP_wait(forw_all_mh_send) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_wait failed in forward direction");
 	QMP_abort(1);
       }
 
-
-    if (total_comm > 0)
-      if (QMP_start(back_all_mh) != QMP_SUCCESS)
-      {
-	QMP_error("wnxtsu3dslash: QMP_start failed in backward direction");
+      if (QMP_wait(forw_all_mh_recv) != QMP_SUCCESS) {
+	QMP_error("sse_su3dslash_wilson: QMP_wait failed in forward direction");
 	QMP_abort(1);
       }
+
+      /* Start Backward comms */
+      if (QMP_start(back_all_mh_send) != QMP_SUCCESS) {
+	QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
+	QMP_abort(1);
+      }
+    }
+    
 
     /*current cb's u */
     dispatch_to_threads(mvv_recons_minus,
@@ -734,12 +788,22 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			subgrid_vol_cb);
     
 
-    if (total_comm > 0)
-      if (QMP_wait(back_all_mh) != QMP_SUCCESS)
+      /* Wait for backward comms to complete */
+    if (total_comm > 0) {
+      if (QMP_wait(back_all_mh_send) != QMP_SUCCESS)
       {
-	QMP_error("wnxtsu3dslash: QMP_wait failed in backward direction"); 
+	QMP_error("sse_su3dslash_wilson: QMP_wait failed in backward direction");
 	QMP_abort(1);
       }
+
+
+      if (QMP_wait(back_all_mh_recv) != QMP_SUCCESS)
+      {
+	QMP_error("sse_su3dslash_wilson: QMP_wait failed in backward direction");
+	QMP_abort(1);
+      }
+
+    }
 
     dispatch_to_threads(recons_minus,
 			(spinor_array*)res, 
@@ -747,7 +811,9 @@ void sse_su3dslash_wilson(SSEREAL *u, SSEREAL *psi, SSEREAL *res, int isign, int
 			(my_mat_array)u,	
 			1-cb,
 			subgrid_vol_cb);
-  }		
+  }
+
+  recvPostedP = 0;
 }
 
 

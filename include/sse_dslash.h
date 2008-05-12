@@ -31,6 +31,10 @@
     */
     void sse_su3dslash_wilson(SSEREAL* u, SSEREAL *psi, SSEREAL *res, int isign, int cb);
   
+
+    /*! Pre post receives for bigger ops? */
+    void sse_su3dslash_prepost_receives(void);
+
 #ifdef __cplusplus
   };
 #endif
