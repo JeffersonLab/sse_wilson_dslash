@@ -1,4 +1,4 @@
-/* $Id: shift_tables_parscalar.c,v 1.11 2008-03-11 19:45:34 bjoo Exp $ */
+/* $Id: shift_tables_parscalar.c,v 1.12 2008-07-30 20:25:04 bjoo Exp $ */
 
 
 /* both of these must be called before the P4 dslash is called */
@@ -43,10 +43,10 @@ extern "C" {
 
   /* Offset table into the half spinor array */
   /* Unaligned */
-  static int* xoffset_table;
+  static halfspinor_array** xoffset_table;
 
   /* Aligned version */
-  int* offset_table;
+  halfspinor_array** offset_table;
 
   /* A struct for the inverse of the shift table - may be eliminated in 
      future */
@@ -253,7 +253,12 @@ extern "C" {
   }
   
   
-  void make_shift_tables(int bound[2][4][4],
+  void make_shift_tables(int bound[2][4][4], halfspinor_array* chi1,
+			 halfspinor_array* chi2,
+
+			 halfspinor_array* recv_bufs[2][4],
+			 halfspinor_array* send_bufs[2][4],
+
 			 void (*QDP_getSiteCoords)(int coord[], int node, int linearsite), 
 			 int (*QDP_getLinearSiteIndex)(const int coord[]),
 
@@ -270,6 +275,7 @@ extern "C" {
   int x,y,z,t;
   int *subgrid_size = getSubgridSize();
   int mu;
+  int offset;
 
   int cb;
   const int *node_coord  = QMP_get_logical_coordinates();
@@ -281,6 +287,8 @@ extern "C" {
 
   int qdp_index;
   int my_index;
+  int num;
+  int offsite_found;
 
   /* Setup the subgrid volume for ever after */
   subgrid_vol = 1;
@@ -503,21 +511,11 @@ extern "C" {
 	if (bnode != my_node) {      
 	  /* Offnode */
 	  /* Append to Tail 1, increase boundary count */
-#if 1
 	  /* This is the correct code */
 	  shift_table[DECOMP_SCATTER][dir+4*index] 
 	    = subgrid_vol_cb + bound[1-cb][DECOMP_SCATTER][dir];
 	  
 	  bound[1-cb][DECOMP_SCATTER][dir]++;
-#else
-	  /* Fake it -- don't point into the scatter array. 
-	     Let the site be local -- but count the boundary.
-	     THIS IS ONLY TEST CODE!!!! DISABLE IN PRODUCTION !!!! */
-	  shift_table[DECOMP_SCATTER][dir+4*index] = 
-	    invtab[blinear].linearcb;
-
-	  bound[1-cb][DECOMP_SCATTER][dir]++;
-#endif
 	  
 	}
 	else {                                           
@@ -534,20 +532,11 @@ extern "C" {
 	if (fnode != my_node) {
 	  /* Offnode */
 	  /* Append to Tail 1, increase boundary count */
-#if 1
 	  shift_table[DECOMP_HVV_SCATTER][dir+4*index]           
 	    = subgrid_vol_cb + bound[1-cb][DECOMP_HVV_SCATTER][dir];
 	  
 	  bound[1-cb][DECOMP_HVV_SCATTER][dir]++;                  
-#else
-	  /* Fake it -- don't point into the scatter array. 
-	     Let the site be local -- but count the boundary.
-	     THIS IS ONLY TEST CODE!!!! DISABLE IN PRODUCTION !!!! */
-	  shift_table[DECOMP_HVV_SCATTER][dir+4*index]           /* Onnode */
-	    = invtab[flinear].linearcb ;
 
-	  bound[1-cb][DECOMP_HVV_SCATTER][dir]++;                  
-#endif  
 	}
 	else {
 	  /* On node. Note the linear part of its (cb3, linear) bit,
@@ -564,21 +553,11 @@ extern "C" {
 	  /* Offnode */
 	  /* Append to Tail 2, increase boundary count */
 
-#if 1
 	  shift_table[RECONS_MVV_GATHER][dir+4*index] =
 	    2*subgrid_vol_cb + (bound[cb][RECONS_MVV_GATHER][dir]);
 	  
 	  bound[cb][RECONS_MVV_GATHER][dir]++;
-#else 
-	  /* Fake it -- don't point into the scatter array. 
-	     Let the site be local -- but count the boundary.
-	     THIS IS ONLY TEST CODE!!!! DISABLE IN PRODUCTION !!!! */
 
-	  shift_table[RECONS_MVV_GATHER][dir+4*index] =
-	    invtab[qdp_index].linearcb ;
-
-	  bound[cb][RECONS_MVV_GATHER][dir]++;
-#endif  
 	}
 	else {
 	  /* On node. Note the linear part of its (cb3, linear) bit,
@@ -593,17 +572,11 @@ extern "C" {
 	/* Receive from backward */
 	if (bnode != my_node) {
 
-#if 1	  
 	  shift_table[RECONS_GATHER][dir+4*index] = 
 	    2*subgrid_vol_cb + bound[cb][RECONS_GATHER][dir];
 	  
 	  bound[cb][RECONS_GATHER][dir]++;
-#else
-	  shift_table[RECONS_GATHER][dir+4*index] = 
-	    invtab[qdp_index].linearcb ;
 
-	  bound[cb][RECONS_GATHER][dir]++;
-#endif
 	}
 	else {
 	  /* On node. Note the linear part of its (cb3, linear) bit,
@@ -649,35 +622,139 @@ extern "C" {
      delineates which line one picks, by adding an offset of 
      3*subgrid_vol_cb*dir 
      To the shift. The result from offset table, can be used directly as a
-     pointer displacement on the temporaries.
+     pointer displacement on the temporaries. 
+     
+     Perhaps the best way to condsider this is to consider a value
+     of shift_table[type][dir/site] that lands in the body. The
+     shift table merely gives me a site index. But the data needs
+     to be different for each direction for that site index. Hence 
+     we need to replicate the body, for each dir. The 3xsubgrid_vol_cb
+     is just there to take care of the buffers.
+
+     Or another way to think of it is that there is a 'body element' index
+     specified by the shift table lookup, and that dir is just the slowest
+     varying index.
        
   */
 
   /* 4 dims, 4 types, rest of the magic is to align the thingie */
-  xoffset_table = (int *)malloc(4*4*subgrid_vol*sizeof(int)+63L);
+  xoffset_table = (halfspinor_array **)malloc(4*4*subgrid_vol*sizeof(halfspinor_array*)+63L);
   if( xoffset_table == 0 ) {
     QMP_error("init_wnxtsu3dslash: could not initialize offset_table[i]");
     QMP_abort(1);
   }
   /* This is the bit what aligns straight from AMD Manual */
-  offset_table = (int *)((((ptrdiff_t)(xoffset_table)) + 63L) & (-64L));
+  offset_table = (halfspinor_array**)((((ptrdiff_t)(xoffset_table)) + 63L) & (-64L));
 
-  for(site=0; site < subgrid_vol; site++) { 
-    for(dir=0; dir < Nd; dir++) { 
-      offset_table[ dir + 4*( site + subgrid_vol*DECOMP_SCATTER ) ] = 
-	shift_table[DECOMP_SCATTER][dir+4*site ]+3*subgrid_vol_cb*dir;
-      
-      offset_table[ dir + 4*( site + subgrid_vol*DECOMP_HVV_SCATTER ) ] = 
-	shift_table[DECOMP_HVV_SCATTER][dir+4*site ]+3*subgrid_vol_cb*dir;
-      
-      offset_table[ dir + 4*( site + subgrid_vol*RECONS_MVV_GATHER ) ] = 
-	shift_table[RECONS_MVV_GATHER][dir+4*site ]+3*subgrid_vol_cb*dir;
-      
-      offset_table[ dir + 4*( site + subgrid_vol*RECONS_GATHER ) ] = 
-	shift_table[RECONS_GATHER][dir+4*site ]+3*subgrid_vol_cb*dir;
-      
+  /* Walk through the shift_table and remap the offsets into actual
+     pointers */
+
+  /* DECOMP_SCATTER */
+  num=0;
+  for(dir =0; dir < Nd; dir++) { 
+
+    /* Loop through all the sites. Remap the offsets either to local 
+       arrays or pointers */
+    offsite_found=0;
+    for(site=0; site < subgrid_vol; site++) { 
+      offset = shift_table[DECOMP_SCATTER][dir+4*site];
+      if( offset >= subgrid_vol_cb ) { 
+	/* Found an offsite guy. It's address must be to the send back buffer */
+	/* send to back index = recv from forward index = 0  */
+	offsite_found++;
+	offset_table[ dir + 4*(site + subgrid_vol*DECOMP_SCATTER) ] =
+	  send_bufs[0][num]+(offset - subgrid_vol_cb);
+      }
+      else { 
+	/* Guy is onsite: This is DECOMP_SCATTER so offset to chi1 */
+	offset_table[ dir + 4*(site + subgrid_vol*DECOMP_SCATTER) ] =
+	chi1+shift_table[DECOMP_SCATTER][dir+4*site]+subgrid_vol_cb*dir;
+      }
+    }
+
+    if( offsite_found > 0 ) { 
+      /* If we found an offsite guy, next direction has to 
+	 go into the next dir part of the send bufs */
+      num++; 
     }
   }
+
+  /* DECOMP_HVV_SCATTER */
+  /* Restart num-s */
+  num=0;
+  for(dir =0; dir <Nd; dir++) { 
+    offsite_found=0;
+    for(site=0; site < subgrid_vol; site++) { 
+      offset = shift_table[DECOMP_HVV_SCATTER][dir+4*site];
+      if( offset >= subgrid_vol_cb ) { 
+	/* Found an offsite guy. It's address must be to the send forw buffer */
+	/* send to forward / receive from backward index = 1 */
+	offsite_found++;
+
+	offset_table[ dir + 4*(site + subgrid_vol*DECOMP_HVV_SCATTER) ] =
+	  send_bufs[1][num]+(offset - subgrid_vol_cb);
+      }
+      else { 
+	/* Guy is onsite. This is DECOMP_HVV_SCATTER so offset to chi2 */
+	offset_table[ dir + 4*(site + subgrid_vol*DECOMP_HVV_SCATTER) ] =
+	  chi2+shift_table[DECOMP_HVV_SCATTER][dir+4*site ]+subgrid_vol_cb*dir;
+      }
+    }
+    if( offsite_found > 0 ) { 
+      num++; 
+    }
+  }
+
+  /* RECONS_MVV_GATHER */
+  num=0;
+  for(dir =0; dir <Nd; dir++) { 
+    offsite_found=0;
+    for(site=0; site < subgrid_vol; site++) { 
+      offset = shift_table[RECONS_MVV_GATHER][dir+4*site];
+      if( offset >= 2*subgrid_vol_cb ) { 
+	/* Found an offsite guy. It's address must be to the recv from front buffer */
+	/* recv_from front index = send to back index = 0 */
+	offsite_found++;
+	offset_table[ dir + 4*(site + subgrid_vol*RECONS_MVV_GATHER) ] =
+	  recv_bufs[0][num]+(offset - 2*subgrid_vol_cb);
+      }
+      else { 
+	/* Guy is onsite */
+	/* This is RECONS_MVV_GATHER so offset with respect to chi1 */
+	offset_table[ dir + 4*(site + subgrid_vol*RECONS_MVV_GATHER) ] =
+	  chi1+shift_table[RECONS_MVV_GATHER][dir+4*site ]+subgrid_vol_cb*dir;
+      }
+    }
+    if( offsite_found > 0 ) { 
+      num++; 
+    }
+  }
+
+  /* RECONS_GATHER */
+  num=0;
+  for(dir =0; dir <Nd; dir++) { 
+    offsite_found=0;
+    for(site=0; site < subgrid_vol; site++) { 
+      offset = shift_table[RECONS_GATHER][dir+4*site];
+      if( offset >= 2*subgrid_vol_cb ) { 
+	/* Found an offsite guy. It's address must be to the recv from back buffer */
+	/* receive from back = send to forward index =  1*/
+	offsite_found++;
+	offset_table[ dir + 4*(site + subgrid_vol*RECONS_GATHER) ] =
+	  recv_bufs[1][num]+(offset - 2*subgrid_vol_cb);
+      }
+      else { 
+	/* Guy is onsite */
+	/* This is RECONS_GATHER so offset with respect to chi2 */
+	offset_table[ dir + 4*(site + subgrid_vol*RECONS_GATHER ) ] = 
+	chi2+shift_table[RECONS_GATHER][dir+4*site ]+subgrid_vol_cb*dir;
+      }
+    }
+    if( offsite_found > 0 ) { 
+      num++; 
+    }
+  }
+
 
 
   /* Free shift table - it is no longer needed. We deal solely with offsets */

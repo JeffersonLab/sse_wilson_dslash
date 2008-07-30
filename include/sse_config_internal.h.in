@@ -24,6 +24,12 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Disable computation in 4D kernels */
+#undef SSEDSLASH_4D_NOCOMMS
+
+/* Disable computation in 4D kernels */
+#undef SSEDSLASH_4D_NOCOMPUTE
+
 /* Parscalar Arch */
 #undef SSE_PARSCALAR
 

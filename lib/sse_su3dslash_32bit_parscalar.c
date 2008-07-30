@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.22 2008-05-12 14:50:10 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.23 2008-07-30 20:25:04 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -73,10 +73,10 @@ extern "C" {
   extern int subgrid_vol_cb;
 
   extern int *site_table;    /* Aligned lookup table */
-  extern int *offset_table;
+  extern halfspinor_array** offset_table;
 
   static inline 
-  int halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu)
+  halfspinor_array* halfspinor_buffer_offset(HalfSpinorOffsetType type, int site, int mu)
   {
     return offset_table[mu + 4*( site + subgrid_vol*type) ];
   }
@@ -135,17 +135,17 @@ to a lattice temporary */
     _mm_prefetch(sp1, _MM_HINT_T0);
     
  
-    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,low,0);
+    s3 =  halfspinor_buffer_offset(DECOMP_SCATTER,low,0);
     _mm_prefetch(s3, _MM_HINT_T0);
 
-    s4 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,low,1);
+    s4 =  halfspinor_buffer_offset(DECOMP_SCATTER,low,1);
     _mm_prefetch(s4, _MM_HINT_T0);
 
-    s5 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,low,2);
+    s5 =  halfspinor_buffer_offset(DECOMP_SCATTER,low,2);
     _mm_prefetch(s5, _MM_HINT_T0);
 
 
-    s6 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,low,3);
+    s6 =  halfspinor_buffer_offset(DECOMP_SCATTER,low,3);
     _mm_prefetch(s6, _MM_HINT_T0);
 
     for (ix1=low+1; ix1<high;ix1++) {
@@ -154,22 +154,22 @@ to a lattice temporary */
       _mm_prefetch(sp2, _MM_HINT_T0);
   
       decomp_gamma0_minus(sp1[0], *s3);
-      s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
+      s3 =  halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
       _mm_prefetch(s3, _MM_HINT_T0);
 
       decomp_gamma1_minus(sp1[0], *s4);
-      s4 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,1);
+      s4 =  halfspinor_buffer_offset(DECOMP_SCATTER,ix1,1);
       _mm_prefetch(s4, _MM_HINT_T0);
 
       decomp_gamma2_minus(sp1[0], *s5);
-      s5 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,2);
+      s5 =  halfspinor_buffer_offset(DECOMP_SCATTER,ix1,2);
       _mm_prefetch(s5, _MM_HINT_T0);
 
 
 
 
       decomp_gamma3_minus(sp1[0], *s6);
-      s6 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,3);
+      s6 =  halfspinor_buffer_offset(DECOMP_SCATTER,ix1,3);
       _mm_prefetch(s6, _MM_HINT_T0);
       
       sp1=sp2; // For prefetching
@@ -222,10 +222,10 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
 
   /************************ loop over all lattice sites *************************/
   int thissite = site_table[low];
-  s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,0);
-  s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,1);    
-  s5 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,2);    
-  s6 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,3); 
+  s3 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,0);
+  s4 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,1);    
+  s5 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,2);    
+  s6 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,3); 
   um1=&gauge_field[thissite][0];
   um2=&gauge_field[thissite][1];
   um3=&gauge_field[thissite][2];
@@ -252,13 +252,13 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
 
     /****************** direction +0 *********************************/
     decomp_hvv_gamma0_plus(*sm1,*um1,*s3);
-    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
+    s3 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
     um1=&gauge_field[thissite][0];
     _mm_prefetch(s3, _MM_HINT_T0);
     _mm_prefetch(um1,_MM_HINT_T0);
 
     decomp_hvv_gamma1_plus(*sm1,*um2,*s4);
-    s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
+    s4 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
     um2=&gauge_field[thissite][1];
     _mm_prefetch(s4, _MM_HINT_T0);
     _mm_prefetch(um2, _MM_HINT_T0);
@@ -266,14 +266,14 @@ void decomp_hvv_plus(size_t lo,size_t hi, int id, const void *ptr)
     _mm_prefetch(sm1,_MM_HINT_T0);
 
     decomp_hvv_gamma2_plus(*sm1,*um3,*s5);
-    s5 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
+    s5 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
     um3=&gauge_field[thissite][2];
     _mm_prefetch(s5, _MM_HINT_T0);
     _mm_prefetch(um3, _MM_HINT_T0);
 
 
     decomp_hvv_gamma3_plus(*sm1,*um4,*s6);
-    s6 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
+    s6 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
     um4=&gauge_field[thissite][3];
     _mm_prefetch(s6, _MM_HINT_T0);
     _mm_prefetch(um4, _MM_HINT_T0);
@@ -330,10 +330,10 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
   
   /************************ loop over all lattice sites *************************/
   int thissite = site_table[ low ];
-  s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
-  s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,1);
-  s5 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,2);
-  s6 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,3);
+  s3 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
+  s4 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,low,1);
+  s5 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,low,2);
+  s6 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,low,3);
   up1=&gauge_field[thissite][0]; 
   up2=&gauge_field[thissite][1];
   up3=&gauge_field[thissite][2];
@@ -360,13 +360,13 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
     sn2=&spinor_field[thissite];    
 
     mvv_recons_gamma0_plus(*s3, *up1, r12_1, r34_1);
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
+    s3 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
     up1=&gauge_field[thissite][0]; 
     _mm_prefetch(s3, _MM_HINT_T0);
     _mm_prefetch(up1,_MM_HINT_T0);
 
     mvv_recons_gamma1_plus_add(*s4, *up2, r12_1, r34_1);
-    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
+    s4 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1);
     up2=&gauge_field[thissite][1]; 
     _mm_prefetch(s4, _MM_HINT_T0);
     _mm_prefetch(up2, _MM_HINT_T0);
@@ -375,13 +375,13 @@ void mvv_recons_plus(size_t lo,size_t hi, int id, const void *ptr)
     _mm_prefetch(sn1,_MM_HINT_T0);
 
     mvv_recons_gamma2_plus_add(*s5, *up3, r12_1, r34_1);
-    s5 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
+    s5 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     up3=&gauge_field[thissite][2];
     _mm_prefetch(s5, _MM_HINT_T0);
     _mm_prefetch(up3, _MM_HINT_T0);
 
     mvv_recons_gamma3_plus_add_store(*s6, *up4, r12_1, r34_1,*sn1);
-    s6 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
+    s6 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     up4=&gauge_field[thissite][3];
     _mm_prefetch(s6, _MM_HINT_T0);
     _mm_prefetch(up4, _MM_HINT_T0);
@@ -433,16 +433,16 @@ void recons_plus(size_t lo,size_t hi, int id, const void *ptr )
 
 
 
-  hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,low,0); 
+  hs0 =  halfspinor_buffer_offset(RECONS_GATHER,low,0); 
   _mm_prefetch(hs0, _MM_HINT_NTA);
 
-  hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,low,1); 
+  hs1 =  halfspinor_buffer_offset(RECONS_GATHER,low,1); 
   _mm_prefetch(hs1, _MM_HINT_NTA);
 
-  hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,low,2); 
+  hs2 =  halfspinor_buffer_offset(RECONS_GATHER,low,2); 
   _mm_prefetch(hs2, _MM_HINT_NTA);
 
-  hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,low,3);
+  hs3 =  halfspinor_buffer_offset(RECONS_GATHER,low,3);
   _mm_prefetch(hs3, _MM_HINT_NTA);
 
   sn1=&spinor_field[thissite];   
@@ -455,16 +455,16 @@ void recons_plus(size_t lo,size_t hi, int id, const void *ptr )
    
     recons_4dir_plus(*hs0, *hs1, *hs2, *hs3, *sn1);
 
-    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
+    hs0 =  halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
     _mm_prefetch(hs0, _MM_HINT_NTA);
 
-    hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1); 
+    hs1 =  halfspinor_buffer_offset(RECONS_GATHER,ix1,1); 
     _mm_prefetch(hs1, _MM_HINT_NTA);
 
-    hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2); 
+    hs2 =  halfspinor_buffer_offset(RECONS_GATHER,ix1,2); 
     _mm_prefetch(hs2, _MM_HINT_NTA);
 
-    hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3); 
+    hs3 =  halfspinor_buffer_offset(RECONS_GATHER,ix1,3); 
     _mm_prefetch(hs3, _MM_HINT_NTA);
 
     sn1=sn2;
@@ -513,16 +513,16 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
   sp1=&spinor_field[thissite]; 
   _mm_prefetch(sp1, _MM_HINT_T0);
   
-  s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,low,0);
+  s3 =  halfspinor_buffer_offset(DECOMP_SCATTER,low,0);
   _mm_prefetch(s3, _MM_HINT_T0);
   
-  s4 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,low,1);
+  s4 =  halfspinor_buffer_offset(DECOMP_SCATTER,low,1);
   _mm_prefetch(s4, _MM_HINT_T0);
   
-  s5 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,low,2);
+  s5 =  halfspinor_buffer_offset(DECOMP_SCATTER,low,2);
   _mm_prefetch(s5, _MM_HINT_T0);
   
-  s6 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,low,3);
+  s6 =  halfspinor_buffer_offset(DECOMP_SCATTER,low,3);
   _mm_prefetch(s6, _MM_HINT_T0);
 
   
@@ -533,19 +533,19 @@ void decomp_minus(size_t lo,size_t hi, int id, const void *ptr ) /*need to fix d
   
     
     decomp_gamma0_plus(sp1[0], *s3);
-    s3 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
+    s3 =  halfspinor_buffer_offset(DECOMP_SCATTER,ix1,0);
     _mm_prefetch(s3, _MM_HINT_T0);
 
     decomp_gamma1_plus(sp1[0], *s4);
-    s4 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,1);
+    s4 =  halfspinor_buffer_offset(DECOMP_SCATTER,ix1,1);
     _mm_prefetch(s4, _MM_HINT_T0);
       
     decomp_gamma2_plus(sp1[0], *s5);
-    s5 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,2);
+    s5 =  halfspinor_buffer_offset(DECOMP_SCATTER,ix1,2);
     _mm_prefetch(s5, _MM_HINT_T0);
 
     decomp_gamma3_plus(sp1[0], *s6);    
-    s6 = chi + halfspinor_buffer_offset(DECOMP_SCATTER,ix1,3);
+    s6 =  halfspinor_buffer_offset(DECOMP_SCATTER,ix1,3);
     _mm_prefetch(s6, _MM_HINT_T0);
       
     sp1=sp2; // For prefetching
@@ -589,10 +589,10 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
 
   /************************ loop over all lattice sites *************************/
   int thissite = site_table[low];
-  s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,0);
-  s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,1);    
-  s5 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,2);    
-  s6 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,3); 
+  s3 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,0);
+  s4 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,1);    
+  s5 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,2);    
+  s6 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,low,3); 
   um1=&gauge_field[thissite][0];
   um2=&gauge_field[thissite][1];
   um3=&gauge_field[thissite][2];
@@ -619,20 +619,20 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
 
     /***************** direction +0 *********************************/
     decomp_hvv_gamma0_minus(*sm1, *um1, *s3);
-    s3 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
+    s3 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,0);
     um1=&gauge_field[thissite][0];
     _mm_prefetch(s3, _MM_HINT_T0);
     _mm_prefetch(um1,_MM_HINT_T0);
 
     decomp_hvv_gamma1_minus(*sm1, *um2, *s4);
-    s4 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
+    s4 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,1);
     um2=&gauge_field[thissite][1];
     _mm_prefetch(s4, _MM_HINT_T0);
     _mm_prefetch(um2, _MM_HINT_T0);
 
 
     decomp_hvv_gamma2_minus(*sm1, *um3, *s5);
-    s5 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
+    s5 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,2);
     um3=&gauge_field[thissite][2];
     _mm_prefetch(s5, _MM_HINT_T0);
     _mm_prefetch(um3, _MM_HINT_T0);
@@ -640,7 +640,7 @@ void decomp_hvv_minus(size_t lo,size_t hi, int id, const void *ptr )
     _mm_prefetch(sm1,_MM_HINT_T0);
     
     decomp_hvv_gamma3_minus(*sm1, *um4, *s6);
-    s6 = chi + halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
+    s6 =  halfspinor_buffer_offset(DECOMP_HVV_SCATTER,ix1,3);
     um4=&gauge_field[thissite][3];
 
     _mm_prefetch(s6, _MM_HINT_T0);
@@ -692,10 +692,10 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
   int high = cb*subgrid_vol_cb + hi;
 
   int thissite = site_table[low];
-  s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
-  s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,1);
-  s5 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,2);
-  s6 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,low,3);
+  s3 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,low,0);
+  s4 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,low,1);
+  s5 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,low,2);
+  s6 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,low,3);
   um1=&gauge_field[thissite][0]; 
   um2=&gauge_field[thissite][1];
   um3=&gauge_field[thissite][2];
@@ -720,20 +720,20 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
     sn2 = &spinor_field[thissite];   
  
     mvv_recons_gamma0_minus(*s3, *um1, r12_1, r34_1);
-    s3 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
+    s3 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,0);
     um1=&gauge_field[thissite][0];  
     _mm_prefetch(s3, _MM_HINT_T0);
     _mm_prefetch(um1,_MM_HINT_T0);
 
     mvv_recons_gamma1_minus_add(*s4, *um2, r12_1, r34_1);
-    s4 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1); 
+    s4 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,1); 
     um2= &gauge_field[thissite][1];
     _mm_prefetch(s4, _MM_HINT_T0);
     _mm_prefetch(um2, _MM_HINT_T0);
 
 
     mvv_recons_gamma2_minus_add(*s5, *um3, r12_1, r34_1);
-    s5 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
+    s5 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,2);
     um3=&gauge_field[thissite][2];  
     _mm_prefetch(s5, _MM_HINT_T0);
     _mm_prefetch(um3, _MM_HINT_T0);
@@ -742,7 +742,7 @@ void mvv_recons_minus(size_t lo,size_t hi, int id, const void *ptr )
 
     mvv_recons_gamma3_minus_add_store(*s6, *um4, r12_1, r34_1,*sn1);
 
-    s6 = chi + halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
+    s6 =  halfspinor_buffer_offset(RECONS_MVV_GATHER,ix1,3);
     um4=&gauge_field[thissite][3];  
     _mm_prefetch(s6, _MM_HINT_T0);
     _mm_prefetch(um4, _MM_HINT_T0);
@@ -779,16 +779,16 @@ void recons_minus(size_t lo,size_t hi, int id, const void *ptr )
   int low = cb*subgrid_vol_cb + lo;
   int high = cb*subgrid_vol_cb + hi;
   int thissite = site_table[low];  
-  hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,low,0); 
+  hs0 =  halfspinor_buffer_offset(RECONS_GATHER,low,0); 
   _mm_prefetch(hs0, _MM_HINT_NTA);
 
-  hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,low,1); 
+  hs1 =  halfspinor_buffer_offset(RECONS_GATHER,low,1); 
   _mm_prefetch(hs1, _MM_HINT_NTA);
 
-  hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,low,2); 
+  hs2 =  halfspinor_buffer_offset(RECONS_GATHER,low,2); 
   _mm_prefetch(hs2, _MM_HINT_NTA);
 
-  hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,low,3);
+  hs3 =  halfspinor_buffer_offset(RECONS_GATHER,low,3);
   _mm_prefetch(hs3, _MM_HINT_NTA);
 
   sn1=&spinor_field[thissite];   
@@ -801,16 +801,16 @@ void recons_minus(size_t lo,size_t hi, int id, const void *ptr )
 
     recons_4dir_minus(*hs0, *hs1, *hs2, *hs3, *sn1);
 
-    hs0 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
+    hs0 =  halfspinor_buffer_offset(RECONS_GATHER,ix1,0); 
     _mm_prefetch(hs0, _MM_HINT_NTA);
     
-    hs1 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,1); 
+    hs1 =  halfspinor_buffer_offset(RECONS_GATHER,ix1,1); 
     _mm_prefetch(hs1, _MM_HINT_NTA);
     
-    hs2 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,2); 
+    hs2 =  halfspinor_buffer_offset(RECONS_GATHER,ix1,2); 
     _mm_prefetch(hs2, _MM_HINT_NTA);
     
-    hs3 = chi + halfspinor_buffer_offset(RECONS_GATHER,ix1,3); 
+    hs3 =  halfspinor_buffer_offset(RECONS_GATHER,ix1,3); 
     _mm_prefetch(hs3, _MM_HINT_NTA);
    
     sn1=sn2;
@@ -824,49 +824,98 @@ void recons_minus(size_t lo,size_t hi, int id, const void *ptr )
 /***************** start of initialization routine ***************************************/
 
 
-static QMP_mem_t* xchi1;               /* QMP Memory Structures for halfspinor arrays */
-static QMP_mem_t* xchi2;               /* xchi1 => FORWARD, xchi2 => BACKWARD         */
+static QMP_mem_t* xchi;               /* QMP Memory Structures for halfspinor arrays */
 
-#if 0
+
+/* Make these visible for testing/timing */
 static halfspinor_array* chi1;         /* These are the aligned pointers from the QMP Memory structures */
 static halfspinor_array* chi2;         /* xchi1 <=> chi1    xchi2 <=> chi2 */
-#else
-  /* Make these visible for testing/timing */
-  halfspinor_array* chi1;         /* These are the aligned pointers from the QMP Memory structures */
-  halfspinor_array* chi2;         /* xchi1 <=> chi1    xchi2 <=> chi2 */
-#endif
+
 
 
 /* Nearest neighbor communication channels */
 static int total_comm = 0;
-static QMP_msgmem_t forw_msg[4][2];
-static QMP_msgmem_t back_msg[4][2];
-static QMP_msghandle_t forw_mh_send[4]; /* Send forward */
-static QMP_msghandle_t forw_mh_recv[4]; /* Receive from backwards */
-static QMP_msghandle_t back_mh_send[4]; /* Send backwards */
-static QMP_msghandle_t back_mh_recv[4]; /* Receive from forwards */
-static QMP_msghandle_t forw_all_mh_send;
-static QMP_msghandle_t forw_all_mh_recv;
 
-static QMP_msghandle_t back_all_mh_send;
-static QMP_msghandle_t back_all_mh_recv;
+/* Nearest neighbour buffers - unaligned pointers */
+static QMP_mem_t* xsend_bufs;
+static QMP_mem_t* xrecv_bufs;
+
+/* and their corresponding aligned pointers */
+static halfspinor_array* send_bufs;
+static halfspinor_array* recv_bufs;
+
+/* 4 dirs, the other is back=0,forw=1 */
+/* The indexing is a little overloaded.
+   0 - means 'send backwards/receive forwards'
+   1 - means 'send forwards/receive backwards'
+ so one needs to use the appropriate one, depending on whether one
+ sends or receives */
+static QMP_msgmem_t send_msg[2][4];
+static QMP_msgmem_t recv_msg[2][4];
+
+
+/* Individual send and receive message handles */
+static QMP_msghandle_t send_mh[2][4]; /* Send forward */
+static QMP_msghandle_t recv_mh[2][4]; /* Receive from backwards */
+
+/* Collapsed message handles */
+static QMP_msghandle_t send_all_mh[2];
+static QMP_msghandle_t recv_all_mh[2];
+
 static int recvPostedP=0;
 
 
+/* This is apparently AMD Specific. A cache line is 64 bytes.
+   Simultaneously read arrays separated by 32K can thrash the cache */
+#define CACHE_LINE_SIZE   64
+#define CACHE_THRASH_SIZE   (32*1024)
+
+/* A temporary structure */
+typedef struct { 
+  unsigned int dir;
+  unsigned int offset;
+  unsigned int size;
+  unsigned int pad;
+} BufTable;
 
 /* Initialize the Dslash */
-  void init_sse_su3dslash(const int latt_size[],
-			  void (*getSiteCoords)(int coord[], int node, int linearsite),
-			  int (*getLinearSiteIndex)(const int coord[]),
-			  int (*nodeNumber)(const int coord[]))   // latt_size not used, here for scalar version
+void init_sse_su3dslash(const int latt_size[],
+			void (*getSiteCoords)(int coord[], int node, int linearsite),
+			int (*getLinearSiteIndex)(const int coord[]),
+			int (*nodeNumber)(const int coord[]))   // latt_size not used, here for scalar version
 {
   const int *machine_size = QMP_get_logical_dimensions();
-  // const int *subgrid_cb_size = QMP_get_subgrid_dimensions();
  
-  /* bound[cb][forward=0/backward=1][dir] */
-  int bound[2][4][4];
 
-  int mu, num, nsize;
+  int bound[2][4][4]; /* Boundaries from makeShiftTables() */
+
+  int nbound[4];    /* Bounds computed from geometry */
+
+  int sx,sy,sz,st;  /* Subgrid sizes */
+  int cb;           /* checkerboard index */
+
+  int mu, num;      /* mu direction index. num typically the size on
+		       the number of directions after noncommunicating directions
+		       were taken out */
+
+  int nsize;        /* temporary */
+  int num_even;     /* Counts the number of even dimensions in sanity check */
+
+
+  unsigned int offset; /* Buffer offset/size computations */
+  int pad;             /* A temporary for padding in offset/size computations */
+
+  int i;            /* Index for forward/backward loops */
+
+  BufTable recv[2][4];  /* Temporary information structure */
+
+  /* These are temporary, since these pointers get bound up in 
+     the QMP_msmgem structures in the end. These are passed
+     to make shift tables, so that the offsets of the the shift
+     tables can be turned into addresses */
+
+  halfspinor_array* recv_bufptr[2][4]; /* Buffer pointers for receiving */
+  halfspinor_array* send_bufptr[2][4]; /* Buffer pointers for sending */
 
 
   /* If we are already initialised, then increase the refcount and return */
@@ -875,7 +924,6 @@ static int recvPostedP=0;
     initP++;
     return;
   }
-
 
   /* Otherwise initialise */
   /* Check we are in 4D */
@@ -893,7 +941,8 @@ static int recvPostedP=0;
       exit(1);
     }
   }
-  
+
+  /* Check x-checkerboarding */
   num = latt_size[0] / machine_size[0];
   if ( num % 2 != 0 )
     {
@@ -902,118 +951,149 @@ static int recvPostedP=0;
     QMP_abort(1);
   }
 
+  /* Get subdimensions and check consistency */ 
+  num_even = 0;
+  sx = latt_size[0]/machine_size[0]; if( sx%2 == 0 ) num_even++;
+  sy = latt_size[1]/machine_size[1]; if( sy%2 == 0 ) num_even++;
+  sz = latt_size[2]/machine_size[2]; if( sz%2 == 0 ) num_even++;
+  st = latt_size[3]/machine_size[3]; if( st%2 == 0 ) num_even++;
 
-  /* Make the shift table  -- this sets the vol and vol_cb so we can call getSugridVolCB() after it */
-  make_shift_tables(bound,
-		    getSiteCoords,
-		    getLinearSiteIndex,
-		    nodeNumber);
+  if( num_even < 2 ) { 
+    fprintf(stderr, "Need at least 2 subdimensions to be even");
+    QMP_abort(1);
+  }
+
+  /* Compute the size of the boundaries in each direction */
+  nbound[0]=(sy*sz*st)/2;
+  nbound[1]=(sx*sz*st)/2;
+  nbound[2]=(sx*sy*st)/2;
+  nbound[3]=(sx*sy*sz)/2;
+  subgrid_vol_cb = sx*sy*sz*st/2;
+  subgrid_vol = sx*sy*sz*st;
+
+  /* OK here I want to allocate the comms buffers then */
+  /* I will allocate them all in a oner... */
+ offset=0;
+  for(i=0; i < 2; i++) { 
+    num=0;
+
+    /* i=0 => recv from forward/send backward */
+    /* i=1 => recv from backward/send forward */
+    /* Fill out the buffer descriptor structure */
+    for(mu=0; mu < 4; ++mu) {
+      if( machine_size[mu] > 1 ) { 
+
+	recv[i][num].dir = mu;
+	recv[i][num].offset = offset;
+	recv[i][num].size = nbound[mu]*sizeof(halfspinor_array);
 
 
-  /* Allocate the halfspinor temporaries */
-  /* The halfspinor is really the following:
-     
-        halfspinor[0][Nd][vol_cb] - half spinors from the body
-	halfspinor[1][Nd][vol_cb] - half spinors from the tail to be sent forward
-	halfspinor[2][Nd][vol_cb] - half spinors from the tail to be sent backward
+	/* Cache line align the next buffer */
+	if ( (offset % CACHE_LINE_SIZE) != 0 ) { 
+	  pad = CACHE_LINE_SIZE - (offset % CACHE_LINE_SIZE);
+	}
+	else { 
+	  pad = 0;
+	}
 
-	The Nd stands for the 4 decomposition directions (gamma_matrices)
+	/* If the size + pad == CACHE_SET_SIZE, you may experience
+	   cache thrashing so pad another line to eliminate that */
+	if ( ((recv[i][num].size + pad) % CACHE_THRASH_SIZE) == 0 ) { 
+	  pad += CACHE_LINE_SIZE;
+	}
 
-	The body and tails are overallocated to their maximum size: vol_cb
-	Hence the size is half_spinor_size * vol_cb*3*Nd
-	where Nd=4, 3 is the number of buffers (body, forward tail, backward tail)
-	and   half spinor size is 2spin comp * 3 color * 2 floats (=1complex)
+	recv[i][num].pad = pad;
+	offset += recv[i][num].size + pad;
+	num++;
+      }
+    }
+  }
 
-  */
-  nsize = 2*3*2*sizeof(float)*subgrid_vol_cb*3*4;  /* Note 3x4 half-fermions */
+  /* Allocate unaligned buffers */
+  if ((xsend_bufs = QMP_allocate_aligned_memory(offset,CACHE_LINE_SIZE,0)) == 0)
+  {
+    QMP_error("init_wnxtsu3dslash: could not initialize xsend bufs");
+    QMP_abort(1);
+  }
+  if ((xrecv_bufs = QMP_allocate_aligned_memory(offset, CACHE_LINE_SIZE,0)) == 0)
+  {
+    QMP_error("init_wnxtsu3dslash: could not initialize xrecv_bufs");
+    QMP_abort(1);
+  }
+    
+  /* Allocate the aligned pointers */
+  recv_bufs = (halfspinor_array*)QMP_get_memory_pointer(xrecv_bufs);
+  send_bufs = (halfspinor_array*)QMP_get_memory_pointer(xsend_bufs);
 
-  /* xchi1 and xchi2 will hold projected spinors memory handles from QMP */
-  if ((xchi1 = QMP_allocate_aligned_memory(nsize,64,0)) == 0)
+  /* Find the actual buffer pointers themselves */
+  for(i=0; i < 2; i++) { 
+    for(mu=0; mu < num; mu++) { 
+      recv_bufptr[i][mu] = (halfspinor_array *)((unsigned char *)recv_bufs + recv[i][mu].offset + recv[i][mu].pad);
+      send_bufptr[i][mu] = (halfspinor_array *)((unsigned char *)send_bufs + recv[i][mu].offset + recv[i][mu].pad);
+    }
+  }
+
+
+  /* Allocate the half spinor array */
+  nsize = 2*3*2*sizeof(float)*subgrid_vol_cb*4;  /* Note 3x4 half-fermions */
+  if ((xchi = QMP_allocate_aligned_memory(2*nsize+64,64,0)) == 0)
   {
     QMP_error("init_wnxtsu3dslash: could not initialize xchi1");
     QMP_abort(1);
   }
 
-  if ((xchi2 = QMP_allocate_aligned_memory(nsize,64,0)) == 0)
-  {
-    QMP_error("init_wnxtsu3dslash: could not initialize xchi2");
-    QMP_abort(1);
+  /* Unwrap the half spinor pointers from the QMP Structures.
+     BTW: This 2 step technique susks so bad! */
+  chi1 = (halfspinor_array*)QMP_get_memory_pointer(xchi);
+
+  if ( nsize == (CACHE_THRASH_SIZE)) {
+    pad = CACHE_LINE_SIZE; 
+  }
+  else {
+    pad=0;
   }
 
-  /* Unwrap the half spinor pointers from the QMP Structures. BTW: This 2 step technique susks so bad! */
-  chi1 = (halfspinor_array*)QMP_get_memory_pointer(xchi1);
-  chi2 = (halfspinor_array*)QMP_get_memory_pointer(xchi2); 
-
+  chi2 = (halfspinor_array*)((char *)chi1 + nsize + pad);
 
   /* Zero these out for testing */
   bzero(chi1, nsize);
   bzero(chi2, nsize);
 
+  /* Make the shift table  -- this sets the vol and vol_cb so we can call getSugridVolCB() after it */
+  make_shift_tables(bound,chi1, chi2, recv_bufptr, send_bufptr,
+		    getSiteCoords,
+		    getLinearSiteIndex,
+		    nodeNumber);
+
+
   /* Loop over all communicating directions and build up the two message
-   * handles. If there is no communications, the message handles will not
-   * be initialized 
+   * memories
    */
-  num = 0;
-
-  /* Loop over directions */
-  for(mu=0; mu < 4; ++mu) {
-
-    if(machine_size[mu] > 1) { /* If the machine is not a scalar  in this dimensio */
-    
-      if (bound[0][0][mu] == 0) { /* Consistency: Check the boundary in this direction is 0 */
- 	QMP_error("init_sse_dslash: type 0 message size is 0: mu=%d", mu);
-	QMP_abort(1);
+  for(i=0; i < 2; i++) { 
+    for(mu=0; mu < num; mu++) { 
+      recv_msg[i][mu] = QMP_declare_msgmem(recv_bufptr[i][mu], recv[i][mu].size);
+      send_msg[i][mu] = QMP_declare_msgmem(send_bufptr[i][mu], recv[i][mu].size);
+      if( i == 0 ) { 
+	/* Recv from forward, send backward pair */
+	recv_mh[i][mu]= QMP_declare_receive_relative(recv_msg[i][mu], recv[i][mu].dir, +1, 0);
+	send_mh[i][mu]= QMP_declare_send_relative(send_msg[i][mu], recv[i][mu].dir, -1, 0);
       }
-
-      /* 
-	 Boundary is indexed as            boundary[cb][forward=0/back=1][direction] 
-      */	 
-
-      /* cb = 0 */
-      forw_msg[num][0] = QMP_declare_msgmem( chi1+subgrid_vol_cb*(1+3*mu),
-					     bound[0][0][mu]*sizeof(halfspinor_array));
-
-      /* cb = 1 */
-      forw_msg[num][1] = QMP_declare_msgmem( chi1+subgrid_vol_cb*(2+3*mu),
-					     bound[1][0][mu]*sizeof(halfspinor_array));
-
-      /* cb = 0: Receive from cb = 1 */
-      forw_mh_recv[num]  = QMP_declare_receive_relative(forw_msg[num][1], mu, +1, 0);
-
-      /* cb = 1: send to cb = 0 */
-      forw_mh_send[num]  = QMP_declare_send_relative(forw_msg[num][0], mu, -1, 0);
-	
-      if (bound[0][1][mu] == 0)
-      {
-	QMP_error("init_sse_dslash: type 0 message size is 0");
-	QMP_abort(1);
+      else { 
+	/* Recv from backwards, send forward pair */
+	recv_mh[i][mu]= QMP_declare_receive_relative(recv_msg[i][mu], recv[i][mu].dir, -1, 0);
+	send_mh[i][mu]= QMP_declare_send_relative(send_msg[i][mu], recv[i][mu].dir, +1, 0);
       }
-
-      /* cb = 0 */
-      back_msg[num][0] = QMP_declare_msgmem( chi2+subgrid_vol_cb*(1+3*mu),
-					     bound[0][1][mu]*sizeof(halfspinor_array));
-
-      /* cb = 1 */
-      back_msg[num][1] = QMP_declare_msgmem( chi2+subgrid_vol_cb*(2+3*mu), 
-					     bound[1][1][mu]*sizeof(halfspinor_array));
-
-      /* cb = 0: Receive from cb=1 */
-      back_mh_recv[num]  = QMP_declare_receive_relative(back_msg[num][1], mu, -1, 0);
-
-      /* cb = 1: Receive from cb=0 */
-      back_mh_send[num]  = QMP_declare_send_relative(back_msg[num][0], mu, +1, 0);
-	
-      num++;
     }
   }
 
+					    
+
   /* Combine the messages */
   if (num > 0) {
-    forw_all_mh_send = QMP_declare_multiple(&(forw_mh_send[0]), num);
-    forw_all_mh_recv = QMP_declare_multiple(&(forw_mh_recv[0]), num);
-
-    back_all_mh_send = QMP_declare_multiple(&(back_mh_send[0]), num);
-    back_all_mh_recv = QMP_declare_multiple(&(back_mh_recv[0]), num);
+    for(i=0; i<2; i++) { 
+      send_all_mh[i] = QMP_declare_multiple(send_mh[i], num);
+      recv_all_mh[i] = QMP_declare_multiple(recv_mh[i], num);
+    }
   }
 
 
@@ -1026,7 +1106,7 @@ void free_sse_su3dslash(void)
 {
   const int *machine_size = QMP_get_logical_dimensions();
   int mu, num;
-
+  int i;
   /***************HACK********************/
   /* There is a gigE QMP_free bug  (2/6/04). For now, turn off ever free-ing !! */
   return;
@@ -1043,41 +1123,29 @@ void free_sse_su3dslash(void)
   /* If the refcount has now hit 0 then free stuff */
   if( initP == 0 ) { 
 
-    /* Free space */
-    QMP_free_memory(xchi1);
-    QMP_free_memory(xchi2);
+    /* Free space - 4 spinors */
+    QMP_free_memory(xchi);
+
+    /* Send and receive buffer space */
+    QMP_free_memory(xsend_bufs);
+    QMP_free_memory(xrecv_bufs);
 
     /* Free shift table */
     free_shift_tables();
     
-
+    /* Memory/comms handles */
     if (total_comm > 0) {
-      
-      QMP_free_msghandle(forw_all_mh_send);
-      QMP_free_msghandle(forw_all_mh_recv);
-
-      QMP_free_msghandle(back_all_mh_send);
-      QMP_free_msghandle(back_all_mh_recv);
-  
-      num = 0;
-      
-      for(mu=0; mu < 4; ++mu) {
+      for(i=0; i < 2; i++) { 
+	QMP_free_msghandle(send_all_mh[i]);
+	QMP_free_msghandle(recv_all_mh[i]);
 	
-	if(machine_size[mu] > 1) {
-      
-
-	  QMP_free_msgmem(forw_msg[num][0]);
-	  QMP_free_msgmem(forw_msg[num][1]);
-
-
-	  QMP_free_msgmem(back_msg[num][0]);
-	  QMP_free_msgmem(back_msg[num][1]);
-	  
-	  num++;
+	for(mu=0; mu < total_comm; mu++) { 
+	  QMP_free_msgmem(send_msg[i][mu]);
+	  QMP_free_msgmem(recv_msg[i][mu]);
 	}
       }
-    }
-    
+      
+    }    
     total_comm = 0;
   }
 }
@@ -1089,12 +1157,12 @@ void sse_su3dslash_prepost_receives(void)
   /* Prepost all receives */
   if (total_comm > 0 && recvPostedP==0) {
 
-    if (QMP_start(forw_all_mh_recv) != QMP_SUCCESS) {
+    if (QMP_start(recv_all_mh[0]) != QMP_SUCCESS) {
       QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
       QMP_abort(1);
     }
     
-    if (QMP_start(back_all_mh_recv) != QMP_SUCCESS) {
+    if (QMP_start(recv_all_mh[1]) != QMP_SUCCESS) {
       QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
       QMP_abort(1);
     }
@@ -1103,6 +1171,16 @@ void sse_su3dslash_prepost_receives(void)
   }
 
 }
+
+
+/* Have these set by autoconf eventually */
+#ifdef SSEDSLASH_4D_NOCOMPUTE
+#warning COMPUTE PORTION DISABLED
+#endif
+
+#ifdef SSEDSLASH_4D_NOCOMMS
+#warning COMMS PORTION DISABLED
+#endif
 
 void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 {
@@ -1116,115 +1194,130 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
   if(isign==1) 
   {
 
+#ifndef SSEDSLASH_4D_NOCOMMS
     sse_su3dslash_prepost_receives();
+#endif
 
+
+#ifndef SSEDSLASH_4D_NOCOMPUTE
     dispatch_to_threads(decomp_plus,
 		(spinor_array*)psi,
 		chi1,
 		(my_mat_array)u,
 		cb,
 		subgrid_vol_cb);
+#endif
 
-
+#ifndef SSEDSLASH_4D_NOCOMMS
     if(total_comm > 0) {
-
-      if (QMP_start(forw_all_mh_send) != QMP_SUCCESS) {
+      if (QMP_start(send_all_mh[0]) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
 	QMP_abort(1);
       }
     }
+#endif
 
+#ifndef SSEDSLASH_4D_NOCOMPUTE
     dispatch_to_threads(decomp_hvv_plus,
 		(spinor_array*)psi,
 		chi2,
 		(my_mat_array)u,
 		cb,
 		subgrid_vol_cb);
-	
 
+#endif	
+
+#ifndef SSEDSLASH_4D_NOCOMMS
     /* Wait for forward comms to finish */
     if (total_comm > 0) {
 
       /* Finish all sends */
-      if (QMP_wait(forw_all_mh_send) != QMP_SUCCESS) {
+      if (QMP_wait(send_all_mh[0]) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_wait failed in forward direction");
 	QMP_abort(1);
       }
 
 
       /* Finish all forward receives */
-      if (QMP_wait(forw_all_mh_recv) != QMP_SUCCESS) {
+      if (QMP_wait(recv_all_mh[0]) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_wait failed in forward direction");
 	QMP_abort(1);
       }
 
       /* Start back sends - receives should be preposted */
-
-      if (QMP_start(back_all_mh_send) != QMP_SUCCESS) {
+      if (QMP_start(send_all_mh[1]) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
 	QMP_abort(1);
       }
     }
+#endif
 
+#ifndef SSEDSLASH_4D_NOCOMPUTE
     dispatch_to_threads(mvv_recons_plus,
 		(spinor_array*)res,
 		chi1,
 		(my_mat_array)u,
 		1-cb,
 		subgrid_vol_cb);
+#endif
 
-
+#ifndef SSEDSLASH_4D_NOCOMMS
     /* Wait for back comms to complete */
     if (total_comm > 0) {
 
-      if (QMP_wait(back_all_mh_send) != QMP_SUCCESS) {
+      if (QMP_wait(send_all_mh[1]) != QMP_SUCCESS) {
 	QMP_error("wnxtsu3dslash: QMP_wait failed in backward direction");
 	QMP_abort(1);
       }
 
 
-      if (QMP_wait(back_all_mh_recv) != QMP_SUCCESS) {
+      if (QMP_wait(recv_all_mh[1]) != QMP_SUCCESS) {
 	QMP_error("wnxtsu3dslash: QMP_wait failed in backward direction");
 	QMP_abort(1);
       }
 
     }
+#endif
 
 
-
-
+#ifndef SSEDSLASH_4D_NOCOMPUTE
     dispatch_to_threads(recons_plus,
 		(spinor_array*)res, 
 		chi2,
 		(my_mat_array)u,	
 		1-cb,
 		subgrid_vol_cb);
-
+#endif
 
   }		
 
   if(isign==-1) 
   {
 
+#ifndef SSEDSLASH_4D_NOCOMMS
     sse_su3dslash_prepost_receives();
+#endif
 
-
+#ifndef SSEDSLASH_4D_NOCOMPUTE
     dispatch_to_threads(decomp_minus,
 		(spinor_array*)psi,
 		chi1,
 		(my_mat_array)u,
 		cb,
 		subgrid_vol_cb);
+#endif
 
-
+#ifndef SSEDSLASH_4D_NOCOMMS
     /* Start sends */
     if (total_comm > 0) {
-      if (QMP_start(forw_all_mh_send) != QMP_SUCCESS) {
+      if (QMP_start(send_all_mh[0]) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in forward direction");
 	QMP_abort(1);
       }
     }
+#endif
 
+#ifndef SSEDSLASH_4D_NOCOMPUTE
     dispatch_to_threads(decomp_hvv_minus,
 		(spinor_array*)psi,
 		chi2,
@@ -1232,66 +1325,70 @@ void sse_su3dslash_wilson(float *u, float *psi, float *res, int isign, int cb)
 		cb,
 		subgrid_vol_cb);
 
+#endif
 
+#ifndef SSEDSLASH_4D_NOCOMMS
     /* Finish forward comms */
     if (total_comm > 0) {
-      if (QMP_wait(forw_all_mh_send) != QMP_SUCCESS) {
+      if (QMP_wait(send_all_mh[0]) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_wait failed in forward direction");
 	QMP_abort(1);
       }
 
-      if (QMP_wait(forw_all_mh_recv) != QMP_SUCCESS) {
+      if (QMP_wait(recv_all_mh[0]) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_wait failed in forward direction");
 	QMP_abort(1);
       }
-    }
 
-
-    /* Start backward comms  - receive ought to be preposted */
-    if (total_comm > 0) {
-      if (QMP_start(back_all_mh_send) != QMP_SUCCESS) {
+      if (QMP_start(send_all_mh[1]) != QMP_SUCCESS) {
 	QMP_error("sse_su3dslash_wilson: QMP_start failed in backward direction");
 	QMP_abort(1);
       }
     }
+#endif
 
-
+#ifndef SSEDSLASH_4D_NOCOMPUTE
     dispatch_to_threads(mvv_recons_minus,
 		(spinor_array*)res,
 		chi1,
 		(my_mat_array)u,
 		1-cb,
 		subgrid_vol_cb);
-    
+#endif
 
+#ifndef SSEDSLASH_4D_NOCOMMS
     /* Wait for backward comms to complete */
     if (total_comm > 0) {
-      if (QMP_wait(back_all_mh_send) != QMP_SUCCESS)
-      {
-	QMP_error("sse_su3dslash_wilson: QMP_wait failed in backward direction");
-	QMP_abort(1);
-      }
+      if (QMP_wait(send_all_mh[1]) != QMP_SUCCESS)
+	{
+	  QMP_error("sse_su3dslash_wilson: QMP_wait failed in backward direction");
+	  QMP_abort(1);
+	}
+      
 
-
-      if (QMP_wait(back_all_mh_recv) != QMP_SUCCESS)
-      {
-	QMP_error("sse_su3dslash_wilson: QMP_wait failed in backward direction");
-	QMP_abort(1);
-      }
-
+      if ( QMP_wait(recv_all_mh[1]) != QMP_SUCCESS)
+	{
+	  QMP_error("sse_su3dslash_wilson: QMP_wait failed in backward direction");
+	  QMP_abort(1);
+	}
+      
     }
+#endif
 
-
+#ifndef SSEDSLASH_4D_NOCOMPUTE
     dispatch_to_threads(recons_minus,
 		(spinor_array*)res, 
 		chi2,
 		(my_mat_array)u,	
 		1-cb,
 		subgrid_vol_cb);
+#endif
   }		
 
+#ifndef SSEDSLASH_4D_NOCOMMS
   /* Clear this for next iteration */
   recvPostedP = 0;
+#endif
 }
 
 #ifdef __cplusplus

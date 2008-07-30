@@ -112,6 +112,6 @@ t_dslash_3d_DEPENDENCIES = build_lib
 t_site_ops_DEPENDENCIES = build_lib
 time_dslash_DEPENDENCIES = build_lib
 time_dslash_3d_DEPENDENCIES = build_lib
-
+DEPENDENCIES = build_lib
 .PHONY: build_lib
 	cd @top_builddir@/lib; $(MAKE)

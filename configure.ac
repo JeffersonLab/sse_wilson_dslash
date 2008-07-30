@@ -73,6 +73,24 @@ AC_ARG_ENABLE(openmp,
    [ omp_enabled="no" ]
 )
 
+AC_ARG_ENABLE(nocompute,
+	AC_HELP_STRING(
+	  [--enable-nocompute],
+	  [Disable the compute parts of dslash. This allows the timing of the routine with only communications.]
+        ),
+	[ nocompute_enabled="yes" ],
+	[ nocompute_enabled="no" ]
+)
+
+AC_ARG_ENABLE(nocomms,
+	AC_HELP_STRING(
+	  [--enable-nocomms],
+	  [Disable the comms parts of dslash. This allows one to gauge the effect of communications.]
+        ),
+	[ nocomms_enabled="yes" ],
+	[ nocomms_enabled="no" ]
+)
+
 dnl with QDP -- QDP will override everything else
 dnl since a parallel QDP will know its architecture
 dnl precition and have all the flags for QMP set already
@@ -328,6 +346,19 @@ AM_CONDITIONAL(SCALAR_DOUBLE, [ test "X${ARCH_HASH}X" == "Xscalar_doubleX" ] )
 AM_CONDITIONAL(PARSCALAR_SINGLE, [ test "X${ARCH_HASH}X" == "Xparscalar_singleX" ] )
 AM_CONDITIONAL(PARSCALAR_DOUBLE, [ test "X${ARCH_HASH}X" == "Xparscalar_doubleX" ] )
 AM_CONDITIONAL(BUILD_QDP_PACKERS, [ test "X${QDPXX_GIVEN}X" == "XyesX" ])				 
+
+dnl NOCOMPUTE DIagnostic
+if test "X${nocompute_enabled}X" == "XyesX";
+then 
+     AC_MSG_NOTICE([Disabling The Compute Parts of the Dslash])
+     AC_DEFINE([SSEDSLASH_4D_NOCOMPUTE],[1],[Disable computation in 4D kernels])
+fi
+
+if test "X${nocomms_enabled}X" == "XyesX";
+then 
+     AC_MSG_NOTICE([Disabling the Comms in the Dslash])
+     AC_DEFINE([SSEDSLASH_4D_NOCOMMS],[1],[Disable computation in 4D kernels])
+fi
 
 
 dnl QMT Threads stuff
