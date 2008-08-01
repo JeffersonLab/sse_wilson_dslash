@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_64bit_parscalar.c,v 1.14 2008-07-30 20:25:04 bjoo Exp $
+ * $Id: sse_su3dslash_64bit_parscalar.c,v 1.15 2008-08-01 02:43:00 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -428,8 +428,8 @@ void recons_minus(size_t lo, size_t hi, int id, const void *ptr)
 }
 
 static QMP_mem_t* xchi;
-static halfspinor_array* chi1;
-static halfspinor_array* chi2;
+halfspinor_array* chi1;
+halfspinor_array* chi2;
 
 
 /* Nearest neighbor communication channels */

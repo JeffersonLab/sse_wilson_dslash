@@ -1,5 +1,5 @@
 /*******************************************************************************
- * $Id: sse_su3dslash_32bit_parscalar.c,v 1.23 2008-07-30 20:25:04 bjoo Exp $
+ * $Id: sse_su3dslash_32bit_parscalar.c,v 1.24 2008-08-01 02:43:00 bjoo Exp $
  * 
  * Action of the 32bit parallel Wilson-Dirac operator D_w on a given spinor field
  *
@@ -828,8 +828,8 @@ static QMP_mem_t* xchi;               /* QMP Memory Structures for halfspinor ar
 
 
 /* Make these visible for testing/timing */
-static halfspinor_array* chi1;         /* These are the aligned pointers from the QMP Memory structures */
-static halfspinor_array* chi2;         /* xchi1 <=> chi1    xchi2 <=> chi2 */
+halfspinor_array* chi1;         /* These are the aligned pointers from the QMP Memory structures */
+halfspinor_array* chi2;         /* xchi1 <=> chi1    xchi2 <=> chi2 */
 
 
 
