@@ -1,3 +1,5 @@
+#include <sse_config.h>
+
 #include "mvv_recons_64bit.h"
 #include "sse_align.h"
 #include "xmmintrin.h"
@@ -16,9 +18,36 @@ extern "C" {
     __m128d vector;
   } SSEMask2;
 
+#ifdef SSEDSLASH_SLOPPY
+#define SLOPPY_REGS  \
+  __m128 xmm8 ALIGN; \
+  __m128 xmm9 ALIGN; \
+  __m128 xmm10 ALIGN
+  
+#define LOAD( row )						\
+  xmm8 = _mm_loadl_pi(xmm8, (__m64*)(&src[(row)][0][0]) );	\
+  xmm0 = _mm_cvtps_pd(xmm8);					\
+  								\
+  xmm9 = _mm_loadl_pi(xmm9, (__m64*)(&src[(row)][1][0]) );	\
+  xmm1 = _mm_cvtps_pd(xmm9);					\
+  								\
+  xmm10 = _mm_loadl_pi(xmm10,(__m64*)(&src[(row)][2][0]) );	\
+  xmm2 = _mm_cvtps_pd(xmm10)
+#else
+
+#define SLOPPY_REGS 
+
+#define LOAD( row ) \
+  xmm0 = _mm_load_pd( &src[(row)][0][0] );	\
+  xmm1 = _mm_load_pd( &src[(row)][1][0] );	\
+  xmm2 = _mm_load_pd( &src[(row)][2][0] )
+
+#endif
+
+
 void mvv_recons_gamma0_plus( halfspinor_array src, 
 			     u_mat_array u,
-			    spinor_array dst)
+			     spinor_array dst)
 {
   __m128d xmm0 ALIGN;
   __m128d xmm1 ALIGN;
@@ -28,12 +57,13 @@ void mvv_recons_gamma0_plus( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
+  LOAD(0);
 
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -147,12 +177,8 @@ void mvv_recons_gamma0_plus( halfspinor_array src,
   _mm_store_pd(&dst[3][0][0], xmm3);
   _mm_store_pd(&dst[3][1][0], xmm4);
   _mm_store_pd(&dst[3][2][0], xmm5);
-
-
-  /* Now deal with components 2-4 */
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -282,12 +308,12 @@ void mvv_recons_gamma1_plus_add( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+  
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
-
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -416,11 +442,7 @@ void mvv_recons_gamma1_plus_add( halfspinor_array src,
   _mm_store_pd(&dst[3][1][0], xmm1);
   _mm_store_pd(&dst[3][2][0], xmm2);
 
-
-  /* Now deal with components 2-4 */
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -555,12 +577,12 @@ void mvv_recons_gamma2_plus_add( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
-
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -699,9 +721,7 @@ void mvv_recons_gamma2_plus_add( halfspinor_array src,
 
 
   /* Now deal with components 2-4 */
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -846,12 +866,12 @@ void mvv_recons_gamma2_plus_add_store( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
-
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -988,11 +1008,8 @@ void mvv_recons_gamma2_plus_add_store( halfspinor_array src,
   _mm_store_pd(&dst[2][1][0], xmm1);
   _mm_store_pd(&dst[2][2][0], xmm2);
 
+  LOAD(1);
 
-  /* Now deal with components 2-4 */
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -1140,11 +1157,12 @@ void mvv_recons_gamma3_plus_add_store( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
 
   /* SU3 Multiply */
@@ -1266,9 +1284,8 @@ void mvv_recons_gamma3_plus_add_store( halfspinor_array src,
   _mm_store_pd(&dst[2][2][0], xmm2);
 
 
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  /* Now deal with components 2-4 */
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -1405,13 +1422,13 @@ void mvv_recons_gamma0_minus( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
   SSEMask2 conj = {{1,-1 }};
 
-
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -1528,9 +1545,7 @@ void mvv_recons_gamma0_minus( halfspinor_array src,
 
 
   /* Now deal with components 2-4 */
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -1660,12 +1675,13 @@ void mvv_recons_gamma1_minus_add( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
 
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -1796,9 +1812,7 @@ void mvv_recons_gamma1_minus_add( halfspinor_array src,
 
 
   /* Now deal with components 2-4 */
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -1934,12 +1948,12 @@ void mvv_recons_gamma2_minus_add( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
-
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -2078,9 +2092,7 @@ void mvv_recons_gamma2_minus_add( halfspinor_array src,
 
 
   /* Now deal with components 2-4 */
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -2226,12 +2238,12 @@ void mvv_recons_gamma2_minus_add_store( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
-
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -2370,9 +2382,7 @@ void mvv_recons_gamma2_minus_add_store( halfspinor_array src,
 
 
   /* Now deal with components 2-4 */
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -2520,11 +2530,13 @@ void mvv_recons_gamma3_minus_add_store( halfspinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
-  xmm0 = _mm_load_pd(&src[0][0][0]);
-  xmm1 = _mm_load_pd(&src[0][1][0]);
-  xmm2 = _mm_load_pd(&src[0][2][0]);
+  LOAD(0);
 
 
   /* SU3 Multiply */
@@ -2645,10 +2657,8 @@ void mvv_recons_gamma3_minus_add_store( halfspinor_array src,
   _mm_store_pd(&dst[2][1][0], xmm1);
   _mm_store_pd(&dst[2][2][0], xmm2);
 
-
-  xmm0 = _mm_load_pd(&src[1][0][0]);
-  xmm1 = _mm_load_pd(&src[1][1][0]);
-  xmm2 = _mm_load_pd(&src[1][2][0]);
+  /* Now deal with components 2-4 */
+  LOAD(1);
 
   /* SU3 Multiply */
   xmm3 = _mm_load_sd(&u[0][0][0] );
@@ -2771,6 +2781,8 @@ void mvv_recons_gamma3_minus_add_store( halfspinor_array src,
 
 }
 
+#undef SLOPPY_REGS
+#undef LOAD
 
 #ifdef __cplusplus
 };

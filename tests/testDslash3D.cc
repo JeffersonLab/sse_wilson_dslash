@@ -51,7 +51,12 @@ testDslash3D::run(void)
   }
   else {
     // Adjust this...
+    // Adjust this...
+#ifdef SSEDSLASH_SLOPPY
+    small = Double(1.0e-7);
+#else
     small = Double(1.0e-16);
+#endif
   }
 
   // Make a random gauge field 

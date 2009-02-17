@@ -1,3 +1,5 @@
+#include <sse_config.h>
+
 #include "decomp_hvv.h"
 #include "sse_align.h"
 #include "xmmintrin.h"
@@ -11,6 +13,27 @@ typedef  union {
   __m128d vector;
 } SSEMask;
 				
+#ifdef SSEDSLASH_SLOPPY
+#define SLOPPY_REGS				\
+  __m128 xmm8 ALIGN;				\
+  __m128 xmm9 ALIGN;				\
+  __m128 xmm10 ALIGN
+
+#define STORE(r)					\
+  xmm8 = _mm_cvtpd_ps(xmm3);				\
+  _mm_storel_pi((__m64*)(&dst[(r)][0][0]), xmm8);	\
+  xmm9 = _mm_cvtpd_ps(xmm4);				\
+  _mm_storel_pi((__m64*)(&dst[(r)][1][0]), xmm9);	\
+  xmm10 = _mm_cvtpd_ps(xmm5);				\
+  _mm_storel_pi((__m64*)(&dst[(r)][2][0]), xmm10)
+#else
+#define SLOPPY_REGS
+
+#define STORE(r)				\
+  _mm_store_pd(&dst[(r)][0][0], xmm3);		\
+  _mm_store_pd(&dst[(r)][1][0], xmm4);		\
+  _mm_store_pd(&dst[(r)][2][0], xmm5)
+#endif
 
 void decomp_hvv_gamma0_plus( spinor_array src, 
 			     u_mat_array u,
@@ -24,6 +47,8 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
 
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
@@ -149,9 +174,7 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
   /* Store component 0  */
-  _mm_store_pd(&dst[0][0][0], xmm3);
-  _mm_store_pd(&dst[0][1][0], xmm4);
-  _mm_store_pd(&dst[0][2][0], xmm5);
+  STORE(0);
 
 
   /* Components 1 & 2 */
@@ -273,10 +296,7 @@ void decomp_hvv_gamma0_plus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
-  /* Store component 1 */
-  _mm_store_pd(&dst[1][0][0], xmm3);
-  _mm_store_pd(&dst[1][1][0], xmm4);
-  _mm_store_pd(&dst[1][2][0], xmm5);
+  STORE(1);
 
 }
 
@@ -292,6 +312,9 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+  
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
   
@@ -411,10 +434,8 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
-  /* Store component */
-  _mm_store_pd(&dst[0][0][0], xmm3);
-  _mm_store_pd(&dst[0][1][0], xmm4);
-  _mm_store_pd(&dst[0][2][0], xmm5);
+  /* Store component 0  */
+  STORE(0);
 
   /* Components 1 & 2 */
   xmm0 = _mm_load_pd(&src[1][0][0]);
@@ -528,11 +549,8 @@ void decomp_hvv_gamma1_plus( spinor_array src,
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
   /* Store component */
-  _mm_store_pd(&dst[1][0][0], xmm3);
-  _mm_store_pd(&dst[1][1][0], xmm4);
-  _mm_store_pd(&dst[1][2][0], xmm5);
 
-
+  STORE(1);
 
 }
 
@@ -548,7 +566,9 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
-  
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0 ,0x0 }};
 
   /* Projection: Munge components 0 & 2 */
@@ -673,10 +693,8 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
-  /* Store component */
-  _mm_store_pd(&dst[0][0][0], xmm3);
-  _mm_store_pd(&dst[0][1][0], xmm4);
-  _mm_store_pd(&dst[0][2][0], xmm5);
+  /* Store component 0  */
+  STORE(0);
 
   /* Components 1 & 3 */
   xmm0 = _mm_load_pd(&src[1][0][0]);
@@ -797,10 +815,7 @@ void decomp_hvv_gamma2_plus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
-  /* Store component */
-  _mm_store_pd(&dst[1][0][0], xmm3);
-  _mm_store_pd(&dst[1][1][0], xmm4);
-  _mm_store_pd(&dst[1][2][0], xmm5);
+  STORE(1);
 
 }
 
@@ -817,6 +832,9 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
    /* Load spinor component 0 */
@@ -930,10 +948,9 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
-  /* Store component */
-  _mm_store_pd(&dst[0][0][0], xmm3);
-  _mm_store_pd(&dst[0][1][0], xmm4);
-  _mm_store_pd(&dst[0][2][0], xmm5);
+  /* Store component 0  */
+  STORE(0);
+
 
   /* Load spinor component 0 */
   xmm0 = _mm_load_pd(&src[1][0][0]);
@@ -1048,11 +1065,7 @@ void decomp_hvv_gamma3_plus( spinor_array src,
   xmm4 = _mm_add_pd(xmm7, xmm4);
   
   /* Store component */
-  _mm_store_pd(&dst[1][0][0], xmm3);
-  _mm_store_pd(&dst[1][1][0], xmm4);
-  _mm_store_pd(&dst[1][2][0], xmm5);
-
-
+  STORE(1);
 }
 
 
@@ -1068,7 +1081,10 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
-  
+ 
+  SLOPPY_REGS;
+
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
 
   /* Projection: Munge components 0 & 3 */
@@ -1193,10 +1209,7 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
-  /* Store component 0 */
-  _mm_store_pd(&dst[0][0][0], xmm3);
-  _mm_store_pd(&dst[0][1][0], xmm4);
-  _mm_store_pd(&dst[0][2][0], xmm5);
+  STORE(0);
 
   /* Components 1 & 2 */
   xmm0 = _mm_load_pd(&src[1][0][0]);
@@ -1318,10 +1331,8 @@ void decomp_hvv_gamma0_minus( spinor_array src,
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
   /* Store component 1 */
-  _mm_store_pd(&dst[1][0][0], xmm3);
-  _mm_store_pd(&dst[1][1][0], xmm4);
-  _mm_store_pd(&dst[1][2][0], xmm5);
- 
+  STORE(1);
+
 }
 
 void decomp_hvv_gamma1_minus( spinor_array src, 
@@ -1336,6 +1347,10 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+  
+  SLOPPY_REGS;
+
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
   
   /* Projection: Munge components 0 & 3 */
@@ -1453,10 +1468,9 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
-  /* Store component 0 */
-  _mm_store_pd(&dst[0][0][0], xmm3);
-  _mm_store_pd(&dst[0][1][0], xmm4);
-  _mm_store_pd(&dst[0][2][0], xmm5);
+
+  /* Store component 0  */
+  STORE(0);
 
   /* Components 1 & 2 */
   xmm0 = _mm_load_pd(&src[1][0][0]);
@@ -1570,9 +1584,7 @@ void decomp_hvv_gamma1_minus( spinor_array src,
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
   /* Store component 1 */
-  _mm_store_pd(&dst[1][0][0], xmm3);
-  _mm_store_pd(&dst[1][1][0], xmm4);
-  _mm_store_pd(&dst[1][2][0], xmm5);
+  STORE(1);
 
 }
 
@@ -1589,7 +1601,9 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
-  
+ 
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0, 0x0 }};
 
   /* Projection: Munge components 0 & 2 */
@@ -1714,10 +1728,8 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
-  /* Store component 0 */
-  _mm_store_pd(&dst[0][0][0], xmm3);
-  _mm_store_pd(&dst[0][1][0], xmm4);
-  _mm_store_pd(&dst[0][2][0], xmm5);
+  /* Store component 0  */
+  STORE(0);
 
   /* Components 1 & 3 */
   xmm0 = _mm_load_pd(&src[1][0][0]);
@@ -1839,10 +1851,8 @@ void decomp_hvv_gamma2_minus( spinor_array src,
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
   /* Store component */
-  _mm_store_pd(&dst[1][0][0], xmm3);
-  _mm_store_pd(&dst[1][1][0], xmm4);
-  _mm_store_pd(&dst[1][2][0], xmm5);
- 
+  STORE(1);
+
 }
 
 
@@ -1858,6 +1868,9 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   __m128d xmm5 ALIGN;
   __m128d xmm6 ALIGN;
   __m128d xmm7 ALIGN;
+  
+  SLOPPY_REGS;
+
   SSEMask sse_sgn = {{0x0, 0x80000000, 0x0,0x0 }};
   
    /* Load spinor component 0 */
@@ -1971,10 +1984,9 @@ void decomp_hvv_gamma3_minus( spinor_array src,
   xmm5 = _mm_add_pd(xmm6, xmm5);
   xmm4 = _mm_add_pd(xmm7, xmm4);
 
+  
   /* Store component 0 */
-  _mm_store_pd(&dst[0][0][0], xmm3);
-  _mm_store_pd(&dst[0][1][0], xmm4);
-  _mm_store_pd(&dst[0][2][0], xmm5);
+  STORE(0);
 
   /* Load spinor component 0 */
   xmm0 = _mm_load_pd(&src[1][0][0]);
@@ -2090,11 +2102,12 @@ void decomp_hvv_gamma3_minus( spinor_array src,
 
 
   /* Store component 1 */
-  _mm_store_pd(&dst[1][0][0], xmm3);
-  _mm_store_pd(&dst[1][1][0], xmm4);
-  _mm_store_pd(&dst[1][2][0], xmm5);
+  STORE(1);
 
 }
+
+#undef SLOPPY_REGS
+#undef STORE
 
 #ifdef __cplusplus
 };

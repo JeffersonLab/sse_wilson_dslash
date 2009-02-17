@@ -29,6 +29,12 @@ AC_ARG_ENABLE(testing,
    [Enable make check to automatically run tests, rather than just build them]),   [ do_tests="${enableval}" ]
 )
 
+AC_ARG_ENABLE(sloppy, 
+   AC_HELP_STRING([--enable-sloppy],
+   [Enable Sloppyness for Double precision build (single prec 2 spinors) ]),
+   [ sloppy="${enableval}" ]
+)
+
 AC_ARG_ENABLE(site-tests,
   AC_HELP_STRING([--enable-site-tests],
    [Enable building of site-ops tests. These still use inline assembler so may not be suitable for all compilers ]),
@@ -131,6 +137,12 @@ then
 else
  AC_MSG_NOTICE([ make check will make but not run the tests ])
 fi
+
+if test "X${sloppy}X" == "XyesX" ; 
+ then 
+  AC_MSG_NOTICE([ Enabling sloppy mode for DP Dslash ] )
+  AC_DEFINE(SSEDSLASH_SLOPPY, [1], SLOPPY_DSLASH)
+ fi
 
 AM_CONDITIONAL(RUN_TESTS, [ test "X${do_tests}X" == "XyesX" ] )
 dnl 

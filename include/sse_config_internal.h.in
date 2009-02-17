@@ -30,6 +30,9 @@
 /* Disable computation in 4D kernels */
 #undef SSEDSLASH_4D_NOCOMPUTE
 
+/* SLOPPY_DSLASH */
+#undef SSEDSLASH_SLOPPY
+
 /* Parscalar Arch */
 #undef SSE_PARSCALAR
 

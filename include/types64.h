@@ -1,3 +1,5 @@
+#include <sse_config.h>
+
 #ifndef TYPES_64_H
 #define TYPES_64_H
 
@@ -20,7 +22,13 @@ extern "C" {
   typedef chi_double chi_three[3] __attribute__ ((aligned (16)));
   typedef double u_mat_array[3][3][2]  ALIGN;  /* color color re/im */ 
   typedef double spinor_array[4][3][2] ALIGN; /* Nspin4 color re/im */
-  typedef chi_three halfspinor_array[2]    ALIGN; /*.. Nspin2 color re/im ::note:: Nspin2 has to be slowest varying */
+
+#ifdef SSEDSLASH_SLOPPY
+  /* Sloppy precision means internal storage is a float */
+  typedef float halfspinor_array[2][3][2] ALIGN; /*.. Nspin2 color re/im ::note:: Nspin2 has to be slowest varying */
+#else
+  typedef double halfspinor_array[2][3][2] ALIGN;
+#endif
   typedef u_mat_array (*my_mat_array)[4] ALIGN;  
 
 #include <xmmintrin.h>
