@@ -6,6 +6,7 @@
 #ifndef QDP_INCLUDE
 #include "qdp.h"
 #endif 
+using namespace QDP;
 
 namespace SSEDslash3D { 
 

@@ -7,6 +7,8 @@
 #include "qdp.h"
 #endif 
 
+using namespace QDP;
+
 namespace SSEDslash { 
 
   typedef PColorMatrix<RComplex<REAL>, 3> PrimitiveSU3Matrix;
