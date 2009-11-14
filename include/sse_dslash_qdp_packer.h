@@ -11,7 +11,8 @@ using namespace QDP;
 
 namespace SSEDslash { 
 
-  typedef PColorMatrix<RComplex<REAL>, 3> PrimitiveSU3Matrix;
+  // This is a little hacky, but switching this on for general Nc
+  typedef PColorMatrix<RComplex<REAL>, Nc> PrimitiveSU3Matrix;
 
 
   void qdp_pack_gauge(const multi1d<LatticeColorMatrix>&_u, multi1d<PrimitiveSU3Matrix>& u_tmp);
