@@ -44,7 +44,6 @@ void dispatch_to_threads(void (*func)(size_t, size_t, int, const void*),
   ThreadWorkerArgs a;
   
   int threads_num;
-  int chucksize;
   int myId;
   int low;
   int high;
@@ -55,14 +54,13 @@ void dispatch_to_threads(void (*func)(size_t, size_t, int, const void*),
   a.cb = cb; 
 
   #pragma omp parallel shared(func, n_sites, a) \
-      private(threads_num, chucksize, myId, low, high) default(none)
+      private(threads_num, myId, low, high) default(none)
     {
 
       threads_num = omp_get_num_threads();
-      chucksize = n_sites/threads_num;
       myId = omp_get_thread_num();
-      low = chucksize * myId;
-      high = chucksize * (myId+1);
+      low = n_sites * myId / threads_num;
+      high = n_sites * (myId+1) /threads_num;
       (*func)(low, high, myId, &a);
     }
   
