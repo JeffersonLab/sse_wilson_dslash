@@ -107,7 +107,7 @@ timeDslash3D::run(void)
       time=swatch.getTimeInSeconds();
       
       // Average time over nodes
-      Internal::globalSum(time);
+      QDPInternal::globalSum(time);
       time /= (double)Layout::numNodes();
       
       if (time < n_secs) {
@@ -124,7 +124,7 @@ timeDslash3D::run(void)
    {
     swatch.reset();
     double dummy=5;
-    Internal::globalSum(dummy);
+    QDPInternal::globalSum(dummy);
 
 #ifdef PAT
     int ierr;
@@ -146,7 +146,7 @@ timeDslash3D::run(void)
     time=swatch.getTimeInSeconds();
     
     // Average time over nodes
-    Internal::globalSum(time);
+    QDPInternal::globalSum(time);
     time /= (double)Layout::numNodes();
     
     QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << endl;

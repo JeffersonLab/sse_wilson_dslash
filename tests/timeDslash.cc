@@ -115,7 +115,7 @@ timeDslash::run(void)
   }
 #endif
   double dummy=5;
-  Internal::globalSum(dummy);
+  QDPInternal::globalSum(dummy);
 
   StopWatch swatch;
   double time=0;
@@ -135,7 +135,7 @@ timeDslash::run(void)
     time=swatch.getTimeInSeconds();
 
     // Average time over nodes
-    Internal::globalSum(time);
+    QDPInternal::globalSum(time);
     time /= (double)Layout::numNodes();
 
     if (time < n_secs) {
@@ -150,7 +150,7 @@ timeDslash::run(void)
 
 
   swatch.reset();
-  Internal::globalSum(dummy);
+  QDPInternal::globalSum(dummy);
   swatch.start();
 
 #ifdef PAT
@@ -172,7 +172,7 @@ timeDslash::run(void)
   time=swatch.getTimeInSeconds();
 
   // Average time over nodes
-  Internal::globalSum(time);
+  QDPInternal::globalSum(time);
   time /= (double)Layout::numNodes();
 
   QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << endl;
@@ -185,7 +185,7 @@ timeDslash::run(void)
   QDPIO::cout << "\t Timing with " << iters << " counts" << endl;
 
   swatch.reset();
-  Internal::globalSum(dummy);
+  QDPInternal::globalSum(dummy);
   swatch.start();
   
   for(int i=0; i < iters; ++i) {
@@ -199,7 +199,7 @@ timeDslash::run(void)
   time=swatch.getTimeInSeconds();
 
   // Average time over nodes
-  Internal::globalSum(time);
+  QDPInternal::globalSum(time);
   time /= (double)Layout::numNodes();
 
   QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << endl;
