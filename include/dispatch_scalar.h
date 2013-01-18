@@ -17,6 +17,11 @@
     u_mat_array       (*u)[4];      /*!< Gauge field - suitably packed */
     int cb;                         /*!< Checkerboard (source) */
   } ThreadWorkerArgs;
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
   
   /*! The thread dispatcher. In a 64 bit ABI it should be cheap to call
    * as a function call.
