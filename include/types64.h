@@ -13,9 +13,9 @@ extern "C" {
 
   /* now overlays for spinors as arrays or structs. Most important are: 
      u_mat_array - is a single link matrix 
-     my_mat_array - is a 4-vector of u_mat_array pointers
-     half_spinor_array - is a 2 component vector of color vectors 
-     spinor_array - which is a 4 component vector of color vectors */
+     my_mat_array - is a 4-std::vector of u_mat_array pointers
+     half_spinor_array - is a 2 component std::vector of color vectors 
+     spinor_array - which is a 4 component std::vector of color vectors */
   
   /* now overlays for spinors as arrays or structs */
   typedef double chi_double[2] __attribute__ ((aligned (16)));

@@ -111,7 +111,7 @@ extern "C" {
   }
 
 
-  static int local_site(const coord[4], const latt_size[4])
+  static int local_site(const int coord[4], const int latt_size[4])
   {
     int order = 0;
     int mmu;

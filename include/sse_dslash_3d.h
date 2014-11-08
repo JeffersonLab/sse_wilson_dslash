@@ -26,9 +26,9 @@
 	\param chi Pointer to the result vectors first element (regardless of cb)
 	\param isign -1 for applying3 Dslash Dagger +1 for applying Dslash 
 	
-	\param cb  The checkerboard index of the source vector.
+	\param cb  The checkerboard index of the source std::vector.
 
-        NB: psi and chi extend over the whole lattice in this apparoach (they are not solely one checkerboards worth of vector but a full latticeworth. Offsets are worked out internally.
+        NB: psi and chi extend over the whole lattice in this apparoach (they are not solely one checkerboards worth of std::vector but a full latticeworth. Offsets are worked out internally.
     */
     void sse_su3dslash_wilson_3d(SSEREAL* u, SSEREAL *psi, SSEREAL *res, int isign, int cb);
   

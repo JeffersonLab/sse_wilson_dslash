@@ -16,7 +16,6 @@ using namespace QDP;
 #include "sse_dslash_qdp_packer_3d.h"
 
 using namespace Assertions;
-using namespace std;
 
 #ifdef DSLASH_USE_OMP_THREADS
 #include <omp.h>
@@ -84,7 +83,7 @@ timeDslash3D::run(void)
   packed_gauge.resize( 4 * Layout::sitesOnNode() );
   SSEDslash3D::qdp_pack_gauge_3d(u, packed_gauge);
  
-  QDPIO::cout << endl;
+  QDPIO::cout << std::endl;
   StopWatch swatch;
   double time=0;
   int iters=131000;
@@ -93,7 +92,7 @@ timeDslash3D::run(void)
 #if 0
   {
     iters=1;
-    QDPIO::cout << endl << "\t Calibrating for " << n_secs << " seconds " << endl;
+    QDPIO::cout << std::endl << "\t Calibrating for " << n_secs << " seconds " << std::endl;
     do {
       swatch.reset();
       swatch.start();
@@ -112,13 +111,13 @@ timeDslash3D::run(void)
       
       if (time < n_secs) {
 	iters *=2;
-	QDPIO::cout << "." << flush;
+	QDPIO::cout << "." << std::flush;
       }
     }
     while ( time < (double)n_secs );
     
-    QDPIO::cout << endl;
-    QDPIO::cout << "\t Timing with " << iters << " counts" << endl;
+    QDPIO::cout << std::endl;
+    QDPIO::cout << "\t Timing with " << iters << " counts" << std::endl;
    }
 #endif 
    {
@@ -149,13 +148,13 @@ timeDslash3D::run(void)
     QDPInternal::globalSum(time);
     time /= (double)Layout::numNodes();
     
-    QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << endl;
-    QDPIO::cout << "\t " << 1.0e6*time/(double)iters << " u sec/iteration" << endl;    
+    QDPIO::cout << "\t " << iters << " iterations in " << time << " seconds " << std::endl;
+    QDPIO::cout << "\t " << 1.0e6*time/(double)iters << " u sec/iteration" << std::endl;    
     // Full 4D dslash is 1390 Mflops. 3D Dslash is 3/4*1390~1042.5 ? */
     double Mflops = (1043.0f*(double)(iters)*(double)(Layout::vol()/2))/1.0e6;
     double perf = Mflops/time;
-    QDPIO::cout << "\t Performance is: " << perf << " Mflops in Total" << endl;
-    QDPIO::cout << "\t Performance is: " << perf / (double)Layout::numNodes() << " per MPI Process" << endl;
+    QDPIO::cout << "\t Performance is: " << perf << " Mflops in Total" << std::endl;
+    QDPIO::cout << "\t Performance is: " << perf / (double)Layout::numNodes() << " per MPI Process" << std::endl;
     
     // Finalize the Dslash
     free_sse_su3dslash_3d();

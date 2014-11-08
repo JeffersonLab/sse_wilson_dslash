@@ -16,7 +16,6 @@ using namespace QDP;
 #include "sse_dslash_qdp_packer_3d.h"
 
 using namespace Assertions;
-using namespace std;
 
 #ifdef DSLASH_USE_OMP_THREADS
 #include <omp.h>
@@ -82,7 +81,7 @@ testDslash3D::run(void)
   packed_gauge.resize( 4 * Layout::sitesOnNode() );
   SSEDslash3D::qdp_pack_gauge_3d(u, packed_gauge);
  
-  QDPIO::cout << endl;
+  QDPIO::cout << std::endl;
 
   // Go through the test cases -- apply SSE dslash versus, QDP Dslash 
   for(int isign=1; isign >= -1; isign -=2) {
@@ -101,14 +100,14 @@ testDslash3D::run(void)
       // Apply QDP Dslash
       dslash_3d(chi2,u,psi, isign, target_cb);
       
-      // Check the difference per number in chi vector
+      // Check the difference per number in chi std::vector
       LatticeFermion diff= zero;
       diff = chi2 -chi;
 
       Double diff_norm = sqrt( norm2( diff ) )
 	/ ( Real(4*3*2*Layout::vol()) / Real(2));
 	
-      QDPIO::cout << "\t cb = " << source_cb << "  isign = " << isign << "  diff_norm = " << diff_norm << endl;      
+      QDPIO::cout << "\t cb = " << source_cb << "  isign = " << isign << "  diff_norm = " << diff_norm << std::endl;      
       // Assert things are OK...
       assertion( toBool( diff_norm < small ) );
 
